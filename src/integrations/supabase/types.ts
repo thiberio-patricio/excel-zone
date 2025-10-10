@@ -100,7 +100,6 @@ export type Database = {
           foto_url: string | null
           id: string
           nome: string
-          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
@@ -109,7 +108,6 @@ export type Database = {
           foto_url?: string | null
           id: string
           nome: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
@@ -118,8 +116,28 @@ export type Database = {
           foto_url?: string | null
           id?: string
           nome?: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["user_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -176,7 +194,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["user_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       user_role: "vendedor" | "gerente"

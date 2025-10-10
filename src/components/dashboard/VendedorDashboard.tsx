@@ -10,7 +10,6 @@ interface VendedorDashboardProps {
     id: string;
     nome: string;
     email: string;
-    role: 'vendedor' | 'gerente';
   };
 }
 

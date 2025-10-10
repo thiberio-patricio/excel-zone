@@ -12,7 +12,6 @@ interface GerenteDashboardProps {
     id: string;
     nome: string;
     email: string;
-    role: 'vendedor' | 'gerente';
   };
 }
 
@@ -35,14 +34,26 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
   const carregarVendedores = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("role", "vendedor")
-        .order("nome");
+      // Buscar IDs de vendedores da tabela user_roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "vendedor");
 
-      if (error) throw error;
-      if (data) setVendedores(data);
+      if (rolesError) throw rolesError;
+
+      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+
+      if (vendedorIds.length > 0) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", vendedorIds)
+          .order("nome");
+
+        if (error) throw error;
+        if (data) setVendedores(data);
+      }
     } catch (error: any) {
       toast.error("Erro ao carregar vendedores");
     }
