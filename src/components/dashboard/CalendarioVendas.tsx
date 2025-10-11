@@ -43,6 +43,17 @@ export default function CalendarioVendas({
     const ultimoDia = new Date(ano, mes, 0);
     const dias = [];
 
+    // Calcular o dia da semana do primeiro dia (0 = domingo, 1 = segunda, etc.)
+    let diaSemanaInicio = primeiroDia.getDay();
+    // Ajustar para segunda-feira ser 0
+    diaSemanaInicio = diaSemanaInicio === 0 ? 6 : diaSemanaInicio - 1;
+
+    // Adicionar células vazias antes do primeiro dia
+    for (let i = 0; i < diaSemanaInicio; i++) {
+      dias.push(null);
+    }
+
+    // Adicionar os dias do mês (excluindo domingos)
     for (let dia = primeiroDia; dia <= ultimoDia; dia.setDate(dia.getDate() + 1)) {
       const diaSemana = dia.getDay();
       if (diaSemana !== 0) {
@@ -175,7 +186,7 @@ export default function CalendarioVendas({
         </CardHeader>
         <CardContent>
           {/* Legenda dos dias da semana */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 mb-2">
+          <div className="grid grid-cols-6 gap-2 mb-2">
             {diasSemana.map((dia) => (
               <div key={dia} className="text-center text-xs font-semibold text-muted-foreground p-2">
                 {dia}
@@ -184,8 +195,13 @@ export default function CalendarioVendas({
           </div>
 
           {/* Calendário */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2">
-            {diasMes.map((dia) => {
+          <div className="grid grid-cols-6 gap-2">
+            {diasMes.map((dia, index) => {
+              // Células vazias para alinhar o calendário
+              if (dia === null) {
+                return <div key={`empty-${index}`} className="p-3" />;
+              }
+
               const dataStr = dia.toISOString().split('T')[0];
               const venda = vendas.find(v => v.data === dataStr);
               const isSelected = selectedDate === dataStr;
