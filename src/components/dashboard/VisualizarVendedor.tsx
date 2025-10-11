@@ -23,6 +23,7 @@ interface Venda {
   id: string;
   data: string;
   valor: number;
+  devolucao: number;
   observacoes: string | null;
 }
 
@@ -74,7 +75,7 @@ export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorPro
 
       if (vendasData) {
         setVendas(vendasData);
-        const total = vendasData.reduce((acc, v) => acc + Number(v.valor), 0);
+        const total = vendasData.reduce((acc, v) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
         setTotalVendido(total);
       }
     } catch (error: any) {
@@ -145,6 +146,9 @@ export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorPro
         vendas={vendas}
         isReadOnly={false}
         onVendasUpdate={carregarDados}
+        mes={mesAtual}
+        ano={anoAtual}
+        meta={meta?.valor_meta || null}
       />
     </div>
   );

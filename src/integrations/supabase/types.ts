@@ -145,6 +145,7 @@ export type Database = {
         Row: {
           created_at: string
           data: string
+          devolucao: number
           editado_por: string | null
           id: string
           observacoes: string | null
@@ -155,6 +156,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data: string
+          devolucao?: number
           editado_por?: string | null
           id?: string
           observacoes?: string | null
@@ -165,6 +167,7 @@ export type Database = {
         Update: {
           created_at?: string
           data?: string
+          devolucao?: number
           editado_por?: string | null
           id?: string
           observacoes?: string | null

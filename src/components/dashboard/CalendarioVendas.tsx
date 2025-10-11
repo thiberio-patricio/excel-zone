@@ -14,10 +14,14 @@ interface CalendarioVendasProps {
     id: string;
     data: string;
     valor: number;
+    devolucao: number;
     observacoes: string | null;
   }>;
   isReadOnly: boolean;
   onVendasUpdate: () => void;
+  mes: number;
+  ano: number;
+  meta: number | null;
 }
 
 export default function CalendarioVendas({
@@ -25,17 +29,18 @@ export default function CalendarioVendas({
   vendas,
   isReadOnly,
   onVendasUpdate,
+  mes,
+  ano,
+  meta,
 }: CalendarioVendasProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [valor, setValor] = useState("");
+  const [devolucao, setDevolucao] = useState("");
   const [observacoes, setObservacoes] = useState("");
 
-  const mesAtual = new Date().getMonth();
-  const anoAtual = new Date().getFullYear();
-
   const getDiasDoMes = () => {
-    const primeiroDia = new Date(anoAtual, mesAtual, 1);
-    const ultimoDia = new Date(anoAtual, mesAtual + 1, 0);
+    const primeiroDia = new Date(ano, mes - 1, 1);
+    const ultimoDia = new Date(ano, mes, 0);
     const dias = [];
 
     for (let dia = primeiroDia; dia <= ultimoDia; dia.setDate(dia.getDate() + 1)) {
@@ -48,6 +53,46 @@ export default function CalendarioVendas({
     return dias;
   };
 
+  const calcularVendaEsperada = (data: Date): number | null => {
+    if (!meta) return null;
+
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const dataVerificada = new Date(data);
+    dataVerificada.setHours(0, 0, 0, 0);
+
+    // Só calcula para dias atuais ou futuros
+    if (dataVerificada < hoje) return null;
+
+    // Calcular venda real até ontem
+    const ontem = new Date(hoje);
+    ontem.setDate(ontem.getDate() - 1);
+    
+    const vendasAteOntem = vendas.filter(v => {
+      const dataVenda = new Date(v.data + 'T00:00:00');
+      return dataVenda <= ontem;
+    });
+
+    const vendaRealTotal = vendasAteOntem.reduce((acc, v) => 
+      acc + (v.valor - v.devolucao), 0
+    );
+
+    // Calcular dias restantes (excluindo domingos)
+    const ultimoDiaMes = new Date(ano, mes, 0);
+    let diasRestantes = 0;
+    
+    for (let d = new Date(hoje); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() !== 0) {
+        diasRestantes++;
+      }
+    }
+
+    if (diasRestantes === 0) return null;
+
+    const metaRestante = meta - vendaRealTotal;
+    return metaRestante / diasRestantes;
+  };
+
   const handleDayClick = (data: Date) => {
     const dataStr = data.toISOString().split('T')[0];
     setSelectedDate(dataStr);
@@ -55,9 +100,11 @@ export default function CalendarioVendas({
     const venda = vendas.find(v => v.data === dataStr);
     if (venda) {
       setValor(venda.valor.toString());
+      setDevolucao(venda.devolucao.toString());
       setObservacoes(venda.observacoes || "");
     } else {
       setValor("");
+      setDevolucao("");
       setObservacoes("");
     }
   };
@@ -76,6 +123,7 @@ export default function CalendarioVendas({
           .from("vendas")
           .update({
             valor: parseFloat(valor),
+            devolucao: parseFloat(devolucao || "0"),
             observacoes,
           })
           .eq("id", vendaExistente.id);
@@ -88,6 +136,7 @@ export default function CalendarioVendas({
             vendedor_id: vendedorId,
             data: selectedDate,
             valor: parseFloat(valor),
+            devolucao: parseFloat(devolucao || "0"),
             observacoes,
           });
 
@@ -98,6 +147,7 @@ export default function CalendarioVendas({
       onVendasUpdate();
       setSelectedDate(null);
       setValor("");
+      setDevolucao("");
       setObservacoes("");
     } catch (error: any) {
       toast.error("Erro ao salvar venda");
@@ -110,21 +160,41 @@ export default function CalendarioVendas({
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
+  const diasSemana = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-primary" />
-            {meses[mesAtual]} {anoAtual}
+            {meses[mes - 1]} {ano}
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Legenda dos dias da semana */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2 mb-2">
+            {diasSemana.map((dia) => (
+              <div key={dia} className="text-center text-xs font-semibold text-muted-foreground p-2">
+                {dia}
+              </div>
+            ))}
+          </div>
+
+          {/* Calendário */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-2">
             {diasMes.map((dia) => {
               const dataStr = dia.toISOString().split('T')[0];
               const venda = vendas.find(v => v.data === dataStr);
               const isSelected = selectedDate === dataStr;
+              const vendaReal = venda ? venda.valor - venda.devolucao : 0;
+              const vendaEsperada = calcularVendaEsperada(dia);
+              
+              const diaDate = new Date(dia);
+              diaDate.setHours(0, 0, 0, 0);
+              const isPast = diaDate < hoje;
 
               return (
                 <button
@@ -132,7 +202,7 @@ export default function CalendarioVendas({
                   onClick={() => handleDayClick(dia)}
                   disabled={isReadOnly && !venda}
                   className={`
-                    p-3 rounded-lg border transition-all
+                    p-3 rounded-lg border transition-all min-h-[80px] flex flex-col justify-between
                     ${isSelected
                       ? 'bg-primary text-primary-foreground border-primary shadow-md'
                       : venda
@@ -145,9 +215,24 @@ export default function CalendarioVendas({
                   <div className="text-sm font-semibold">
                     {dia.getDate()}
                   </div>
-                  {venda && (
-                    <div className="text-xs mt-1 font-medium">
-                      R$ {venda.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  
+                  {/* Venda Real (dias passados) */}
+                  {isPast && venda && (
+                    <div className="text-xs mt-1">
+                      <div className="font-medium text-success">
+                        R$ {vendaReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Real</div>
+                    </div>
+                  )}
+                  
+                  {/* Venda Esperada (dias atuais/futuros) */}
+                  {!isPast && vendaEsperada !== null && (
+                    <div className="text-xs mt-1">
+                      <div className="font-medium text-primary">
+                        R$ {vendaEsperada.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground">Esperada</div>
                     </div>
                   )}
                 </button>
@@ -177,6 +262,17 @@ export default function CalendarioVendas({
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="devolucao">Devolução (R$)</Label>
+              <Input
+                id="devolucao"
+                type="number"
+                step="0.01"
+                placeholder="0,00"
+                value={devolucao}
+                onChange={(e) => setDevolucao(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="observacoes">Observações</Label>
               <Textarea
                 id="observacoes"
@@ -194,6 +290,7 @@ export default function CalendarioVendas({
                 onClick={() => {
                   setSelectedDate(null);
                   setValor("");
+                  setDevolucao("");
                   setObservacoes("");
                 }}
               >
