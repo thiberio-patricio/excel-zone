@@ -1,16 +1,11 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { UserPlus, Target } from "lucide-react";
 
@@ -20,158 +15,167 @@ interface GerenciarVendedoresProps {
 
 export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresProps) {
   const [open, setOpen] = useState(false);
-  const [openMeta, setOpenMeta] = useState(false);
-  const [loading, setLoading] = useState(false);
-
+  const [metaOpen, setMetaOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-  const [role, setRole] = useState<'vendedor' | 'gerente'>('vendedor');
+  const [cargo, setCargo] = useState<"vendedor" | "gerente">("vendedor");
+  const [fotoUrl, setFotoUrl] = useState("");
 
-  const [metaVendedorEmail, setMetaVendedorEmail] = useState("");
+  const [vendedorEmail, setVendedorEmail] = useState("");
   const [valorMeta, setValorMeta] = useState("");
+  const [mes, setMes] = useState(new Date().getMonth() + 1);
+  const [ano, setAno] = useState(new Date().getFullYear());
 
-  const handleCriarUsuario = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleCriarUsuario = async () => {
+    if (!nome || !email || !senha) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
 
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
         options: {
           data: {
             nome,
-            role,
+            role: cargo,
+            foto_url: fotoUrl || null,
           },
-          emailRedirectTo: `${window.location.origin}/`,
         },
       });
 
-      if (authError) throw authError;
-
-      toast.success(`${role === 'vendedor' ? 'Vendedor' : 'Gerente'} criado com sucesso!`);
-      setOpen(false);
-      setNome("");
-      setEmail("");
-      setSenha("");
-      setRole('vendedor');
-      onUpdate();
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao criar usuário");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCriarMeta = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", metaVendedorEmail)
-        .single();
-
-      if (!profiles) {
-        toast.error("Vendedor não encontrado");
-        return;
-      }
-
-      const mesAtual = new Date().getMonth() + 1;
-      const anoAtual = new Date().getFullYear();
-
-      const { error } = await supabase
-        .from("metas")
-        .upsert({
-          vendedor_id: profiles.id,
-          mes: mesAtual,
-          ano: anoAtual,
-          valor_meta: parseFloat(valorMeta),
-        }, {
-          onConflict: 'vendedor_id,mes,ano'
-        });
-
       if (error) throw error;
 
-      toast.success("Meta criada com sucesso!");
-      setOpenMeta(false);
-      setMetaVendedorEmail("");
-      setValorMeta("");
+      if (data.user) {
+        toast.success(`${cargo === "gerente" ? "Gerente" : "Vendedor"} criado com sucesso!`);
+        setNome("");
+        setEmail("");
+        setSenha("");
+        setFotoUrl("");
+        setCargo("vendedor");
+        setOpen(false);
+        onUpdate();
+      }
     } catch (error: any) {
-      toast.error("Erro ao criar meta");
-    } finally {
-      setLoading(false);
+      toast.error(error.message || "Erro ao criar usuário");
     }
   };
+
+  const handleCriarMeta = async () => {
+    if (!vendedorEmail || !valorMeta) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+
+    try {
+      const { data: vendedor, error: vendedorError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", vendedorEmail)
+        .single();
+
+      if (vendedorError) throw new Error("Vendedor não encontrado");
+
+      const { error: metaError } = await supabase
+        .from("metas")
+        .upsert({
+          vendedor_id: vendedor.id,
+          mes,
+          ano,
+          valor_meta: parseFloat(valorMeta),
+        });
+
+      if (metaError) throw metaError;
+
+      toast.success("Meta definida com sucesso!");
+      setVendedorEmail("");
+      setValorMeta("");
+      setMetaOpen(false);
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao definir meta");
+    }
+  };
+
+  const meses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
 
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="w-5 h-5" />
-            Novo Usuário
-          </CardTitle>
+          <CardTitle>Novo Usuário</CardTitle>
         </CardHeader>
         <CardContent>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button className="w-full">Criar Vendedor/Gerente</Button>
+              <Button className="w-full">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Cadastrar Usuário
+              </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Criar Novo Usuário</DialogTitle>
+                <DialogTitle>Cadastrar Novo Usuário</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCriarUsuario} className="space-y-4">
-                <div className="space-y-2">
+              <div className="space-y-4">
+                <div>
                   <Label htmlFor="nome">Nome</Label>
                   <Input
                     id="nome"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
-                    required
+                    placeholder="Nome completo"
                   />
                 </div>
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    required
+                    placeholder="email@exemplo.com"
                   />
                 </div>
-                <div className="space-y-2">
+                <div>
                   <Label htmlFor="senha">Senha</Label>
                   <Input
                     id="senha"
                     type="password"
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
-                    required
-                    minLength={6}
+                    placeholder="Mínimo 6 caracteres"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Tipo de Usuário</Label>
-                  <select
-                    id="role"
-                    value={role}
-                    onChange={(e) => setRole(e.target.value as 'vendedor' | 'gerente')}
-                    className="w-full rounded-md border border-input bg-background px-3 py-2"
-                  >
-                    <option value="vendedor">Vendedor</option>
-                    <option value="gerente">Gerente</option>
-                  </select>
+                <div>
+                  <Label htmlFor="foto">URL da Foto (opcional)</Label>
+                  <Input
+                    id="foto"
+                    value={fotoUrl}
+                    onChange={(e) => setFotoUrl(e.target.value)}
+                    placeholder="https://exemplo.com/foto.jpg"
+                  />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Criando..." : "Criar Usuário"}
+                <div>
+                  <Label htmlFor="cargo">Cargo</Label>
+                  <Select value={cargo} onValueChange={(value: "vendedor" | "gerente") => setCargo(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vendedor">Vendedor</SelectItem>
+                      <SelectItem value="gerente">Gerente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button onClick={handleCriarUsuario} className="w-full">
+                  Criar Usuário
                 </Button>
-              </form>
+              </div>
             </DialogContent>
           </Dialog>
         </CardContent>
@@ -179,48 +183,69 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
-            Nova Meta
-          </CardTitle>
+          <CardTitle>Nova Meta</CardTitle>
         </CardHeader>
         <CardContent>
-          <Dialog open={openMeta} onOpenChange={setOpenMeta}>
+          <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
             <DialogTrigger asChild>
-              <Button className="w-full" variant="secondary">
-                Definir Meta do Mês
+              <Button className="w-full" variant="outline">
+                <Target className="w-4 h-4 mr-2" />
+                Definir Meta
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Definir Meta do Mês</DialogTitle>
+                <DialogTitle>Definir Meta de Vendas</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCriarMeta} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="vendedor-email">Email do Vendedor</Label>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="vendedorEmail">Email do Vendedor</Label>
                   <Input
-                    id="vendedor-email"
-                    type="email"
-                    value={metaVendedorEmail}
-                    onChange={(e) => setMetaVendedorEmail(e.target.value)}
-                    required
+                    id="vendedorEmail"
+                    value={vendedorEmail}
+                    onChange={(e) => setVendedorEmail(e.target.value)}
+                    placeholder="vendedor@exemplo.com"
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="valor-meta">Valor da Meta (R$)</Label>
+                <div>
+                  <Label htmlFor="mes">Mês</Label>
+                  <Select value={mes.toString()} onValueChange={(value) => setMes(parseInt(value))}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {meses.map((nome, index) => (
+                        <SelectItem key={index + 1} value={(index + 1).toString()}>
+                          {nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="ano">Ano</Label>
                   <Input
-                    id="valor-meta"
+                    id="ano"
+                    type="number"
+                    value={ano}
+                    onChange={(e) => setAno(parseInt(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="valorMeta">Valor da Meta (R$)</Label>
+                  <Input
+                    id="valorMeta"
                     type="number"
                     step="0.01"
                     value={valorMeta}
                     onChange={(e) => setValorMeta(e.target.value)}
-                    required
+                    placeholder="0.00"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Criando..." : "Criar Meta"}
+                <Button onClick={handleCriarMeta} className="w-full">
+                  Definir Meta
                 </Button>
-              </form>
+              </div>
             </DialogContent>
           </Dialog>
         </CardContent>

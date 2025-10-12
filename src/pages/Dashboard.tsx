@@ -94,13 +94,22 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              Olá, {profile.nome}
-            </h1>
-            <p className="text-sm text-muted-foreground capitalize">
-              {userRole}
-            </p>
+          <div className="flex items-center gap-4">
+            {profile.foto_url && (
+              <img
+                src={profile.foto_url}
+                alt={profile.nome}
+                className="w-12 h-12 rounded-full object-cover border-2 border-primary"
+              />
+            )}
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">
+                Olá, {profile.nome}
+              </h1>
+              <p className="text-sm text-muted-foreground capitalize">
+                {userRole}
+              </p>
+            </div>
           </div>
           <Button variant="outline" onClick={handleLogout}>
             <LogOut className="w-4 h-4 mr-2" />

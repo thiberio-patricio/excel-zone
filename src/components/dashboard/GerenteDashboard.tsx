@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Users, TrendingUp, Target } from "lucide-react";
+import { Users, TrendingUp, Target, BarChart } from "lucide-react";
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import GerenciarVendedores from "./GerenciarVendedores";
 import VisualizarVendedor from "./VisualizarVendedor";
 
@@ -26,10 +27,12 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
   const [totalVendas, setTotalVendas] = useState(0);
+  const [dashboardData, setDashboardData] = useState<any[]>([]);
 
   useEffect(() => {
     carregarVendedores();
     carregarTotalVendas();
+    carregarDadosDashboard();
   }, []);
 
   const carregarVendedores = async () => {
@@ -68,18 +71,78 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
       const { data, error } = await supabase
         .from("vendas")
-        .select("valor")
+        .select("valor, devolucao")
         .gte("data", primeiroDia.toISOString().split('T')[0])
         .lte("data", ultimoDia.toISOString().split('T')[0]);
 
       if (error) throw error;
 
       if (data) {
-        const total = data.reduce((acc, v) => acc + Number(v.valor), 0);
+        const total = data.reduce((acc, v) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
         setTotalVendas(total);
       }
     } catch (error: any) {
       toast.error("Erro ao carregar total de vendas");
+    }
+  };
+
+  const carregarDadosDashboard = async () => {
+    try {
+      const mesAtual = new Date().getMonth() + 1;
+      const anoAtual = new Date().getFullYear();
+      const primeiroDia = new Date(anoAtual, mesAtual - 1, 1);
+      const ultimoDia = new Date(anoAtual, mesAtual, 0);
+
+      // Buscar vendedores
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "vendedor");
+
+      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+
+      if (vendedorIds.length === 0) return;
+
+      // Buscar perfis
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .in("id", vendedorIds);
+
+      // Buscar vendas e metas
+      const chartData = await Promise.all(
+        (profiles || []).map(async (vendedor) => {
+          const { data: vendas } = await supabase
+            .from("vendas")
+            .select("valor, devolucao")
+            .eq("vendedor_id", vendedor.id)
+            .gte("data", primeiroDia.toISOString().split('T')[0])
+            .lte("data", ultimoDia.toISOString().split('T')[0]);
+
+          const { data: meta } = await supabase
+            .from("metas")
+            .select("valor_meta")
+            .eq("vendedor_id", vendedor.id)
+            .eq("mes", mesAtual)
+            .eq("ano", anoAtual)
+            .maybeSingle();
+
+          const totalVendido = (vendas || []).reduce(
+            (acc, v) => acc + (Number(v.valor) - Number(v.devolucao)),
+            0
+          );
+
+          return {
+            nome: vendedor.nome,
+            vendido: totalVendido,
+            meta: meta?.valor_meta || 0,
+          };
+        })
+      );
+
+      setDashboardData(chartData);
+    } catch (error: any) {
+      toast.error("Erro ao carregar dados do dashboard");
     }
   };
 
@@ -126,11 +189,40 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </Card>
       </div>
 
-      <Tabs defaultValue="vendedores" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+      <Tabs defaultValue="dashboard" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="vendedores">Gerenciar Equipe</TabsTrigger>
           <TabsTrigger value="vendas">Visualizar Vendas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="h-5 w-5" />
+                Performance da Equipe
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={400}>
+                <RechartsBarChart data={dashboardData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="nome" />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value: number) => 
+                      `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    }
+                  />
+                  <Legend />
+                  <Bar dataKey="vendido" fill="hsl(var(--success))" name="Vendido" />
+                  <Bar dataKey="meta" fill="hsl(var(--primary))" name="Meta" />
+                </RechartsBarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="vendedores" className="space-y-4">
           <GerenciarVendedores onUpdate={carregarVendedores} />
