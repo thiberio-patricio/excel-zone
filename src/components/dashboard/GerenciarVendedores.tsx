@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserPlus, Target } from "lucide-react";
+import { UserPlus, Target, Upload } from "lucide-react";
 
 interface GerenciarVendedoresProps {
   onUpdate: () => void;
@@ -21,11 +21,55 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
   const [senha, setSenha] = useState("");
   const [cargo, setCargo] = useState<"vendedor" | "gerente">("vendedor");
   const [fotoUrl, setFotoUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [vendedorEmail, setVendedorEmail] = useState("");
   const [valorMeta, setValorMeta] = useState("");
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast.error("Por favor, selecione uma imagem válida");
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-photos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-photos')
+        .getPublicUrl(filePath);
+
+      setFotoUrl(publicUrl);
+      toast.success("Foto carregada com sucesso!");
+    } catch (error: any) {
+      toast.error("Erro ao fazer upload da foto");
+      console.error("Erro:", error);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const handleCriarUsuario = async () => {
     if (!nome || !email || !senha) {
@@ -152,13 +196,36 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
                   />
                 </div>
                 <div>
-                  <Label htmlFor="foto">URL da Foto (opcional)</Label>
-                  <Input
-                    id="foto"
-                    value={fotoUrl}
-                    onChange={(e) => setFotoUrl(e.target.value)}
-                    placeholder="https://exemplo.com/foto.jpg"
-                  />
+                  <Label htmlFor="foto">Foto do Perfil (opcional)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="foto"
+                      value={fotoUrl}
+                      onChange={(e) => setFotoUrl(e.target.value)}
+                      placeholder="https://exemplo.com/foto.jpg ou faça upload"
+                      className="flex-1"
+                    />
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handlePhotoUpload}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                    >
+                      <Upload className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  {fotoUrl && (
+                    <div className="mt-2">
+                      <img src={fotoUrl} alt="Preview" className="w-20 h-20 rounded-full object-cover" />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="cargo">Cargo</Label>

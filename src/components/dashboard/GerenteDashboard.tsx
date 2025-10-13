@@ -66,14 +66,19 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
     try {
       const mesAtual = new Date().getMonth() + 1;
       const anoAtual = new Date().getFullYear();
-      const primeiroDia = new Date(anoAtual, mesAtual - 1, 1);
+      
+      // Primeiro dia do mês atual
+      const primeiroDia = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-01`;
+      
+      // Último dia do mês atual
       const ultimoDia = new Date(anoAtual, mesAtual, 0);
+      const ultimoDiaFormatado = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
       const { data, error } = await supabase
         .from("vendas")
         .select("valor, devolucao")
-        .gte("data", primeiroDia.toISOString().split('T')[0])
-        .lte("data", ultimoDia.toISOString().split('T')[0]);
+        .gte("data", primeiroDia)
+        .lte("data", ultimoDiaFormatado);
 
       if (error) throw error;
 
@@ -83,6 +88,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       }
     } catch (error: any) {
       toast.error("Erro ao carregar total de vendas");
+      console.error("Erro detalhado:", error);
     }
   };
 
@@ -90,8 +96,13 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
     try {
       const mesAtual = new Date().getMonth() + 1;
       const anoAtual = new Date().getFullYear();
-      const primeiroDia = new Date(anoAtual, mesAtual - 1, 1);
+      
+      // Primeiro dia do mês atual
+      const primeiroDia = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-01`;
+      
+      // Último dia do mês atual
       const ultimoDia = new Date(anoAtual, mesAtual, 0);
+      const ultimoDiaFormatado = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
       // Buscar vendedores
       const { data: rolesData } = await supabase
@@ -101,7 +112,10 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
       const vendedorIds = rolesData?.map(r => r.user_id) || [];
 
-      if (vendedorIds.length === 0) return;
+      if (vendedorIds.length === 0) {
+        setDashboardData([]);
+        return;
+      }
 
       // Buscar perfis
       const { data: profiles } = await supabase
@@ -116,8 +130,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             .from("vendas")
             .select("valor, devolucao")
             .eq("vendedor_id", vendedor.id)
-            .gte("data", primeiroDia.toISOString().split('T')[0])
-            .lte("data", ultimoDia.toISOString().split('T')[0]);
+            .gte("data", primeiroDia)
+            .lte("data", ultimoDiaFormatado);
 
           const { data: meta } = await supabase
             .from("metas")
@@ -135,7 +149,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
           return {
             nome: vendedor.nome,
             vendido: totalVendido,
-            meta: meta?.valor_meta || 0,
+            meta: Number(meta?.valor_meta) || 0,
           };
         })
       );
@@ -143,6 +157,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       setDashboardData(chartData);
     } catch (error: any) {
       toast.error("Erro ao carregar dados do dashboard");
+      console.error("Erro detalhado:", error);
     }
   };
 
