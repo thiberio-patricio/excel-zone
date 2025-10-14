@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,10 +24,29 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [vendedorEmail, setVendedorEmail] = useState("");
+  const [vendedores, setVendedores] = useState<Array<{ id: string; nome: string }>>([]);
+  const [vendedorId, setVendedorId] = useState("");
   const [valorMeta, setValorMeta] = useState("");
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
+
+  useEffect(() => {
+    carregarVendedores();
+  }, []);
+
+  const carregarVendedores = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .order("nome");
+
+      if (error) throw error;
+      setVendedores(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar vendedores:", error);
+    }
+  };
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -108,24 +127,16 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
   };
 
   const handleCriarMeta = async () => {
-    if (!vendedorEmail || !valorMeta) {
+    if (!vendedorId || !valorMeta) {
       toast.error("Preencha todos os campos");
       return;
     }
 
     try {
-      const { data: vendedor, error: vendedorError } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("email", vendedorEmail)
-        .single();
-
-      if (vendedorError) throw new Error("Vendedor não encontrado");
-
       const { error: metaError } = await supabase
         .from("metas")
         .upsert({
-          vendedor_id: vendedor.id,
+          vendedor_id: vendedorId,
           mes,
           ano,
           valor_meta: parseFloat(valorMeta),
@@ -134,7 +145,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       if (metaError) throw metaError;
 
       toast.success("Meta definida com sucesso!");
-      setVendedorEmail("");
+      setVendedorId("");
       setValorMeta("");
       setMetaOpen(false);
     } catch (error: any) {
@@ -266,13 +277,19 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
               </DialogHeader>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="vendedorEmail">Email do Vendedor</Label>
-                  <Input
-                    id="vendedorEmail"
-                    value={vendedorEmail}
-                    onChange={(e) => setVendedorEmail(e.target.value)}
-                    placeholder="vendedor@exemplo.com"
-                  />
+                  <Label htmlFor="vendedor">Vendedor</Label>
+                  <Select value={vendedorId} onValueChange={setVendedorId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um vendedor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendedores.map((vendedor) => (
+                        <SelectItem key={vendedor.id} value={vendedor.id}>
+                          {vendedor.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label htmlFor="mes">Mês</Label>
