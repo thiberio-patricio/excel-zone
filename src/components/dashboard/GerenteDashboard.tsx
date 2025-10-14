@@ -212,27 +212,107 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart className="h-5 w-5" />
+          <Card className="border-none shadow-lg bg-gradient-to-br from-card to-card/50">
+            <CardHeader className="pb-8">
+              <CardTitle className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
+                <BarChart className="h-6 w-6 text-primary" />
                 Performance da Equipe
               </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Vendas realizadas versus metas estabelecidas
+              </p>
             </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <RechartsBarChart data={dashboardData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="nome" />
-                  <YAxis />
+            <CardContent className="pt-0">
+              <ResponsiveContainer width="100%" height={450}>
+                <RechartsBarChart 
+                  data={dashboardData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  barGap={8}
+                >
+                  <defs>
+                    <linearGradient id="colorVendido" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0.7}/>
+                    </linearGradient>
+                    <linearGradient id="colorMeta" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid 
+                    strokeDasharray="3 3" 
+                    stroke="hsl(var(--border))" 
+                    opacity={0.3}
+                    vertical={false}
+                  />
+                  <XAxis 
+                    dataKey="nome" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={13}
+                    fontWeight={500}
+                    tickLine={false}
+                    axisLine={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={13}
+                    fontWeight={500}
+                    tickLine={false}
+                    axisLine={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
+                    tickFormatter={(value) => 
+                      `R$ ${(value / 1000).toFixed(0)}k`
+                    }
+                  />
                   <Tooltip 
+                    cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 'var(--radius)',
+                      padding: '12px',
+                      boxShadow: '0 4px 12px hsl(var(--primary) / 0.1)'
+                    }}
+                    labelStyle={{
+                      color: 'hsl(var(--foreground))',
+                      fontWeight: 600,
+                      marginBottom: '8px',
+                      fontSize: '14px'
+                    }}
+                    itemStyle={{
+                      color: 'hsl(var(--muted-foreground))',
+                      fontSize: '13px',
+                      padding: '4px 0'
+                    }}
                     formatter={(value: number) => 
                       `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                     }
                   />
-                  <Legend />
-                  <Bar dataKey="vendido" fill="hsl(var(--success))" name="Vendido" />
-                  <Bar dataKey="meta" fill="hsl(var(--primary))" name="Meta" />
+                  <Legend 
+                    wrapperStyle={{
+                      paddingTop: '20px',
+                      fontSize: '14px',
+                      fontWeight: 500
+                    }}
+                    iconType="circle"
+                    iconSize={10}
+                  />
+                  <Bar 
+                    dataKey="vendido" 
+                    fill="url(#colorVendido)" 
+                    name="Vendido"
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={60}
+                  />
+                  <Bar 
+                    dataKey="meta" 
+                    fill="url(#colorMeta)" 
+                    name="Meta"
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={60}
+                  />
                 </RechartsBarChart>
               </ResponsiveContainer>
             </CardContent>
