@@ -23,7 +23,7 @@ export type Database = {
           id: string
           registro_id: string | null
           tabela: string
-          usuario_id: string
+          usuario_id: string | null
         }
         Insert: {
           acao: string
@@ -33,7 +33,7 @@ export type Database = {
           id?: string
           registro_id?: string | null
           tabela: string
-          usuario_id: string
+          usuario_id?: string | null
         }
         Update: {
           acao?: string
@@ -43,7 +43,7 @@ export type Database = {
           id?: string
           registro_id?: string | null
           tabela?: string
-          usuario_id?: string
+          usuario_id?: string | null
         }
         Relationships: [
           {
