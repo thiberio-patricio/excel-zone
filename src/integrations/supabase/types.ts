@@ -45,15 +45,7 @@ export type Database = {
           tabela?: string
           usuario_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "audit_logs_usuario_id_fkey"
-            columns: ["usuario_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       metas: {
         Row: {
