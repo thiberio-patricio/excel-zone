@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserPlus, Target, Upload } from "lucide-react";
+import { UserPlus, Target, Upload, Trash2 } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 interface GerenciarVendedoresProps {
   onUpdate: () => void;
@@ -24,11 +26,12 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [vendedores, setVendedores] = useState<Array<{ id: string; nome: string }>>([]);
+  const [vendedores, setVendedores] = useState<Array<{ id: string; nome: string; email: string; foto_url: string | null }>>([]);
   const [vendedorId, setVendedorId] = useState("");
   const [valorMeta, setValorMeta] = useState("");
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
+  const [deletingUser, setDeletingUser] = useState<string | null>(null);
 
   useEffect(() => {
     carregarVendedores();
@@ -38,7 +41,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, nome")
+        .select("id, nome, email, foto_url")
         .order("nome");
 
       if (error) throw error;
@@ -135,12 +138,17 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
     try {
       const { error: metaError } = await supabase
         .from("metas")
-        .upsert({
-          vendedor_id: vendedorId,
-          mes,
-          ano,
-          valor_meta: parseFloat(valorMeta),
-        });
+        .upsert(
+          {
+            vendedor_id: vendedorId,
+            mes,
+            ano,
+            valor_meta: parseFloat(valorMeta),
+          },
+          {
+            onConflict: "vendedor_id,mes,ano"
+          }
+        );
 
       if (metaError) throw metaError;
 
@@ -153,25 +161,134 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
     }
   };
 
+  const handleDeletarUsuario = async (userId: string) => {
+    setDeletingUser(userId);
+    try {
+      // Deletar vendas do usuário
+      const { error: vendasError } = await supabase
+        .from("vendas")
+        .delete()
+        .eq("vendedor_id", userId);
+
+      if (vendasError) throw vendasError;
+
+      // Deletar metas do usuário
+      const { error: metasError } = await supabase
+        .from("metas")
+        .delete()
+        .eq("vendedor_id", userId);
+
+      if (metasError) throw metasError;
+
+      // Deletar roles do usuário
+      const { error: rolesError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+
+      if (rolesError) throw rolesError;
+
+      // Deletar perfil do usuário
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+
+      if (profileError) throw profileError;
+
+      // Deletar usuário do auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+
+      if (authError) throw authError;
+
+      toast.success("Usuário deletado com sucesso!");
+      carregarVendedores();
+      onUpdate();
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao deletar usuário");
+      console.error("Erro ao deletar:", error);
+    } finally {
+      setDeletingUser(null);
+    }
+  };
+
   const meses = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-4">
+      {/* Lista de usuários */}
       <Card>
         <CardHeader>
-          <CardTitle>Novo Usuário</CardTitle>
+          <CardTitle>Usuários Cadastrados</CardTitle>
         </CardHeader>
         <CardContent>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full">
-                <UserPlus className="w-4 h-4 mr-2" />
-                Cadastrar Usuário
-              </Button>
-            </DialogTrigger>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vendedores.map((vendedor) => (
+                <TableRow key={vendedor.id}>
+                  <TableCell className="font-medium">{vendedor.nome}</TableCell>
+                  <TableCell>{vendedor.email}</TableCell>
+                  <TableCell className="text-right">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={deletingUser === vendedor.id}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir o usuário {vendedor.nome}? 
+                            Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDeletarUsuario(vendedor.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Novo Usuário</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Cadastrar Usuário
+                </Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Usuário</DialogTitle>
@@ -255,14 +372,14 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
-        </CardContent>
-      </Card>
+            </Dialog>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Nova Meta</CardTitle>
-        </CardHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle>Nova Meta</CardTitle>
+          </CardHeader>
         <CardContent>
           <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
             <DialogTrigger asChild>
@@ -331,9 +448,10 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
                 </Button>
               </div>
             </DialogContent>
-          </Dialog>
-        </CardContent>
-      </Card>
+            </Dialog>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

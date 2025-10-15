@@ -184,7 +184,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
       <CalendarioVendas
         vendedorId={profile.id}
         vendas={vendas}
-        isReadOnly={true}
+        isReadOnly={false}
         onVendasUpdate={carregarDados}
         mes={mesSelecionado}
         ano={anoSelecionado}

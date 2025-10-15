@@ -258,16 +258,16 @@ export default function CalendarioVendas({
         </CardContent>
       </Card>
 
-      {selectedDate && !isReadOnly && (
+      {selectedDate && (
         <Card>
           <CardHeader>
             <CardTitle>
-              Registrar Venda - {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')}
+              {isReadOnly ? 'Detalhes da Venda' : 'Registrar Venda'} - {new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="valor">Valor (R$)</Label>
+              <Label htmlFor="valor">Venda do Dia (R$)</Label>
               <Input
                 id="valor"
                 type="number"
@@ -275,10 +275,11 @@ export default function CalendarioVendas({
                 placeholder="0,00"
                 value={valor}
                 onChange={(e) => setValor(e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="devolucao">Devolução (R$)</Label>
+              <Label htmlFor="devolucao">Devolução do Dia (R$)</Label>
               <Input
                 id="devolucao"
                 type="number"
@@ -286,6 +287,17 @@ export default function CalendarioVendas({
                 placeholder="0,00"
                 value={devolucao}
                 onChange={(e) => setDevolucao(e.target.value)}
+                disabled={isReadOnly}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="vendaReal">Venda Real do Dia (R$)</Label>
+              <Input
+                id="vendaReal"
+                type="text"
+                value={`R$ ${(parseFloat(valor || "0") - parseFloat(devolucao || "0")).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                disabled
+                className="font-bold"
               />
             </div>
             <div className="space-y-2">
@@ -295,12 +307,28 @@ export default function CalendarioVendas({
                 placeholder="Observações sobre a venda..."
                 value={observacoes}
                 onChange={(e) => setObservacoes(e.target.value)}
+                disabled={isReadOnly}
               />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={handleSalvar} className="flex-1">
-                Salvar
-              </Button>
+            {!isReadOnly && (
+              <div className="flex gap-2">
+                <Button onClick={handleSalvar} className="flex-1">
+                  Salvar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedDate(null);
+                    setValor("");
+                    setDevolucao("");
+                    setObservacoes("");
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            )}
+            {isReadOnly && (
               <Button
                 variant="outline"
                 onClick={() => {
@@ -309,10 +337,11 @@ export default function CalendarioVendas({
                   setDevolucao("");
                   setObservacoes("");
                 }}
+                className="w-full"
               >
-                Cancelar
+                Fechar
               </Button>
-            </div>
+            )}
           </CardContent>
         </Card>
       )}
