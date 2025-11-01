@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,33 +10,58 @@ import { Calendar } from "lucide-react";
 
 interface CalendarioVendasProps {
   vendedorId: string;
-  vendas: Array<{
-    id: string;
-    data: string;
-    valor: number;
-    devolucao: number;
-    observacoes: string | null;
-  }>;
   isReadOnly: boolean;
-  onVendasUpdate: () => void;
-  mes: number;
-  ano: number;
-  meta: number | null;
 }
 
 export default function CalendarioVendas({
   vendedorId,
-  vendas,
   isReadOnly,
-  onVendasUpdate,
-  mes,
-  ano,
-  meta,
 }: CalendarioVendasProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [valor, setValor] = useState("");
   const [devolucao, setDevolucao] = useState("");
-  const [observacoes, setObservacoes] = useState("");
+  const [mes, setMes] = useState(new Date().getMonth() + 1);
+  const [ano, setAno] = useState(new Date().getFullYear());
+  const [vendas, setVendas] = useState<Array<{
+    id: string;
+    data: string;
+    valor: number;
+    devolucao: number;
+  }>>([]);
+  const [meta, setMeta] = useState<number | null>(null);
+
+  useEffect(() => {
+    carregarDados();
+  }, [vendedorId, mes, ano]);
+
+  const carregarDados = async () => {
+    try {
+      const primeiroDia = new Date(ano, mes - 1, 1);
+      const ultimoDia = new Date(ano, mes, 0);
+
+      const { data: vendasData } = await supabase
+        .from("vendas")
+        .select("*")
+        .eq("vendedor_id", vendedorId)
+        .gte("data", primeiroDia.toISOString().split('T')[0])
+        .lte("data", ultimoDia.toISOString().split('T')[0])
+        .order("data", { ascending: true });
+
+      setVendas(vendasData || []);
+
+      const { data: metaData } = await supabase
+        .from("metas")
+        .select("valor")
+        .eq("vendedor_id", vendedorId)
+        .eq("mes", mes)
+        .eq("ano", ano)
+        .maybeSingle();
+
+      setMeta(metaData?.valor || null);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    }
+  };
 
   const getDiasDoMes = () => {
     const primeiroDia = new Date(ano, mes - 1, 1);
@@ -112,11 +137,9 @@ export default function CalendarioVendas({
     if (venda) {
       setValor(venda.valor.toString());
       setDevolucao(venda.devolucao.toString());
-      setObservacoes(venda.observacoes || "");
     } else {
       setValor("");
       setDevolucao("");
-      setObservacoes("");
     }
   };
 
@@ -135,7 +158,6 @@ export default function CalendarioVendas({
           .update({
             valor: parseFloat(valor),
             devolucao: parseFloat(devolucao || "0"),
-            observacoes,
           })
           .eq("id", vendaExistente.id);
 
@@ -148,18 +170,16 @@ export default function CalendarioVendas({
             data: selectedDate,
             valor: parseFloat(valor),
             devolucao: parseFloat(devolucao || "0"),
-            observacoes,
           });
 
         if (error) throw error;
       }
 
       toast.success("Venda salva com sucesso!");
-      onVendasUpdate();
+      carregarDados();
       setSelectedDate(null);
       setValor("");
       setDevolucao("");
-      setObservacoes("");
     } catch (error: any) {
       toast.error("Erro ao salvar venda");
     }
@@ -300,16 +320,6 @@ export default function CalendarioVendas({
                 className="font-bold"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="observacoes">Observações</Label>
-              <Textarea
-                id="observacoes"
-                placeholder="Observações sobre a venda..."
-                value={observacoes}
-                onChange={(e) => setObservacoes(e.target.value)}
-                disabled={isReadOnly}
-              />
-            </div>
             {!isReadOnly && (
               <div className="flex gap-2">
                 <Button onClick={handleSalvar} className="flex-1">
@@ -321,7 +331,6 @@ export default function CalendarioVendas({
                     setSelectedDate(null);
                     setValor("");
                     setDevolucao("");
-                    setObservacoes("");
                   }}
                 >
                   Cancelar
@@ -335,7 +344,6 @@ export default function CalendarioVendas({
                   setSelectedDate(null);
                   setValor("");
                   setDevolucao("");
-                  setObservacoes("");
                 }}
                 className="w-full"
               >

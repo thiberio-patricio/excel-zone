@@ -6,17 +6,21 @@ import { toast } from "sonner";
 import { Loader2, LogOut } from "lucide-react";
 import VendedorDashboard from "@/components/dashboard/VendedorDashboard";
 import GerenteDashboard from "@/components/dashboard/GerenteDashboard";
+import DiretorDashboard from "@/components/dashboard/DiretorDashboard";
+import AlterarSenha from "@/components/dashboard/AlterarSenha";
 
 interface Profile {
   id: string;
   nome: string;
   email: string;
   foto_url: string | null;
+  filial_id: string | null;
+  must_change_password: boolean;
 }
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [userRole, setUserRole] = useState<"vendedor" | "gerente" | null>(null);
+  const [userRole, setUserRole] = useState<"vendedor" | "gerente" | "diretor" | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -93,38 +97,48 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            {profile.foto_url && (
-              <img
-                src={profile.foto_url}
-                alt={profile.nome}
-                className="w-12 h-12 rounded-full object-cover border-2 border-primary"
-              />
-            )}
+        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-lg sm:text-xl border-2 border-primary/20 shadow-lg">
+              {profile.foto_url ? (
+                <img
+                  src={profile.foto_url}
+                  alt={profile.nome}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                profile.nome.charAt(0).toUpperCase()
+              )}
+            </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Olá, {profile.nome}
+              <h1 className="text-lg sm:text-xl font-bold text-foreground">
+                {profile.nome}
               </h1>
-              <p className="text-sm text-muted-foreground capitalize">
+              <p className="text-xs sm:text-sm text-muted-foreground capitalize font-medium">
                 {userRole}
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleLogout}>
+          <Button variant="outline" size="sm" onClick={handleLogout} className="self-end sm:self-auto">
             <LogOut className="w-4 h-4 mr-2" />
             Sair
           </Button>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {userRole === 'gerente' ? (
-          <GerenteDashboard profile={profile} />
-        ) : (
-          <VendedorDashboard profile={profile} />
-        )}
-      </main>
+      {profile.must_change_password ? (
+        <AlterarSenha />
+      ) : (
+        <main className="container mx-auto px-4 py-4 sm:py-8">
+          {userRole === 'diretor' ? (
+            <DiretorDashboard profile={profile} />
+          ) : userRole === 'gerente' ? (
+            <GerenteDashboard profile={profile} />
+          ) : (
+            <VendedorDashboard profile={profile} />
+          )}
+        </main>
+      )}
     </div>
   );
 }

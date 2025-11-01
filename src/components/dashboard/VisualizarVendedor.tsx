@@ -16,7 +16,7 @@ interface Vendedor {
 }
 
 interface Meta {
-  valor_meta: number;
+  valor: number;
 }
 
 interface Venda {
@@ -24,7 +24,6 @@ interface Venda {
   data: string;
   valor: number;
   devolucao: number;
-  observacoes: string | null;
 }
 
 export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorProps) {
@@ -83,7 +82,7 @@ export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorPro
     }
   };
 
-  const percentualMeta = meta ? (totalVendido / meta.valor_meta) * 100 : 0;
+  const percentualMeta = meta ? (totalVendido / meta.valor) * 100 : 0;
 
   if (!vendedor) return null;
 
@@ -118,7 +117,7 @@ export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorPro
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              R$ {meta?.valor_meta.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+              R$ {meta?.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
             </div>
           </CardContent>
         </Card>
@@ -143,12 +142,7 @@ export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorPro
 
       <CalendarioVendas
         vendedorId={vendedorId}
-        vendas={vendas}
-        isReadOnly={false}
-        onVendasUpdate={carregarDados}
-        mes={mesAtual}
-        ano={anoAtual}
-        meta={meta?.valor_meta || null}
+        isReadOnly={true}
       />
     </div>
   );
