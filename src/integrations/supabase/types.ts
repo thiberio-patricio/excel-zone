@@ -14,65 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
-      audit_logs: {
+      filiais: {
         Row: {
-          acao: string
-          created_at: string
-          dados_anteriores: Json | null
-          dados_novos: Json | null
+          created_at: string | null
+          endereco: string | null
           id: string
-          registro_id: string | null
-          tabela: string
-          usuario_id: string | null
+          nome: string
         }
         Insert: {
-          acao: string
-          created_at?: string
-          dados_anteriores?: Json | null
-          dados_novos?: Json | null
+          created_at?: string | null
+          endereco?: string | null
           id?: string
-          registro_id?: string | null
-          tabela: string
-          usuario_id?: string | null
+          nome: string
         }
         Update: {
-          acao?: string
-          created_at?: string
-          dados_anteriores?: Json | null
-          dados_novos?: Json | null
+          created_at?: string | null
+          endereco?: string | null
           id?: string
-          registro_id?: string | null
-          tabela?: string
-          usuario_id?: string | null
+          nome?: string
         }
         Relationships: []
       }
       metas: {
         Row: {
           ano: number
-          created_at: string
+          created_at: string | null
           id: string
           mes: number
-          updated_at: string
-          valor_meta: number
+          updated_at: string | null
+          valor: number
           vendedor_id: string
         }
         Insert: {
           ano: number
-          created_at?: string
+          created_at?: string | null
           id?: string
           mes: number
-          updated_at?: string
-          valor_meta?: number
+          updated_at?: string | null
+          valor: number
           vendedor_id: string
         }
         Update: {
           ano?: number
-          created_at?: string
+          created_at?: string | null
           id?: string
           mes?: number
-          updated_at?: string
-          valor_meta?: number
+          updated_at?: string | null
+          valor?: number
           vendedor_id?: string
         }
         Relationships: [
@@ -87,94 +75,103 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
+          created_at: string | null
           email: string
+          filial_id: string | null
           foto_url: string | null
           id: string
+          must_change_password: boolean | null
           nome: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           email: string
+          filial_id?: string | null
           foto_url?: string | null
           id: string
+          must_change_password?: boolean | null
           nome: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           email?: string
+          filial_id?: string | null
           foto_url?: string | null
           id?: string
+          must_change_password?: boolean | null
           nome?: string
-          updated_at?: string
+          updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           role: Database["public"]["Enums"]["user_role"]
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           role: Database["public"]["Enums"]["user_role"]
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           user_id?: string
         }
-        Relationships: []
-      }
-      vendas: {
-        Row: {
-          created_at: string
-          data: string
-          devolucao: number
-          editado_por: string | null
-          id: string
-          observacoes: string | null
-          updated_at: string
-          valor: number
-          vendedor_id: string
-        }
-        Insert: {
-          created_at?: string
-          data: string
-          devolucao?: number
-          editado_por?: string | null
-          id?: string
-          observacoes?: string | null
-          updated_at?: string
-          valor?: number
-          vendedor_id: string
-        }
-        Update: {
-          created_at?: string
-          data?: string
-          devolucao?: number
-          editado_por?: string | null
-          id?: string
-          observacoes?: string | null
-          updated_at?: string
-          valor?: number
-          vendedor_id?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "vendas_editado_por_fkey"
-            columns: ["editado_por"]
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      vendas: {
+        Row: {
+          created_at: string | null
+          data: string
+          devolucao: number
+          id: string
+          updated_at: string | null
+          valor: number
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          data: string
+          devolucao?: number
+          id?: string
+          updated_at?: string | null
+          valor?: number
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string | null
+          data?: string
+          devolucao?: number
+          id?: string
+          updated_at?: string | null
+          valor?: number
+          vendedor_id?: string
+        }
+        Relationships: [
           {
             foreignKeyName: "vendas_vendedor_id_fkey"
             columns: ["vendedor_id"]
@@ -198,7 +195,7 @@ export type Database = {
       }
     }
     Enums: {
-      user_role: "vendedor" | "gerente"
+      user_role: "vendedor" | "gerente" | "diretor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -326,7 +323,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      user_role: ["vendedor", "gerente"],
+      user_role: ["vendedor", "gerente", "diretor"],
     },
   },
 } as const
