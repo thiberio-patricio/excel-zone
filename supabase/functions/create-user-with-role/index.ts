@@ -28,32 +28,67 @@ Deno.serve(async (req) => {
     const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
     const existingUser = existingUsers?.users?.find(u => u.email === email)
 
+    let userId: string
+
     if (existingUser) {
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          user: existingUser,
-          message: 'Usuário já existe' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      userId = existingUser.id
+      
+      // Update user metadata if needed
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          nome: nome || 'Usuário',
+          role: role || 'vendedor'
+        }
+      })
+    } else {
+      // Create user with admin client
+      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          nome: nome || 'Usuário',
+          role: role || 'vendedor'
+        }
+      })
+
+      if (userError) throw userError
+      if (!userData.user) throw new Error('Failed to create user')
+      
+      userId = userData.user.id
     }
 
-    // Create user with admin client
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        nome: nome || 'Usuário',
-        role: role || 'vendedor'
-      }
-    })
+    // Ensure role exists in user_roles table
+    const { error: roleCheckError } = await supabaseAdmin
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('role', role)
+      .single()
 
-    if (userError) throw userError
+    if (roleCheckError) {
+      // Role doesn't exist, insert it
+      const { error: roleInsertError } = await supabaseAdmin
+        .from('user_roles')
+        .upsert({ 
+          user_id: userId, 
+          role: role || 'vendedor' 
+        }, {
+          onConflict: 'user_id,role'
+        })
+
+      if (roleInsertError) {
+        console.error('Error inserting role:', roleInsertError)
+        throw roleInsertError
+      }
+    }
 
     return new Response(
-      JSON.stringify({ success: true, user: userData }),
+      JSON.stringify({ 
+        success: true, 
+        message: existingUser ? 'Usuário atualizado com sucesso' : 'Usuário criado com sucesso',
+        userId 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
