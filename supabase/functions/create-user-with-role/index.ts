@@ -10,6 +10,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+
   try {
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -24,20 +25,26 @@ Deno.serve(async (req) => {
 
     const { email, password, nome, role } = await req.json()
 
-    // Check if user already exists
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
-    const existingUser = existingUsers?.users?.find(u => u.email === email)
+    // Map role to enum-compatible role stored in user_roles
+    // If "diretor" is requested but the enum doesn't include it, assign "gerente" for permissions
+    const assignedRole = role === 'diretor' ? 'gerente' : (role || 'vendedor')
+
+    // Find existing user by email
+    const { data: existingUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers()
+    if (listErr) throw listErr
+
+    const existingUser = existingUsers?.users?.find((u) => u.email === email)
 
     let userId: string
 
     if (existingUser) {
       userId = existingUser.id
-      
-      // Update user metadata if needed
+
+      // Update user metadata to keep requested info (non-critical if it fails)
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: {
-          nome: nome || 'Usuário',
-          role: role || 'vendedor'
+          nome: nome || existingUser.user_metadata?.nome || 'Usuário',
+          role: role || existingUser.user_metadata?.role || 'vendedor'
         }
       })
     } else {
@@ -53,47 +60,44 @@ Deno.serve(async (req) => {
       })
 
       if (userError) throw userError
-      if (!userData.user) throw new Error('Failed to create user')
-      
+      if (!userData?.user) throw new Error('Failed to create user')
+
       userId = userData.user.id
     }
 
-    // Ensure role exists in user_roles table
-    const { error: roleCheckError } = await supabaseAdmin
+    // Ensure role exists in user_roles table for permissions
+    const { data: existingRole, error: roleQueryError } = await supabaseAdmin
       .from('user_roles')
-      .select('id')
+      .select('id, role')
       .eq('user_id', userId)
-      .eq('role', role)
-      .single()
+      .eq('role', assignedRole)
+      .maybeSingle()
 
-    if (roleCheckError) {
-      // Role doesn't exist, insert it
+    if (roleQueryError) throw roleQueryError
+
+    if (!existingRole) {
       const { error: roleInsertError } = await supabaseAdmin
         .from('user_roles')
-        .upsert({ 
-          user_id: userId, 
-          role: role || 'vendedor' 
-        }, {
-          onConflict: 'user_id,role'
-        })
+        .upsert({ user_id: userId, role: assignedRole }, { onConflict: 'user_id,role' })
 
-      if (roleInsertError) {
-        console.error('Error inserting role:', roleInsertError)
-        throw roleInsertError
-      }
+      if (roleInsertError) throw roleInsertError
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: existingUser ? 'Usuário atualizado com sucesso' : 'Usuário criado com sucesso',
-        userId 
+        userId,
+        assignedRole
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
-  } catch (error) {
+  } catch (error: any) {
+    // Improve error visibility for debugging
+    const errMsg = error?.message || error?.error || (typeof error === 'string' ? error : JSON.stringify(error)) || 'Unknown error'
+    console.error('create-user-with-role error:', error)
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: errMsg }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
