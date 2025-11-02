@@ -24,6 +24,21 @@ Deno.serve(async (req) => {
 
     const { email, password, nome, role } = await req.json()
 
+    // Check if user already exists
+    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers()
+    const existingUser = existingUsers?.users?.find(u => u.email === email)
+
+    if (existingUser) {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          user: existingUser,
+          message: 'Usuário já existe' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Create user with admin client
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
       email,
