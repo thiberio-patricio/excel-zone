@@ -224,6 +224,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_filial_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -231,6 +232,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_diretor: { Args: { _user_id: string }; Returns: boolean }
+      is_gerente: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       user_role: "vendedor" | "gerente" | "diretor"
