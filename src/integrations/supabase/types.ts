@@ -47,6 +47,30 @@ export type Database = {
         }
         Relationships: []
       }
+      filiais: {
+        Row: {
+          created_at: string
+          endereco: string | null
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           ano: number
@@ -89,6 +113,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          filial_id: string | null
           foto_url: string | null
           id: string
           nome: string
@@ -97,6 +122,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          filial_id?: string | null
           foto_url?: string | null
           id: string
           nome: string
@@ -105,12 +131,21 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          filial_id?: string | null
           foto_url?: string | null
           id?: string
           nome?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
