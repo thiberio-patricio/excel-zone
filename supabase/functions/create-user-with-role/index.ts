@@ -25,9 +25,8 @@ Deno.serve(async (req) => {
 
     const { email, password, nome, role } = await req.json()
 
-    // Map role to enum-compatible role stored in user_roles
-    // If "diretor" is requested but the enum doesn't include it, assign "gerente" for permissions
-    const assignedRole = role === 'diretor' ? 'gerente' : (role || 'vendedor')
+    // Use the provided role or default to 'vendedor'
+    const assignedRole = role || 'vendedor'
 
     // Find existing user by email
     const { data: existingUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers()
