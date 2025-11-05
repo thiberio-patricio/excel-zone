@@ -15,7 +15,7 @@ interface VendedorDashboardProps {
 }
 
 interface Meta {
-  valor: number;
+  valor_meta: number;
   mes: number;
   ano: number;
 }
@@ -79,7 +79,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
     }
   };
 
-  const percentualMeta = meta ? (totalVendido / meta.valor) * 100 : 0;
+  const percentualMeta = meta ? (totalVendido / meta.valor_meta) * 100 : 0;
 
   const meses = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -156,7 +156,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              R$ {meta?.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
+              R$ {meta?.valor_meta.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) || '0,00'}
             </div>
           </CardContent>
         </Card>

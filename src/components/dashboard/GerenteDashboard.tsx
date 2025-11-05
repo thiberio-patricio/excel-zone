@@ -135,7 +135,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
           const { data: meta } = await supabase
             .from("metas")
-            .select("valor")
+            .select("valor_meta")
             .eq("vendedor_id", vendedor.id)
             .eq("mes", mesAtual)
             .eq("ano", anoAtual)
@@ -149,7 +149,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
           return {
             nome: vendedor.nome,
             vendido: totalVendido,
-            meta: Number(meta?.valor) || 0,
+            meta: Number(meta?.valor_meta) || 0,
           };
         })
       );

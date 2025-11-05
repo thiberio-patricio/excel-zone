@@ -116,6 +116,7 @@ export type Database = {
           filial_id: string | null
           foto_url: string | null
           id: string
+          must_change_password: boolean
           nome: string
           updated_at: string
         }
@@ -125,6 +126,7 @@ export type Database = {
           filial_id?: string | null
           foto_url?: string | null
           id: string
+          must_change_password?: boolean
           nome: string
           updated_at?: string
         }
@@ -134,6 +136,7 @@ export type Database = {
           filial_id?: string | null
           foto_url?: string | null
           id?: string
+          must_change_password?: boolean
           nome?: string
           updated_at?: string
         }

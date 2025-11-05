@@ -51,13 +51,13 @@ export default function CalendarioVendas({
 
       const { data: metaData } = await supabase
         .from("metas")
-        .select("valor")
+        .select("valor_meta")
         .eq("vendedor_id", vendedorId)
         .eq("mes", mes)
         .eq("ano", ano)
         .maybeSingle();
 
-      setMeta(metaData?.valor || null);
+      setMeta(metaData?.valor_meta || null);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
