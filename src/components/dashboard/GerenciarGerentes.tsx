@@ -101,24 +101,57 @@ export default function GerenciarGerentes() {
   };
 
   const handleCriarGerente = async () => {
+    // Validações básicas
     if (!nome.trim() || !email.trim() || !senha.trim() || !filialId) {
       toast.error("Preencha todos os campos");
       return;
     }
 
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      toast.error("Digite um email válido");
+      return;
+    }
+
+    // Validar tamanho da senha
+    if (senha.length < 6) {
+      toast.error("A senha deve ter no mínimo 6 caracteres");
+      return;
+    }
+
     try {
+      // Verificar se email já existe antes de tentar criar
+      const { data: existingProfiles } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("email", email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (existingProfiles) {
+        toast.error("Este email já está cadastrado no sistema");
+        return;
+      }
+
       // Usar edge function para criar gerente com service_role
       const { data, error } = await supabase.functions.invoke('create-manager', {
         body: { 
-          email, 
+          email: email.trim().toLowerCase(), 
           password: senha, 
-          nome,
+          nome: nome.trim(),
           filial_id: filialId 
         }
       });
 
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (data?.error) {
+        // Tratar erro de email duplicado especificamente
+        if (data.error.includes("already been registered")) {
+          toast.error("Este email já está cadastrado no sistema");
+          return;
+        }
+        throw new Error(data.error);
+      }
 
       toast.success("Gerente criado com sucesso!");
       setDialogOpen(false);
@@ -126,7 +159,16 @@ export default function GerenciarGerentes() {
       carregarDados();
     } catch (error: any) {
       console.error("Erro ao criar gerente:", error);
-      toast.error("Erro ao criar gerente: " + (error.message || "Erro desconhecido"));
+      const errorMessage = error.message || "Erro desconhecido";
+      
+      // Mensagens de erro mais amigáveis
+      if (errorMessage.includes("already been registered")) {
+        toast.error("Este email já está cadastrado no sistema");
+      } else if (errorMessage.includes("email")) {
+        toast.error("Email inválido ou já cadastrado");
+      } else {
+        toast.error("Erro ao criar gerente: " + errorMessage);
+      }
     }
   };
 
@@ -204,6 +246,9 @@ export default function GerenciarGerentes() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="email@exemplo.com"
                   />
+                  {email && !email.includes("@") && (
+                    <p className="text-sm text-destructive">Digite um email válido</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="senha">Senha *</Label>
@@ -213,7 +258,11 @@ export default function GerenciarGerentes() {
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     placeholder="Mínimo 6 caracteres"
+                    minLength={6}
                   />
+                  {senha && senha.length < 6 && (
+                    <p className="text-sm text-destructive">Senha deve ter no mínimo 6 caracteres</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="filial">Filial *</Label>
