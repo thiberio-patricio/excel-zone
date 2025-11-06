@@ -40,38 +40,57 @@ export default function GerenciarGerentes() {
 
   const carregarDados = async () => {
     try {
-      const [filiaisRes, gerentesRes] = await Promise.all([
-        supabase.from("filiais").select("*").order("nome"),
-        supabase
-          .from("profiles")
-          .select(`
-            id,
-            nome,
-            email,
-            filial_id,
-            filiais:filial_id (nome),
-            user_roles!inner (role)
-          `)
-          .eq("user_roles.role", "gerente")
-      ]);
+      // Carregar filiais primeiro
+      const { data: filiaisData, error: filiaisError } = await supabase
+        .from("filiais")
+        .select("*")
+        .order("nome");
 
-      if (filiaisRes.error) {
-        console.error("Erro ao carregar filiais:", filiaisRes.error);
-        toast.error("Erro ao carregar filiais: " + filiaisRes.error.message);
-        throw filiaisRes.error;
-      }
-      
-      if (gerentesRes.error) {
-        console.error("Erro ao carregar gerentes:", gerentesRes.error);
-        throw gerentesRes.error;
+      if (filiaisError) {
+        console.error("Erro ao carregar filiais:", filiaisError);
+        toast.error("Erro ao carregar filiais: " + filiaisError.message);
       }
 
-      console.log("Filiais carregadas:", filiaisRes.data);
-      setFiliais(filiaisRes.data || []);
-      setGerentes(gerentesRes.data || []);
-      
-      if (!filiaisRes.data || filiaisRes.data.length === 0) {
+      console.log("Filiais carregadas:", filiaisData);
+      setFiliais(filiaisData || []);
+
+      if (!filiaisData || filiaisData.length === 0) {
         toast.info("Nenhuma filial cadastrada. Cadastre filiais antes de criar gerentes.");
+      }
+
+      // Carregar gerentes sem depender de relacionamento com user_roles
+      // 1) Buscar IDs com role=gerente
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "gerente");
+
+      if (rolesError) {
+        console.error("Erro ao carregar roles de gerentes:", rolesError);
+      }
+
+      const gerenteIds = (rolesData || []).map((r: any) => r.user_id);
+      if (gerenteIds.length === 0) {
+        setGerentes([]);
+        return;
+      }
+
+      // 2) Buscar perfis desses IDs
+      const { data: gerentesData, error: gerentesError } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          nome,
+          email,
+          filial_id,
+          filiais:filial_id (nome)
+        `)
+        .in("id", gerenteIds);
+
+      if (gerentesError) {
+        console.error("Erro ao carregar gerentes:", gerentesError);
+      } else {
+        setGerentes(gerentesData || []);
       }
     } catch (error: any) {
       console.error("Erro geral:", error);
@@ -210,7 +229,7 @@ export default function GerenciarGerentes() {
                     <SelectTrigger>
                       <SelectValue placeholder={filiais.length === 0 ? "Nenhuma filial cadastrada" : "Selecione a filial"} />
                     </SelectTrigger>
-                    <SelectContent className="bg-background">
+                    <SelectContent className="bg-background z-50">
                       {filiais.length === 0 ? (
                         <SelectItem value="none" disabled>
                           Cadastre uma filial primeiro
