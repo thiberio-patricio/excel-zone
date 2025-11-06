@@ -55,13 +55,27 @@ export default function GerenciarGerentes() {
           .eq("user_roles.role", "gerente")
       ]);
 
-      if (filiaisRes.error) throw filiaisRes.error;
-      if (gerentesRes.error) throw gerentesRes.error;
+      if (filiaisRes.error) {
+        console.error("Erro ao carregar filiais:", filiaisRes.error);
+        toast.error("Erro ao carregar filiais: " + filiaisRes.error.message);
+        throw filiaisRes.error;
+      }
+      
+      if (gerentesRes.error) {
+        console.error("Erro ao carregar gerentes:", gerentesRes.error);
+        throw gerentesRes.error;
+      }
 
+      console.log("Filiais carregadas:", filiaisRes.data);
       setFiliais(filiaisRes.data || []);
       setGerentes(gerentesRes.data || []);
+      
+      if (!filiaisRes.data || filiaisRes.data.length === 0) {
+        toast.info("Nenhuma filial cadastrada. Cadastre filiais antes de criar gerentes.");
+      }
     } catch (error: any) {
-      toast.error("Erro ao carregar dados");
+      console.error("Erro geral:", error);
+      toast.error("Erro ao carregar dados: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -194,14 +208,20 @@ export default function GerenciarGerentes() {
                   <Label htmlFor="filial">Filial *</Label>
                   <Select value={filialId} onValueChange={setFilialId}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione a filial" />
+                      <SelectValue placeholder={filiais.length === 0 ? "Nenhuma filial cadastrada" : "Selecione a filial"} />
                     </SelectTrigger>
-                    <SelectContent>
-                      {filiais.map((filial) => (
-                        <SelectItem key={filial.id} value={filial.id}>
-                          {filial.nome}
+                    <SelectContent className="bg-background">
+                      {filiais.length === 0 ? (
+                        <SelectItem value="none" disabled>
+                          Cadastre uma filial primeiro
                         </SelectItem>
-                      ))}
+                      ) : (
+                        filiais.map((filial) => (
+                          <SelectItem key={filial.id} value={filial.id}>
+                            {filial.nome}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
