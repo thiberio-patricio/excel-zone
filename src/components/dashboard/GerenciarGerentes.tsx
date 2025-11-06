@@ -36,6 +36,37 @@ export default function GerenciarGerentes() {
 
   useEffect(() => {
     carregarDados();
+
+    // Configurar realtime para atualização automática
+    const channel = supabase
+      .channel('gerentes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          carregarDados();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_roles'
+        },
+        () => {
+          carregarDados();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const carregarDados = async () => {

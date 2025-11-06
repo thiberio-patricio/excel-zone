@@ -35,6 +35,37 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
   useEffect(() => {
     carregarVendedores();
+
+    // Configurar realtime para atualização automática
+    const channel = supabase
+      .channel('vendedores-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          carregarVendedores();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_roles'
+        },
+        () => {
+          carregarVendedores();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const carregarVendedores = async () => {
@@ -115,13 +146,14 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       if (error) throw error;
 
       if (data.user) {
-        toast.success(`${cargo === "gerente" ? "Gerente" : "Vendedor"} criado com sucesso!`);
+      toast.success(`${cargo === "gerente" ? "Gerente" : "Vendedor"} criado com sucesso!`);
         setNome("");
         setEmail("");
         setSenha("");
         setFotoUrl("");
         setCargo("vendedor");
         setOpen(false);
+        carregarVendedores();
         onUpdate();
       }
     } catch (error: any) {
