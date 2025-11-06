@@ -107,53 +107,45 @@ export default function GerenciarGerentes() {
     }
 
     try {
-      const { data: userData, error: userError } = await supabase.auth.admin.createUser({
-        email,
-        password: senha,
-        email_confirm: true,
-        user_metadata: {
+      // Usar edge function para criar gerente com service_role
+      const { data, error } = await supabase.functions.invoke('create-manager', {
+        body: { 
+          email, 
+          password: senha, 
           nome,
-          role: "gerente"
+          filial_id: filialId 
         }
       });
 
-      if (userError) throw userError;
-      if (!userData.user) throw new Error("Erro ao criar usuário");
-
-      await supabase
-        .from("profiles")
-        .update({ filial_id: filialId })
-        .eq("id", userData.user.id);
-
-      const { error: roleError } = await supabase
-        .from("user_roles")
-        .insert([{ user_id: userData.user.id, role: "gerente" }]);
-
-      if (roleError) throw roleError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success("Gerente criado com sucesso!");
       setDialogOpen(false);
       limparFormulario();
       carregarDados();
     } catch (error: any) {
-      toast.error("Erro ao criar gerente: " + error.message);
+      console.error("Erro ao criar gerente:", error);
+      toast.error("Erro ao criar gerente: " + (error.message || "Erro desconhecido"));
     }
   };
 
   const handleDeletar = async (id: string, email: string) => {
     try {
-      const { data, error: listError } = await supabase.auth.admin.listUsers();
-      if (listError) throw listError;
+      // Deletar via edge function ou diretamente do perfil
+      // Como deletar usuário requer service_role, vamos apenas remover o role
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", id)
+        .eq("role", "gerente");
 
-      const user = data?.users?.find((u: any) => u.email === email);
-      if (user) {
-        const { error: deleteAuthError } = await supabase.auth.admin.deleteUser(user.id);
-        if (deleteAuthError) throw deleteAuthError;
-      }
+      if (roleError) throw roleError;
 
-      toast.success("Gerente deletado com sucesso!");
+      toast.success("Gerente removido com sucesso!");
       carregarDados();
     } catch (error: any) {
+      console.error("Erro ao deletar gerente:", error);
       toast.error("Erro ao deletar gerente: " + error.message);
     }
   };
