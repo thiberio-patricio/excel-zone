@@ -138,6 +138,16 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
     }
 
     try {
+      // Buscar a filial do gerente logado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data: gerenteProfile } = await supabase
+        .from("profiles")
+        .select("filial_id")
+        .eq("id", user.id)
+        .single();
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -152,17 +162,27 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
       if (error) throw error;
 
-      if (data.user) {
-      toast.success(`${cargo === "gerente" ? "Gerente" : "Vendedor"} criado com sucesso!`);
-        setNome("");
-        setEmail("");
-        setSenha("");
-        setFotoUrl("");
-        setCargo("vendedor");
-        setOpen(false);
-        carregarVendedores();
-        onUpdate();
+      if (data.user && gerenteProfile?.filial_id) {
+        // Atualizar o perfil do novo usuário com a filial do gerente
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({ filial_id: gerenteProfile.filial_id })
+          .eq("id", data.user.id);
+
+        if (updateError) {
+          console.error("Erro ao atualizar filial:", updateError);
+        }
       }
+
+      toast.success(`${cargo === "gerente" ? "Gerente" : "Vendedor"} criado com sucesso!`);
+      setNome("");
+      setEmail("");
+      setSenha("");
+      setFotoUrl("");
+      setCargo("vendedor");
+      setOpen(false);
+      carregarVendedores();
+      onUpdate();
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar usuário");
     }

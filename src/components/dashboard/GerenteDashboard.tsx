@@ -37,28 +37,23 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
   const carregarVendedores = async () => {
     try {
-      // Buscar IDs de vendedores da tabela user_roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select(`
+          id, 
+          nome, 
+          email, 
+          foto_url,
+          user_roles!inner(role)
+        `)
+        .eq("user_roles.role", "vendedor")
+        .order("nome");
 
-      if (rolesError) throw rolesError;
-
-      const vendedorIds = rolesData?.map(r => r.user_id) || [];
-
-      if (vendedorIds.length > 0) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .in("id", vendedorIds)
-          .order("nome");
-
-        if (error) throw error;
-        if (data) setVendedores(data);
-      }
+      if (error) throw error;
+      if (data) setVendedores(data);
     } catch (error: any) {
       toast.error("Erro ao carregar vendedores");
+      console.error("Erro detalhado:", error);
     }
   };
 
@@ -104,28 +99,26 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       const ultimoDia = new Date(anoAtual, mesAtual, 0);
       const ultimoDiaFormatado = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
-      // Buscar vendedores
-      const { data: rolesData } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor");
+      // Buscar vendedores com join na user_roles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select(`
+          id, 
+          nome,
+          user_roles!inner(role)
+        `)
+        .eq("user_roles.role", "vendedor");
 
-      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+      if (profilesError) throw profilesError;
 
-      if (vendedorIds.length === 0) {
+      if (!profiles || profiles.length === 0) {
         setDashboardData([]);
         return;
       }
 
-      // Buscar perfis
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, nome")
-        .in("id", vendedorIds);
-
       // Buscar vendas e metas
       const chartData = await Promise.all(
-        (profiles || []).map(async (vendedor) => {
+        profiles.map(async (vendedor) => {
           const { data: vendas } = await supabase
             .from("vendas")
             .select("valor, devolucao")
