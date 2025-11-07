@@ -72,7 +72,14 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, nome, email, foto_url")
+        .select(`
+          id, 
+          nome, 
+          email, 
+          foto_url,
+          user_roles!inner(role)
+        `)
+        .eq("user_roles.role", "vendedor")
         .order("nome");
 
       if (error) throw error;
