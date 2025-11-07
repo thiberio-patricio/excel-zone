@@ -163,14 +163,32 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       if (error) throw error;
 
       if (data.user && gerenteProfile?.filial_id) {
-        // Atualizar o perfil do novo usuário com a filial do gerente
-        const { error: updateError } = await supabase
+        // Aguardar um pouco para o trigger criar o perfil
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verificar se o perfil foi criado antes de atualizar
+        const { data: profileExists, error: checkError } = await supabase
           .from("profiles")
-          .update({ filial_id: gerenteProfile.filial_id })
-          .eq("id", data.user.id);
+          .select("id")
+          .eq("id", data.user.id)
+          .maybeSingle();
 
-        if (updateError) {
-          console.error("Erro ao atualizar filial:", updateError);
+        if (checkError) {
+          console.error("Erro ao verificar perfil:", checkError);
+        } else if (profileExists) {
+          // Atualizar o perfil do novo usuário com a filial do gerente
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({ filial_id: gerenteProfile.filial_id })
+            .eq("id", data.user.id);
+
+          if (updateError) {
+            console.error("Erro ao atualizar filial:", updateError);
+            toast.error("Usuário criado, mas erro ao vincular filial");
+          }
+        } else {
+          console.error("Perfil não encontrado após criação");
+          toast.error("Usuário criado, mas erro ao vincular filial");
         }
       }
 
@@ -184,6 +202,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       carregarVendedores();
       onUpdate();
     } catch (error: any) {
+      console.error("Erro ao criar usuário:", error);
       toast.error(error.message || "Erro ao criar usuário");
     }
   };
