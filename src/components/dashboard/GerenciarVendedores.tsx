@@ -70,22 +70,31 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
   const carregarVendedores = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          id, 
-          nome, 
-          email, 
-          foto_url,
-          user_roles!inner(role)
-        `)
-        .eq("user_roles.role", "vendedor")
-        .order("nome");
+      // Buscar IDs de vendedores da tabela user_roles
+      const { data: rolesData, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "vendedor");
 
-      if (error) throw error;
-      setVendedores(data || []);
+      if (rolesError) throw rolesError;
+
+      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+
+      if (vendedorIds.length > 0) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, nome, email, foto_url")
+          .in("id", vendedorIds)
+          .order("nome");
+
+        if (error) throw error;
+        setVendedores(data || []);
+      } else {
+        setVendedores([]);
+      }
     } catch (error) {
       console.error("Erro ao carregar vendedores:", error);
+      toast.error("Erro ao carregar vendedores");
     }
   };
 
