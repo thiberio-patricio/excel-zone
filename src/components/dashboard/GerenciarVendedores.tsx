@@ -35,37 +35,6 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
   useEffect(() => {
     carregarVendedores();
-
-    // Configurar realtime para atualização automática
-    const channel = supabase
-      .channel('vendedores-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'profiles'
-        },
-        () => {
-          carregarVendedores();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_roles'
-        },
-        () => {
-          carregarVendedores();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const carregarVendedores = async () => {
@@ -208,7 +177,10 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       setFotoUrl("");
       setCargo("vendedor");
       setOpen(false);
-      carregarVendedores();
+      
+      // Aguardar um pouco mais para garantir que as políticas RLS sejam aplicadas
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      await carregarVendedores();
       onUpdate();
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
@@ -289,7 +261,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       if (authError) throw authError;
 
       toast.success("Usuário deletado com sucesso!");
-      carregarVendedores();
+      await carregarVendedores();
       onUpdate();
     } catch (error: any) {
       toast.error(error.message || "Erro ao deletar usuário");
