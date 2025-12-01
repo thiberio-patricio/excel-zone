@@ -124,6 +124,22 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
     }
 
     try {
+      // Buscar a filial do gerente logado
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data: gerenteProfile } = await supabase
+        .from("profiles")
+        .select("filial_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!gerenteProfile?.filial_id) {
+        toast.error("Erro ao obter filial do gerente");
+        return;
+      }
+
+      // Criar usuário com filial_id nos metadados
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -132,6 +148,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
             nome,
             role: cargo,
             foto_url: fotoUrl || null,
+            filial_id: gerenteProfile.filial_id, // Passar filial_id nos metadados
           },
         },
       });
@@ -139,7 +156,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       if (error) throw error;
 
       if (data.user) {
-        // Aguardar o trigger criar o perfil com filial_id correta
+        // Aguardar o trigger criar o perfil
         await new Promise(resolve => setTimeout(resolve, 1500));
         
         // Adicionar o novo vendedor ao estado imediatamente
