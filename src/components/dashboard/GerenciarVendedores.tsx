@@ -124,16 +124,6 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
     }
 
     try {
-      // Buscar a filial do gerente logado
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
-
-      const { data: gerenteProfile } = await supabase
-        .from("profiles")
-        .select("filial_id")
-        .eq("id", user.id)
-        .single();
-
       const { data, error } = await supabase.auth.signUp({
         email,
         password: senha,
@@ -148,43 +138,18 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
       if (error) throw error;
 
-      if (data.user && gerenteProfile?.filial_id) {
-        // Aguardar um pouco para o trigger criar o perfil
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (data.user) {
+        // Aguardar o trigger criar o perfil com filial_id correta
+        await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Verificar se o perfil foi criado antes de atualizar
-        const { data: profileExists, error: checkError } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("id", data.user.id)
-          .maybeSingle();
-
-        if (checkError) {
-          console.error("Erro ao verificar perfil:", checkError);
-        } else if (profileExists) {
-          // Atualizar o perfil do novo usuário com a filial do gerente
-          const { error: updateError } = await supabase
-            .from("profiles")
-            .update({ filial_id: gerenteProfile.filial_id })
-            .eq("id", data.user.id);
-
-          if (updateError) {
-            console.error("Erro ao atualizar filial:", updateError);
-            toast.error("Usuário criado, mas erro ao vincular filial");
-          } else {
-            // Adicionar o novo vendedor ao estado imediatamente
-            const novoVendedor = {
-              id: data.user.id,
-              nome: nome,
-              email: email,
-              foto_url: fotoUrl || null
-            };
-            setVendedores(prev => [...prev, novoVendedor].sort((a, b) => a.nome.localeCompare(b.nome)));
-          }
-        } else {
-          console.error("Perfil não encontrado após criação");
-          toast.error("Usuário criado, mas erro ao vincular filial");
-        }
+        // Adicionar o novo vendedor ao estado imediatamente
+        const novoVendedor = {
+          id: data.user.id,
+          nome: nome,
+          email: email,
+          foto_url: fotoUrl || null
+        };
+        setVendedores(prev => [...prev, novoVendedor].sort((a, b) => a.nome.localeCompare(b.nome)));
       }
 
       toast.success(`${cargo === "gerente" ? "Gerente" : "Vendedor"} criado com sucesso!`);
