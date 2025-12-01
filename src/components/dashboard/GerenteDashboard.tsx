@@ -37,7 +37,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
   const carregarVendedores = async () => {
     try {
-      // Buscar IDs de vendedores da tabela user_roles
+      // Buscar todos os perfis com role de vendedor
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -48,13 +48,21 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       const vendedorIds = rolesData?.map(r => r.user_id) || [];
 
       if (vendedorIds.length > 0) {
+        // Buscar perfis forçando nova query
+        const timestamp = Date.now();
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
           .in("id", vendedorIds)
-          .order("nome");
+          .order("nome")
+          .limit(1000); // Adicionar limit para forçar nova query
 
-        if (error) throw error;
+        if (error) {
+          console.error("Erro ao buscar perfis:", error);
+          throw error;
+        }
+        
+        console.log(`[${timestamp}] Vendedores carregados no dashboard:`, data?.length);
         if (data) setVendedores(data);
       } else {
         setVendedores([]);
@@ -120,11 +128,15 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         return;
       }
 
-      // Buscar perfis
+      // Buscar perfis forçando nova query
+      const timestamp = Date.now();
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome")
-        .in("id", vendedorIds);
+        .in("id", vendedorIds)
+        .limit(1000);
+
+      console.log(`[${timestamp}] Perfis para dashboard:`, profiles?.length);
 
       // Buscar vendas e metas
       const chartData = await Promise.all(

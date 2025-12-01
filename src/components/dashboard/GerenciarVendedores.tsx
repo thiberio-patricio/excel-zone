@@ -39,7 +39,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
   const carregarVendedores = async () => {
     try {
-      // Buscar IDs de vendedores da tabela user_roles
+      // Buscar todos os perfis com role de vendedor usando uma abordagem que não depende de cache
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -50,13 +50,21 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       const vendedorIds = rolesData?.map(r => r.user_id) || [];
 
       if (vendedorIds.length > 0) {
+        // Buscar perfis forçando a não usar cache
+        const timestamp = Date.now();
         const { data, error } = await supabase
           .from("profiles")
           .select("id, nome, email, foto_url")
           .in("id", vendedorIds)
-          .order("nome");
+          .order("nome")
+          .limit(1000); // Adicionar limit para forçar nova query
 
-        if (error) throw error;
+        if (error) {
+          console.error("Erro ao buscar perfis:", error);
+          throw error;
+        }
+        
+        console.log(`[${timestamp}] Vendedores carregados:`, data?.length);
         setVendedores(data || []);
       } else {
         setVendedores([]);
@@ -163,6 +171,15 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
           if (updateError) {
             console.error("Erro ao atualizar filial:", updateError);
             toast.error("Usuário criado, mas erro ao vincular filial");
+          } else {
+            // Adicionar o novo vendedor ao estado imediatamente
+            const novoVendedor = {
+              id: data.user.id,
+              nome: nome,
+              email: email,
+              foto_url: fotoUrl || null
+            };
+            setVendedores(prev => [...prev, novoVendedor].sort((a, b) => a.nome.localeCompare(b.nome)));
           }
         } else {
           console.error("Perfil não encontrado após criação");
@@ -178,10 +195,11 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       setCargo("vendedor");
       setOpen(false);
       
-      // Aguardar um pouco mais para garantir que as políticas RLS sejam aplicadas
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      await carregarVendedores();
-      onUpdate();
+      // Recarregar dados após um pequeno delay
+      setTimeout(async () => {
+        await carregarVendedores();
+        onUpdate();
+      }, 500);
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
       toast.error(error.message || "Erro ao criar usuário");
