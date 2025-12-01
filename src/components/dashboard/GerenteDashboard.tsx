@@ -323,7 +323,11 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </TabsContent>
 
         <TabsContent value="vendedores" className="space-y-4">
-          <GerenciarVendedores onUpdate={carregarVendedores} />
+          <GerenciarVendedores onUpdate={() => {
+            carregarVendedores();
+            carregarTotalVendas();
+            carregarDadosDashboard();
+          }} />
         </TabsContent>
 
         <TabsContent value="vendas" className="space-y-4">
