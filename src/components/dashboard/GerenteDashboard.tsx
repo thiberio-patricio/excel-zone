@@ -36,41 +36,55 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   }, []);
 
   const carregarVendedores = async () => {
+    console.log("=== INICIANDO carregarVendedores (Dashboard) ===");
     try {
-      // Buscar todos os perfis com role de vendedor
+      // Buscar todos os user_ids de vendedores
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "vendedor");
 
-      if (rolesError) throw rolesError;
+      console.log("Dashboard - Roles data:", rolesData?.length, "roles encontrados");
+
+      if (rolesError) {
+        console.error("Dashboard - Erro ao buscar roles:", rolesError);
+        throw rolesError;
+      }
 
       const vendedorIds = rolesData?.map(r => r.user_id) || [];
+      console.log("Dashboard - IDs de vendedores:", vendedorIds);
 
       if (vendedorIds.length > 0) {
-        // Buscar perfis forçando nova query
-        const timestamp = Date.now();
+        // Buscar perfis dos vendedores
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
           .in("id", vendedorIds)
-          .order("nome")
-          .limit(1000); // Adicionar limit para forçar nova query
+          .order("nome");
+
+        console.log("Dashboard - Profiles data:", data?.length, "perfis encontrados");
 
         if (error) {
-          console.error("Erro ao buscar perfis:", error);
+          console.error("Dashboard - Erro ao buscar perfis:", error);
           throw error;
         }
         
-        console.log(`[${timestamp}] Vendedores carregados no dashboard:`, data?.length);
-        if (data) setVendedores(data);
+        if (data && data.length > 0) {
+          console.log("Dashboard - Atualizando estado com", data.length, "vendedores");
+          setVendedores(data);
+        } else {
+          console.log("Dashboard - Nenhum perfil encontrado");
+          setVendedores([]);
+        }
       } else {
+        console.log("Dashboard - Nenhum role de vendedor encontrado");
         setVendedores([]);
       }
     } catch (error: any) {
       toast.error("Erro ao carregar vendedores");
-      console.error("Erro detalhado:", error);
+      console.error("Dashboard - Erro detalhado:", error);
     }
+    console.log("=== FIM carregarVendedores (Dashboard) ===");
   };
 
   const carregarTotalVendas = async () => {

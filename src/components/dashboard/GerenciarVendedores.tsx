@@ -38,41 +38,55 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
   }, []);
 
   const carregarVendedores = async () => {
+    console.log("=== INICIANDO carregarVendedores ===");
     try {
-      // Buscar todos os perfis com role de vendedor usando uma abordagem que não depende de cache
+      // Buscar todos os user_ids de vendedores
       const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "vendedor");
 
-      if (rolesError) throw rolesError;
+      console.log("Roles data:", rolesData?.length, "roles encontrados");
+      
+      if (rolesError) {
+        console.error("Erro ao buscar roles:", rolesError);
+        throw rolesError;
+      }
 
       const vendedorIds = rolesData?.map(r => r.user_id) || [];
+      console.log("IDs de vendedores:", vendedorIds);
 
       if (vendedorIds.length > 0) {
-        // Buscar perfis forçando a não usar cache
-        const timestamp = Date.now();
+        // Buscar perfis dos vendedores
         const { data, error } = await supabase
           .from("profiles")
           .select("id, nome, email, foto_url")
           .in("id", vendedorIds)
-          .order("nome")
-          .limit(1000); // Adicionar limit para forçar nova query
+          .order("nome");
 
+        console.log("Profiles data:", data?.length, "perfis encontrados", data);
+        
         if (error) {
           console.error("Erro ao buscar perfis:", error);
           throw error;
         }
         
-        console.log(`[${timestamp}] Vendedores carregados:`, data?.length);
-        setVendedores(data || []);
+        if (data && data.length > 0) {
+          console.log("Atualizando estado com", data.length, "vendedores");
+          setVendedores(data);
+        } else {
+          console.log("Nenhum perfil encontrado, mantendo estado vazio");
+          setVendedores([]);
+        }
       } else {
+        console.log("Nenhum role de vendedor encontrado");
         setVendedores([]);
       }
     } catch (error) {
       console.error("Erro ao carregar vendedores:", error);
       toast.error("Erro ao carregar vendedores");
     }
+    console.log("=== FIM carregarVendedores ===");
   };
 
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
