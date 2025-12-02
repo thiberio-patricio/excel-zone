@@ -153,35 +153,20 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
         return;
       }
 
-      // Criar usuário com filial_id nos metadados
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password: senha,
-        options: {
-          data: {
-            nome,
-            role: cargo,
-            foto_url: fotoUrl || null,
-            filial_id: gerenteProfile.filial_id, // Passar filial_id nos metadados
-          },
-        },
+      // Usar edge function para criar usuário sem afetar a sessão atual
+      const { data, error } = await supabase.functions.invoke('create-user-with-role', {
+        body: {
+          email,
+          password: senha,
+          nome,
+          role: cargo,
+          filial_id: gerenteProfile.filial_id,
+          foto_url: fotoUrl || null
+        }
       });
 
       if (error) throw error;
-
-      if (data.user) {
-        // Aguardar o trigger criar o perfil
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Adicionar o novo vendedor ao estado imediatamente
-        const novoVendedor = {
-          id: data.user.id,
-          nome: nome,
-          email: email,
-          foto_url: fotoUrl || null
-        };
-        setVendedores(prev => [...prev, novoVendedor].sort((a, b) => a.nome.localeCompare(b.nome)));
-      }
+      if (data?.error) throw new Error(data.error);
 
       toast.success(`${cargo === "gerente" ? "Gerente" : "Vendedor"} criado com sucesso!`);
       setNome("");
@@ -191,11 +176,11 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       setCargo("vendedor");
       setOpen(false);
       
-      // Recarregar dados após um pequeno delay
+      // Recarregar dados após um pequeno delay para o trigger processar
       setTimeout(async () => {
         await carregarVendedores();
         onUpdate();
-      }, 500);
+      }, 1000);
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
       toast.error(error.message || "Erro ao criar usuário");
