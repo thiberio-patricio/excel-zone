@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
       }
     )
 
-    const { email, password, nome, role } = await req.json()
+    const { email, password, nome, role, filial_id, foto_url } = await req.json()
 
     // Use the provided role or default to 'vendedor'
     const assignedRole = role || 'vendedor'
@@ -43,9 +43,19 @@ Deno.serve(async (req) => {
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: {
           nome: nome || existingUser.user_metadata?.nome || 'Usuário',
-          role: role || existingUser.user_metadata?.role || 'vendedor'
+          role: role || existingUser.user_metadata?.role || 'vendedor',
+          filial_id: filial_id || existingUser.user_metadata?.filial_id,
+          foto_url: foto_url || existingUser.user_metadata?.foto_url
         }
       })
+
+      // Update profile with filial_id if provided
+      if (filial_id) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ filial_id, foto_url: foto_url || null })
+          .eq('id', userId)
+      }
     } else {
       // Create user with admin client
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
@@ -54,7 +64,9 @@ Deno.serve(async (req) => {
         email_confirm: true,
         user_metadata: {
           nome: nome || 'Usuário',
-          role: role || 'vendedor'
+          role: role || 'vendedor',
+          filial_id: filial_id || null,
+          foto_url: foto_url || null
         }
       })
 
@@ -62,6 +74,17 @@ Deno.serve(async (req) => {
       if (!userData?.user) throw new Error('Failed to create user')
 
       userId = userData.user.id
+
+      // Wait a bit for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Ensure profile has the correct filial_id
+      if (filial_id) {
+        await supabaseAdmin
+          .from('profiles')
+          .update({ filial_id, foto_url: foto_url || null })
+          .eq('id', userId)
+      }
     }
 
     // Ensure role exists in user_roles table for permissions
