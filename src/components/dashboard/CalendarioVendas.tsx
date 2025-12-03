@@ -96,41 +96,36 @@ export default function CalendarioVendas({
   const calcularVendaEsperada = (data: Date): number | null => {
     if (!meta) return null;
 
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const dataVerificada = new Date(data);
-    dataVerificada.setHours(0, 0, 0, 0);
-
-    // Só calcula para dias atuais ou futuros
-    if (dataVerificada < hoje) return null;
-
-    // Calcular venda real até ontem
-    const ontem = new Date(hoje);
-    ontem.setDate(ontem.getDate() - 1);
+    const dataStr = data.toISOString().split('T')[0];
     
-    const vendasAteOntem = vendas.filter(v => {
-      const dataVenda = new Date(v.data + 'T00:00:00');
-      return dataVenda <= ontem;
-    });
+    // Se já tem venda registrada nesse dia, não mostra esperada
+    const vendaExistente = vendas.find(v => v.data === dataStr);
+    if (vendaExistente) return null;
 
-    const vendaRealTotal = vendasAteOntem.reduce((acc, v) => 
+    // Calcular total de vendas já registradas no mês
+    const vendaRealTotal = vendas.reduce((acc, v) => 
       acc + (v.valor - v.devolucao), 0
     );
 
-    // Calcular dias restantes (excluindo domingos)
+    // Calcular dias sem venda registrada (excluindo domingos)
     const ultimoDiaMes = new Date(ano, mes, 0);
-    let diasRestantes = 0;
+    const primeiroDiaMes = new Date(ano, mes - 1, 1);
+    let diasSemVenda = 0;
     
-    for (let d = new Date(hoje); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
-      if (d.getDay() !== 0) {
-        diasRestantes++;
+    for (let d = new Date(primeiroDiaMes); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() !== 0) { // Exclui domingos
+        const dStr = d.toISOString().split('T')[0];
+        const temVenda = vendas.find(v => v.data === dStr);
+        if (!temVenda) {
+          diasSemVenda++;
+        }
       }
     }
 
-    if (diasRestantes === 0) return null;
+    if (diasSemVenda === 0) return null;
 
     const metaRestante = meta - vendaRealTotal;
-    return metaRestante / diasRestantes;
+    return metaRestante / diasSemVenda;
   };
 
   const handleDayClick = (data: Date) => {
@@ -202,8 +197,6 @@ export default function CalendarioVendas({
   ];
 
   const diasSemana = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
 
   return (
     <div className="space-y-4">
@@ -237,10 +230,6 @@ export default function CalendarioVendas({
               const isSelected = selectedDate === dataStr;
               const vendaReal = venda ? venda.valor - venda.devolucao : 0;
               const vendaEsperada = calcularVendaEsperada(dia);
-              
-              const diaDate = new Date(dia);
-              diaDate.setHours(0, 0, 0, 0);
-              const isPast = diaDate < hoje;
 
               return (
                 <button
@@ -262,8 +251,8 @@ export default function CalendarioVendas({
                     {dia.getDate()}
                   </div>
                   
-                  {/* Venda Real (dias passados) */}
-                  {isPast && venda && (
+                  {/* Venda Real (dias com venda registrada) */}
+                  {venda && (
                     <div className="text-xs mt-1">
                       <div className="font-medium text-success">
                         R$ {vendaReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -272,8 +261,8 @@ export default function CalendarioVendas({
                     </div>
                   )}
                   
-                  {/* Venda Esperada (dias atuais/futuros) */}
-                  {!isPast && vendaEsperada !== null && (
+                  {/* Venda Esperada (dias sem venda registrada) */}
+                  {!venda && vendaEsperada !== null && (
                     <div className="text-xs mt-1">
                       <div className="font-medium text-primary">
                         R$ {vendaEsperada.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
