@@ -130,10 +130,12 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       const ultimoDiaFormatado = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
       // Buscar vendedores
-      const { data: rolesData } = await supabase
+      const { data: rolesData, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "vendedor");
+
+      console.log("Dashboard - Roles:", rolesData?.length, rolesError);
 
       const vendedorIds = rolesData?.map(r => r.user_id) || [];
 
@@ -142,27 +144,25 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         return;
       }
 
-      // Buscar perfis forçando nova query
-      const timestamp = Date.now();
-      const { data: profiles } = await supabase
+      // Buscar perfis
+      const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, nome")
-        .in("id", vendedorIds)
-        .limit(1000);
+        .in("id", vendedorIds);
 
-      console.log(`[${timestamp}] Perfis para dashboard:`, profiles?.length);
+      console.log("Dashboard - Profiles:", profiles?.length, profilesError);
 
       // Buscar vendas e metas
       const chartData = await Promise.all(
         (profiles || []).map(async (vendedor) => {
-          const { data: vendas } = await supabase
+          const { data: vendas, error: vendasError } = await supabase
             .from("vendas")
             .select("valor, devolucao")
             .eq("vendedor_id", vendedor.id)
             .gte("data", primeiroDia)
             .lte("data", ultimoDiaFormatado);
 
-          const { data: meta } = await supabase
+          const { data: meta, error: metaError } = await supabase
             .from("metas")
             .select("valor_meta")
             .eq("vendedor_id", vendedor.id)
@@ -175,6 +175,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             0
           );
 
+          console.log(`Dashboard - ${vendedor.nome}: vendas=${totalVendido}, meta=${meta?.valor_meta}, erros:`, vendasError, metaError);
+
           return {
             nome: vendedor.nome,
             vendido: totalVendido,
@@ -183,6 +185,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         })
       );
 
+      console.log("Dashboard - ChartData final:", chartData);
       setDashboardData(chartData);
     } catch (error: any) {
       toast.error("Erro ao carregar dados do dashboard");
