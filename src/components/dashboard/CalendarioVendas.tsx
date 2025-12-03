@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -11,15 +11,18 @@ import { Calendar } from "lucide-react";
 interface CalendarioVendasProps {
   vendedorId: string;
   isReadOnly: boolean;
+  onUpdate?: () => void;
 }
 
 export default function CalendarioVendas({
   vendedorId,
   isReadOnly,
+  onUpdate,
 }: CalendarioVendasProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [valor, setValor] = useState("");
   const [devolucao, setDevolucao] = useState("");
+  const [observacoes, setObservacoes] = useState("");
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
   const [vendas, setVendas] = useState<Array<{
@@ -27,6 +30,7 @@ export default function CalendarioVendas({
     data: string;
     valor: number;
     devolucao: number;
+    observacoes: string | null;
   }>>([]);
   const [meta, setMeta] = useState<number | null>(null);
 
@@ -137,9 +141,11 @@ export default function CalendarioVendas({
     if (venda) {
       setValor(venda.valor.toString());
       setDevolucao(venda.devolucao.toString());
+      setObservacoes(venda.observacoes || "");
     } else {
       setValor("");
       setDevolucao("");
+      setObservacoes("");
     }
   };
 
@@ -158,6 +164,7 @@ export default function CalendarioVendas({
           .update({
             valor: parseFloat(valor),
             devolucao: parseFloat(devolucao || "0"),
+            observacoes: observacoes || null,
           })
           .eq("id", vendaExistente.id);
 
@@ -170,6 +177,7 @@ export default function CalendarioVendas({
             data: selectedDate,
             valor: parseFloat(valor),
             devolucao: parseFloat(devolucao || "0"),
+            observacoes: observacoes || null,
           });
 
         if (error) throw error;
@@ -177,9 +185,11 @@ export default function CalendarioVendas({
 
       toast.success("Venda salva com sucesso!");
       carregarDados();
+      onUpdate?.();
       setSelectedDate(null);
       setValor("");
       setDevolucao("");
+      setObservacoes("");
     } catch (error: any) {
       toast.error("Erro ao salvar venda");
     }
@@ -320,6 +330,17 @@ export default function CalendarioVendas({
                 className="font-bold"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="observacoes">Observações</Label>
+              <Textarea
+                id="observacoes"
+                placeholder="Observações sobre a venda..."
+                value={observacoes}
+                onChange={(e) => setObservacoes(e.target.value)}
+                disabled={isReadOnly}
+                rows={3}
+              />
+            </div>
             {!isReadOnly && (
               <div className="flex gap-2">
                 <Button onClick={handleSalvar} className="flex-1">
@@ -331,6 +352,7 @@ export default function CalendarioVendas({
                     setSelectedDate(null);
                     setValor("");
                     setDevolucao("");
+                    setObservacoes("");
                   }}
                 >
                   Cancelar
@@ -344,6 +366,7 @@ export default function CalendarioVendas({
                   setSelectedDate(null);
                   setValor("");
                   setDevolucao("");
+                  setObservacoes("");
                 }}
                 className="w-full"
               >

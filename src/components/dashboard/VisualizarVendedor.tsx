@@ -142,7 +142,8 @@ export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorPro
 
       <CalendarioVendas
         vendedorId={vendedorId}
-        isReadOnly={true}
+        isReadOnly={false}
+        onUpdate={carregarDados}
       />
     </div>
   );

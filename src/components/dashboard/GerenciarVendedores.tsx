@@ -201,7 +201,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
             vendedor_id: vendedorId,
             mes,
             ano,
-            valor: parseFloat(valorMeta),
+            valor_meta: parseFloat(valorMeta),
           },
           {
             onConflict: "vendedor_id,mes,ano"
