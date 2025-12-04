@@ -7,6 +7,7 @@ import CalendarioVendas from "./CalendarioVendas";
 
 interface VisualizarVendedorProps {
   vendedorId: string;
+  onDataChange?: () => void;
 }
 
 interface Vendedor {
@@ -26,7 +27,7 @@ interface Venda {
   devolucao: number;
 }
 
-export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorProps) {
+export default function VisualizarVendedor({ vendedorId, onDataChange }: VisualizarVendedorProps) {
   const [vendedor, setVendedor] = useState<Vendedor | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [vendas, setVendas] = useState<Venda[]>([]);
@@ -143,7 +144,10 @@ export default function VisualizarVendedor({ vendedorId }: VisualizarVendedorPro
       <CalendarioVendas
         vendedorId={vendedorId}
         isReadOnly={false}
-        onUpdate={carregarDados}
+        onUpdate={() => {
+          carregarDados();
+          onDataChange?.();
+        }}
       />
     </div>
   );

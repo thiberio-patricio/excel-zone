@@ -27,13 +27,18 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
   const [totalVendas, setTotalVendas] = useState(0);
+  const [totalMetas, setTotalMetas] = useState(0);
   const [dashboardData, setDashboardData] = useState<any[]>([]);
 
   useEffect(() => {
+    recarregarTudo();
+  }, []);
+
+  const recarregarTudo = () => {
     carregarVendedores();
     carregarTotalVendas();
     carregarDadosDashboard();
-  }, []);
+  };
 
   const carregarVendedores = async () => {
     console.log("=== INICIANDO carregarVendedores (Dashboard) ===");
@@ -99,20 +104,51 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       const ultimoDia = new Date(anoAtual, mesAtual, 0);
       const ultimoDiaFormatado = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
-      const { data, error } = await supabase
+      // Buscar vendedores da filial
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "vendedor");
+
+      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+
+      if (vendedorIds.length === 0) {
+        setTotalVendas(0);
+        setTotalMetas(0);
+        return;
+      }
+
+      // Buscar todas as vendas dos vendedores da filial
+      const { data: vendasData, error: vendasError } = await supabase
         .from("vendas")
         .select("valor, devolucao")
+        .in("vendedor_id", vendedorIds)
         .gte("data", primeiroDia)
         .lte("data", ultimoDiaFormatado);
 
-      if (error) throw error;
+      if (vendasError) throw vendasError;
 
-      if (data) {
-        const total = data.reduce((acc, v) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
+      if (vendasData) {
+        const total = vendasData.reduce((acc, v) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
         setTotalVendas(total);
       }
+
+      // Buscar todas as metas dos vendedores
+      const { data: metasData, error: metasError } = await supabase
+        .from("metas")
+        .select("valor_meta")
+        .in("vendedor_id", vendedorIds)
+        .eq("mes", mesAtual)
+        .eq("ano", anoAtual);
+
+      if (metasError) throw metasError;
+
+      if (metasData) {
+        const totalMetasValue = metasData.reduce((acc, m) => acc + Number(m.valor_meta), 0);
+        setTotalMetas(totalMetasValue);
+      }
     } catch (error: any) {
-      toast.error("Erro ao carregar total de vendas");
+      toast.error("Erro ao carregar totais");
       console.error("Erro detalhado:", error);
     }
   };
@@ -195,7 +231,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Equipe</CardTitle>
@@ -225,12 +261,30 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
         <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Metas Ativas</CardTitle>
+            <CardTitle className="text-sm font-medium">Meta Geral</CardTitle>
             <Target className="h-4 w-4 text-accent" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-accent">
-              {vendedores.length}
+              R$ {totalMetas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Progresso</CardTitle>
+            <BarChart className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {totalMetas > 0 ? ((totalVendas / totalMetas) * 100).toFixed(1) : 0}%
+            </div>
+            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
+                style={{ width: `${Math.min(totalMetas > 0 ? (totalVendas / totalMetas) * 100 : 0, 100)}%` }}
+              />
             </div>
           </CardContent>
         </Card>
@@ -352,11 +406,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </TabsContent>
 
         <TabsContent value="vendedores" className="space-y-4">
-          <GerenciarVendedores onUpdate={() => {
-            carregarVendedores();
-            carregarTotalVendas();
-            carregarDadosDashboard();
-          }} />
+          <GerenciarVendedores onUpdate={recarregarTudo} />
         </TabsContent>
 
         <TabsContent value="vendas" className="space-y-4">
@@ -384,7 +434,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
           </Card>
 
           {selectedVendedor && (
-            <VisualizarVendedor vendedorId={selectedVendedor} />
+            <VisualizarVendedor vendedorId={selectedVendedor} onDataChange={recarregarTudo} />
           )}
         </TabsContent>
       </Tabs>

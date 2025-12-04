@@ -214,6 +214,7 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
       setVendedorId("");
       setValorMeta("");
       setMetaOpen(false);
+      onUpdate(); // Atualiza dashboard quando meta é criada/atualizada
     } catch (error: any) {
       toast.error(error.message || "Erro ao definir meta");
     }
