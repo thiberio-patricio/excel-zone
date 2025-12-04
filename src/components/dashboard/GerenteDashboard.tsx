@@ -317,12 +317,12 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                 >
                   <defs>
                     <linearGradient id="colorVendido" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--success))" stopOpacity={0.9}/>
-                      <stop offset="100%" stopColor="hsl(var(--success))" stopOpacity={0.7}/>
+                      <stop offset="0%" stopColor="hsl(0 85% 45%)" stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor="hsl(0 85% 55%)" stopOpacity={0.8}/>
                     </linearGradient>
                     <linearGradient id="colorMeta" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9}/>
-                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.7}/>
+                      <stop offset="0%" stopColor="hsl(0 0% 20%)" stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor="hsl(0 0% 35%)" stopOpacity={0.75}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid 
