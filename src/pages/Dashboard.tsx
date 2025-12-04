@@ -8,6 +8,7 @@ import VendedorDashboard from "@/components/dashboard/VendedorDashboard";
 import GerenteDashboard from "@/components/dashboard/GerenteDashboard";
 import DiretorDashboard from "@/components/dashboard/DiretorDashboard";
 import AlterarSenha from "@/components/dashboard/AlterarSenha";
+import logoUnidos from "@/assets/logo-unidos.png";
 
 interface Profile {
   id: string;
@@ -82,6 +83,15 @@ export default function Dashboard() {
     }
   };
 
+  const getRoleLabel = (role: string) => {
+    const labels: Record<string, string> = {
+      vendedor: "Vendedor",
+      gerente: "Gerente",
+      diretor: "Diretor"
+    };
+    return labels[role] || role;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -95,31 +105,50 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
+      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-lg sm:text-xl border-2 border-primary/20 shadow-lg">
-              {profile.foto_url ? (
-                <img
-                  src={profile.foto_url}
-                  alt={profile.nome}
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                profile.nome.charAt(0).toUpperCase()
-              )}
-            </div>
-            <div>
-              <h1 className="text-lg sm:text-xl font-bold text-foreground">
-                {profile.nome}
-              </h1>
-              <p className="text-xs sm:text-sm text-muted-foreground capitalize font-medium">
-                {userRole}
-              </p>
+          <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
+            {/* Logo */}
+            <img 
+              src={logoUnidos} 
+              alt="Unidos Importados" 
+              className="h-10 sm:h-12 w-auto object-contain"
+            />
+            
+            {/* Divider */}
+            <div className="hidden sm:block h-10 w-px bg-border" />
+            
+            {/* User Info */}
+            <div className="flex items-center gap-3 ml-auto sm:ml-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold text-base sm:text-lg border-2 border-primary/20 shadow-md overflow-hidden">
+                {profile.foto_url ? (
+                  <img
+                    src={profile.foto_url}
+                    alt={profile.nome}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  profile.nome.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="hidden xs:block">
+                <h1 className="text-base sm:text-lg font-semibold text-foreground leading-tight">
+                  {profile.nome}
+                </h1>
+                <p className="text-xs sm:text-sm text-primary font-medium">
+                  {getRoleLabel(userRole)}
+                </p>
+              </div>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="self-end sm:self-auto">
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLogout} 
+            className="self-end sm:self-auto border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
+          >
             <LogOut className="w-4 h-4 mr-2" />
             Sair
           </Button>

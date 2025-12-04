@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, TrendingUp } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import logoUnidos from "@/assets/logo-unidos.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -38,25 +39,27 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 text-center">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-muted/30 p-4">
+      <Card className="w-full max-w-md shadow-xl border-border/50">
+        <CardHeader className="space-y-1 text-center pb-2">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-md">
-              <TrendingUp className="w-8 h-8 text-primary-foreground" />
-            </div>
+            <img 
+              src={logoUnidos} 
+              alt="Unidos Importados" 
+              className="h-16 md:h-20 w-auto object-contain"
+            />
           </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-            Sistema de Vendas
+          <CardTitle className="text-2xl font-bold text-foreground">
+            Bem-vindo
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-base text-muted-foreground">
             Entre com suas credenciais para acessar
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        <CardContent className="pt-4">
+          <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -65,10 +68,11 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
+                className="h-11 bg-background border-border focus:border-primary focus:ring-primary"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-foreground font-medium">Senha</Label>
               <Input
                 id="password"
                 type="password"
@@ -77,11 +81,12 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="h-11 bg-background border-border focus:border-primary focus:ring-primary"
               />
             </div>
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary"
+              className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all duration-300"
               disabled={loading}
             >
               {loading ? (
