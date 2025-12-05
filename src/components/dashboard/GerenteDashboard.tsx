@@ -250,10 +250,10 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Vendas do Mês</CardTitle>
-            <TrendingUp className="h-4 w-4 text-success" />
+            <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">
+            <div className="text-2xl font-bold text-primary">
               R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
           </CardContent>

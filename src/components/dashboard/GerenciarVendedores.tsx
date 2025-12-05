@@ -255,19 +255,14 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
       if (profileError) throw profileError;
 
-      // Deletar usuário do auth
-      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
-
-      if (authError) throw authError;
-
       toast.success("Usuário deletado com sucesso!");
-      await carregarVendedores();
-      onUpdate();
     } catch (error: any) {
       toast.error(error.message || "Erro ao deletar usuário");
       console.error("Erro ao deletar:", error);
     } finally {
       setDeletingUser(null);
+      await carregarVendedores();
+      onUpdate();
     }
   };
 
