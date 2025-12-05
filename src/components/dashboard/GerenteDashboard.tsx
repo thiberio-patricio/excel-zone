@@ -31,8 +31,10 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   const [dashboardData, setDashboardData] = useState<any[]>([]);
 
   useEffect(() => {
-    recarregarTudo();
-  }, []);
+    if (profile?.id) {
+      recarregarTudo();
+    }
+  }, [profile?.id]);
 
   const recarregarTudo = () => {
     carregarVendedores();
