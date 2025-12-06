@@ -1,73 +1,181 @@
-# Welcome to your Lovable project
+# Unidos Importados - Sistema de Gestão de Vendas
 
-## Project info
+<p align="center">
+  <img src="src/assets/logo-unidos.png" alt="Unidos Importados Logo" width="200"/>
+</p>
 
-**URL**: https://lovable.dev/projects/31e000fc-6cbc-49bb-801c-b1b7f1d14827
+<p align="center">
+  Sistema completo de gestão de vendas com hierarquia de usuários, metas e acompanhamento de performance.
+</p>
 
-## How can I edit this code?
+<p align="center">
+  <a href="#-tecnologias">Tecnologias</a> •
+  <a href="#-funcionalidades">Funcionalidades</a> •
+  <a href="#-instalação">Instalação</a> •
+  <a href="#-como-rodar">Como Rodar</a> •
+  <a href="#-deploy">Deploy</a> •
+  <a href="#-estrutura">Estrutura</a> •
+  <a href="#-licença">Licença</a>
+</p>
 
-There are several ways of editing your application.
+---
 
-**Use Lovable**
+## 🚀 Tecnologias
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/31e000fc-6cbc-49bb-801c-b1b7f1d14827) and start prompting.
+Este projeto foi desenvolvido com as seguintes tecnologias:
 
-Changes made via Lovable will be committed automatically to this repo.
+- **[React](https://reactjs.org/)** - Biblioteca JavaScript para construção de interfaces
+- **[TypeScript](https://www.typescriptlang.org/)** - Superset JavaScript com tipagem estática
+- **[Vite](https://vitejs.dev/)** - Build tool e dev server ultrarrápido
+- **[Tailwind CSS](https://tailwindcss.com/)** - Framework CSS utility-first
+- **[shadcn/ui](https://ui.shadcn.com/)** - Componentes UI reutilizáveis
+- **[React Router DOM](https://reactrouter.com/)** - Roteamento para React
+- **[TanStack Query](https://tanstack.com/query)** - Gerenciamento de estado assíncrono
+- **[Recharts](https://recharts.org/)** - Biblioteca de gráficos para React
+- **[Supabase](https://supabase.com/)** - Backend as a Service (Auth, Database, Edge Functions)
+- **[React Hook Form](https://react-hook-form.com/)** - Gerenciamento de formulários
+- **[Zod](https://zod.dev/)** - Validação de schemas TypeScript-first
+- **[date-fns](https://date-fns.org/)** - Manipulação de datas
+- **[Lucide React](https://lucide.dev/)** - Ícones modernos
 
-**Use your preferred IDE**
+## ✨ Funcionalidades
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Hierarquia de Usuários
+- **Diretor**: Acesso total ao sistema, gerencia filiais e gerentes
+- **Gerente**: Gerencia vendedores da sua filial, define metas e visualiza vendas
+- **Vendedor**: Visualiza suas próprias vendas e metas (somente leitura)
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Recursos Principais
+- 📊 Dashboard com métricas de vendas
+- 📅 Calendário de vendas interativo
+- 🎯 Sistema de metas por vendedor
+- 📈 Gráficos de performance da equipe
+- 🏢 Gestão de filiais
+- 👥 Gestão de usuários por hierarquia
+- 🔐 Autenticação segura com troca obrigatória de senha
+- 📱 Design responsivo (mobile, tablet, desktop)
 
-Follow these steps:
+## 📋 Pré-requisitos
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- Node.js 18+ 
+- npm ou bun
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🔧 Instalação
 
-# Step 3: Install the necessary dependencies.
-npm i
+```bash
+# Clone o repositório
+git clone https://github.com/seu-usuario/unidos-importados.git
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+# Entre no diretório
+cd unidos-importados
+
+# Instale as dependências
+npm install
+# ou
+bun install
 ```
 
-**Edit a file directly in GitHub**
+## 🏃 Como Rodar
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Desenvolvimento
 
-**Use GitHub Codespaces**
+```bash
+# Inicie o servidor de desenvolvimento
+npm run dev
+# ou
+bun run dev
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+O aplicativo estará disponível em `http://localhost:8080`
 
-## What technologies are used for this project?
+### Build de Produção
 
-This project is built with:
+```bash
+# Gere o build de produção
+npm run build
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Visualize o build localmente
+npm run preview
+```
 
-## How can I deploy this project?
+## 🚀 Deploy
 
-Simply open [Lovable](https://lovable.dev/projects/31e000fc-6cbc-49bb-801c-b1b7f1d14827) and click on Share -> Publish.
+### Lovable (Recomendado)
 
-## Can I connect a custom domain to my Lovable project?
+1. Acesse [Lovable](https://lovable.dev)
+2. Abra o projeto
+3. Clique em **Share → Publish**
 
-Yes, you can!
+### Outras Plataformas
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+O build gera arquivos estáticos na pasta `dist/` que podem ser hospedados em:
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Vercel
+- Netlify
+- Cloudflare Pages
+- GitHub Pages
+- AWS S3 + CloudFront
+
+```bash
+# Gere o build
+npm run build
+
+# A pasta dist/ contém os arquivos para deploy
+```
+
+## 📁 Estrutura
+
+```
+unidos-importados/
+├── public/                 # Arquivos públicos estáticos
+├── src/
+│   ├── assets/            # Imagens e recursos
+│   ├── components/
+│   │   ├── dashboard/     # Componentes do dashboard
+│   │   └── ui/            # Componentes UI (shadcn)
+│   ├── hooks/             # Custom hooks
+│   ├── integrations/      # Integrações (Supabase)
+│   ├── lib/               # Utilitários
+│   ├── pages/             # Páginas da aplicação
+│   ├── utils/             # Funções utilitárias
+│   ├── App.tsx            # Componente principal
+│   ├── index.css          # Estilos globais
+│   └── main.tsx           # Entry point
+├── supabase/
+│   ├── functions/         # Edge Functions
+│   └── config.toml        # Configuração Supabase
+├── .env                   # Variáveis de ambiente
+├── tailwind.config.ts     # Configuração Tailwind
+├── vite.config.ts         # Configuração Vite
+└── package.json           # Dependências
+```
+
+## 🔑 Variáveis de Ambiente
+
+```env
+VITE_SUPABASE_URL=sua_url_supabase
+VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
+VITE_SUPABASE_PROJECT_ID=seu_project_id
+```
+
+## 🤝 Contribuindo
+
+Contribuições são bem-vindas! Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
+
+## 📜 Código de Conduta
+
+Este projeto adota um Código de Conduta. Veja [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## 📝 Changelog
+
+Veja [CHANGELOG.md](CHANGELOG.md) para histórico de mudanças.
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja [LICENSE](LICENSE) para mais detalhes.
+
+---
+
+<p align="center">
+  Desenvolvido com ❤️ por Unidos Importados
+</p>
