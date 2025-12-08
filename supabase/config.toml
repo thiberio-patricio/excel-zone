@@ -1,1 +1,7 @@
 project_id = "ofgqaywlumvfjtsbhfhg"
+
+[functions.create-user-with-role]
+verify_jwt = true
+
+[functions.create-manager]
+verify_jwt = true
