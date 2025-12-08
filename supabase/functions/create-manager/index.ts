@@ -5,6 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Input validation helpers
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email) && email.length <= 255
+}
+
+function isValidPassword(password: string): boolean {
+  return typeof password === 'string' && password.length >= 6 && password.length <= 72
+}
+
+function isValidName(nome: string): boolean {
+  return typeof nome === 'string' && nome.length >= 1 && nome.length <= 100
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -23,7 +37,79 @@ Deno.serve(async (req) => {
       }
     )
 
-    const { email, password, nome, filial_id } = await req.json()
+    // Extract and verify the caller's JWT
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or invalid Authorization header')
+      return new Response(
+        JSON.stringify({ error: 'Não autorizado - token de autenticação necessário' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    
+    if (authError || !caller) {
+      console.error('Failed to verify caller:', authError)
+      return new Response(
+        JSON.stringify({ error: 'Token de autenticação inválido' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    console.log('Authenticated caller:', caller.id)
+
+    // Verify caller is a director (only directors can create managers)
+    const { data: callerRoles, error: callerRoleError } = await supabaseAdmin
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', caller.id)
+
+    if (callerRoleError) {
+      console.error('Failed to get caller roles:', callerRoleError)
+      return new Response(
+        JSON.stringify({ error: 'Erro ao verificar permissões' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const callerRoleList = callerRoles?.map(r => r.role) || []
+    const isCallerDiretor = callerRoleList.includes('diretor')
+
+    if (!isCallerDiretor) {
+      console.error('Non-director trying to create manager:', caller.id)
+      return new Response(
+        JSON.stringify({ error: 'Apenas diretores podem criar gerentes' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Parse and validate input
+    const body = await req.json()
+    const { email, password, nome, filial_id } = body
+
+    // Input validation
+    if (!email || !isValidEmail(email)) {
+      return new Response(
+        JSON.stringify({ error: 'Email inválido ou muito longo (máx. 255 caracteres)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!password || !isValidPassword(password)) {
+      return new Response(
+        JSON.stringify({ error: 'Senha deve ter entre 6 e 72 caracteres' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (nome && !isValidName(nome)) {
+      return new Response(
+        JSON.stringify({ error: 'Nome inválido (1-100 caracteres)' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     console.log('Creating manager:', { email, nome, filial_id });
 
