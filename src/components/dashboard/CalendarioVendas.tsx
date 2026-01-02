@@ -12,19 +12,25 @@ interface CalendarioVendasProps {
   vendedorId: string;
   isReadOnly: boolean;
   onUpdate?: () => void;
+  mes?: number;
+  ano?: number;
 }
 
 export default function CalendarioVendas({
   vendedorId,
   isReadOnly,
   onUpdate,
+  mes: mesProp,
+  ano: anoProp,
 }: CalendarioVendasProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [valor, setValor] = useState("");
   const [devolucao, setDevolucao] = useState("");
   const [observacoes, setObservacoes] = useState("");
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [ano, setAno] = useState(new Date().getFullYear());
+  
+  // Usa props se fornecidas, senão usa mês/ano atual
+  const mes = mesProp ?? new Date().getMonth() + 1;
+  const ano = anoProp ?? new Date().getFullYear();
   const [vendas, setVendas] = useState<Array<{
     id: string;
     data: string;
