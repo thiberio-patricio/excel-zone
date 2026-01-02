@@ -183,6 +183,8 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
       <CalendarioVendas
         vendedorId={profile.id}
         isReadOnly={true}
+        mes={mesSelecionado}
+        ano={anoSelecionado}
       />
     </div>
   );
