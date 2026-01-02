@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { TrendingUp, Target, User } from "lucide-react";
+import { TrendingUp, Target, User, Calendar } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
 
 interface VisualizarVendedorProps {
@@ -33,12 +34,25 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [totalVendido, setTotalVendido] = useState(0);
 
-  const mesAtual = new Date().getMonth() + 1;
-  const anoAtual = new Date().getFullYear();
+  const mesAtualDate = new Date().getMonth() + 1;
+  const anoAtualDate = new Date().getFullYear();
+
+  const [mesSelecionado, setMesSelecionado] = useState(mesAtualDate);
+  const [anoSelecionado, setAnoSelecionado] = useState(anoAtualDate);
+
+  const meses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+
+  const anos = [];
+  for (let ano = anoAtualDate; ano >= anoAtualDate - 5; ano--) {
+    anos.push(ano);
+  }
 
   useEffect(() => {
     carregarDados();
-  }, [vendedorId]);
+  }, [vendedorId, mesSelecionado, anoSelecionado]);
 
   const carregarDados = async () => {
     try {
@@ -54,14 +68,15 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
         .from("metas")
         .select("*")
         .eq("vendedor_id", vendedorId)
-        .eq("mes", mesAtual)
-        .eq("ano", anoAtual)
-        .single();
+        .eq("mes", mesSelecionado)
+        .eq("ano", anoSelecionado)
+        .maybeSingle();
 
       if (metaData) setMeta(metaData);
+      else setMeta(null);
 
-      const primeiroDia = new Date(anoAtual, mesAtual - 1, 1);
-      const ultimoDia = new Date(anoAtual, mesAtual, 0);
+      const primeiroDia = new Date(anoSelecionado, mesSelecionado - 1, 1);
+      const ultimoDia = new Date(anoSelecionado, mesSelecionado, 0);
 
       const { data: vendasData, error } = await supabase
         .from("vendas")
@@ -96,6 +111,52 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
             {vendedor.nome}
           </CardTitle>
         </CardHeader>
+      </Card>
+
+      {/* Seletor de Mês/Ano */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-primary" />
+            Selecionar Período
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-4">
+          <div className="flex-1">
+            <Select
+              value={mesSelecionado.toString()}
+              onValueChange={(value) => setMesSelecionado(parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {meses.map((mes, index) => (
+                  <SelectItem key={index + 1} value={(index + 1).toString()}>
+                    {mes}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <Select
+              value={anoSelecionado.toString()}
+              onValueChange={(value) => setAnoSelecionado(parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {anos.map((ano) => (
+                  <SelectItem key={ano} value={ano.toString()}>
+                    {ano}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
       </Card>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -144,6 +205,8 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
       <CalendarioVendas
         vendedorId={vendedorId}
         isReadOnly={false}
+        mes={mesSelecionado}
+        ano={anoSelecionado}
         onUpdate={() => {
           carregarDados();
           onDataChange?.();
