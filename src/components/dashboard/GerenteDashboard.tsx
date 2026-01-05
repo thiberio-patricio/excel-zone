@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, TrendingUp, Target, BarChart } from "lucide-react";
+import { Users, TrendingUp, Target, BarChart, Calendar } from "lucide-react";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import GerenciarVendedores from "./GerenciarVendedores";
 import VisualizarVendedor from "./VisualizarVendedor";
+import GerenciarFeriadosFerias from "./GerenciarFeriadosFerias";
 
 interface GerenteDashboardProps {
   profile: {
@@ -30,11 +32,27 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   const [totalMetas, setTotalMetas] = useState(0);
   const [dashboardData, setDashboardData] = useState<any[]>([]);
 
+  const mesAtualDate = new Date().getMonth() + 1;
+  const anoAtualDate = new Date().getFullYear();
+
+  const [mesSelecionado, setMesSelecionado] = useState(mesAtualDate);
+  const [anoSelecionado, setAnoSelecionado] = useState(anoAtualDate);
+
+  const meses = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+
+  const anos = [];
+  for (let ano = anoAtualDate; ano >= anoAtualDate - 5; ano--) {
+    anos.push(ano);
+  }
+
   useEffect(() => {
     if (profile?.id) {
       recarregarTudo();
     }
-  }, [profile?.id]);
+  }, [profile?.id, mesSelecionado, anoSelecionado]);
 
   const recarregarTudo = () => {
     carregarVendedores();
@@ -96,15 +114,12 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
   const carregarTotalVendas = async () => {
     try {
-      const mesAtual = new Date().getMonth() + 1;
-      const anoAtual = new Date().getFullYear();
+      // Primeiro dia do mês selecionado
+      const primeiroDia = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-01`;
       
-      // Primeiro dia do mês atual
-      const primeiroDia = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-01`;
-      
-      // Último dia do mês atual
-      const ultimoDia = new Date(anoAtual, mesAtual, 0);
-      const ultimoDiaFormatado = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+      // Último dia do mês selecionado
+      const ultimoDia = new Date(anoSelecionado, mesSelecionado, 0);
+      const ultimoDiaFormatado = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
       // Buscar vendedores da filial
       const { data: rolesData } = await supabase
@@ -140,8 +155,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         .from("metas")
         .select("valor_meta")
         .in("vendedor_id", vendedorIds)
-        .eq("mes", mesAtual)
-        .eq("ano", anoAtual);
+        .eq("mes", mesSelecionado)
+        .eq("ano", anoSelecionado);
 
       if (metasError) throw metasError;
 
@@ -157,15 +172,12 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
   const carregarDadosDashboard = async () => {
     try {
-      const mesAtual = new Date().getMonth() + 1;
-      const anoAtual = new Date().getFullYear();
+      // Primeiro dia do mês selecionado
+      const primeiroDia = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-01`;
       
-      // Primeiro dia do mês atual
-      const primeiroDia = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-01`;
-      
-      // Último dia do mês atual
-      const ultimoDia = new Date(anoAtual, mesAtual, 0);
-      const ultimoDiaFormatado = `${anoAtual}-${String(mesAtual).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
+      // Último dia do mês selecionado
+      const ultimoDia = new Date(anoSelecionado, mesSelecionado, 0);
+      const ultimoDiaFormatado = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
       // Buscar vendedores
       const { data: rolesData, error: rolesError } = await supabase
@@ -204,8 +216,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             .from("metas")
             .select("valor_meta")
             .eq("vendedor_id", vendedor.id)
-            .eq("mes", mesAtual)
-            .eq("ano", anoAtual)
+            .eq("mes", mesSelecionado)
+            .eq("ano", anoSelecionado)
             .maybeSingle();
 
           const totalVendido = (vendas || []).reduce(
@@ -292,11 +304,58 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </Card>
       </div>
 
+      {/* Seletor de Mês/Ano */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-primary" />
+            Selecionar Período
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex gap-4">
+          <div className="flex-1">
+            <Select
+              value={mesSelecionado.toString()}
+              onValueChange={(value) => setMesSelecionado(parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {meses.map((mes, index) => (
+                  <SelectItem key={index + 1} value={(index + 1).toString()}>
+                    {mes}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1">
+            <Select
+              value={anoSelecionado.toString()}
+              onValueChange={(value) => setAnoSelecionado(parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {anos.map((ano) => (
+                  <SelectItem key={ano} value={ano.toString()}>
+                    {ano}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-4 max-w-3xl">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="vendedores">Gerenciar Equipe</TabsTrigger>
           <TabsTrigger value="vendas">Visualizar Vendas</TabsTrigger>
+          <TabsTrigger value="feriados">Feriados/Férias</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">
@@ -438,6 +497,10 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
           {selectedVendedor && (
             <VisualizarVendedor vendedorId={selectedVendedor} onDataChange={recarregarTudo} />
           )}
+        </TabsContent>
+
+        <TabsContent value="feriados" className="space-y-4">
+          <GerenciarFeriadosFerias />
         </TabsContent>
       </Tabs>
     </div>
