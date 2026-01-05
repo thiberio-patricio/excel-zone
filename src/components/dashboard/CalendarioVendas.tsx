@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Calendar, Palmtree, CalendarDays } from "lucide-react";
+import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface CalendarioVendasProps {
   vendedorId: string;
@@ -75,14 +76,8 @@ export default function CalendarioVendas({
 
       setVendas(vendasData || []);
 
-      const { data: metaData } = await supabase
-        .from("metas")
-        .select("valor_meta")
-        .eq("vendedor_id", vendedorId)
-        .eq("mes", mes)
-        .eq("ano", ano)
-        .maybeSingle();
-
+      // Carregar meta do mês (com fallback para meta mais recente)
+      const metaData = await fetchMetaWithFallback(vendedorId, mes, ano);
       setMeta(metaData?.valor_meta || null);
 
       // Carregar feriados do mês

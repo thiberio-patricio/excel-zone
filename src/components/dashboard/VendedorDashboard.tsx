@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { TrendingUp, Target, Calendar } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
+import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface VendedorDashboardProps {
   profile: {
@@ -44,15 +45,8 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
 
   const carregarDados = async () => {
     try {
-      // Carregar meta do mês selecionado
-      const { data: metaData } = await supabase
-        .from("metas")
-        .select("*")
-        .eq("vendedor_id", profile.id)
-        .eq("mes", mesSelecionado)
-        .eq("ano", anoSelecionado)
-        .maybeSingle();
-
+      // Carregar meta do mês selecionado (com fallback para meta mais recente)
+      const metaData = await fetchMetaWithFallback(profile.id, mesSelecionado, anoSelecionado);
       setMeta(metaData);
 
       // Carregar vendas do mês selecionado
