@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { TrendingUp, Target, User, Calendar } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
+import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface VisualizarVendedorProps {
   vendedorId: string;
@@ -64,16 +65,9 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
 
       if (vendedorData) setVendedor(vendedorData);
 
-      const { data: metaData } = await supabase
-        .from("metas")
-        .select("*")
-        .eq("vendedor_id", vendedorId)
-        .eq("mes", mesSelecionado)
-        .eq("ano", anoSelecionado)
-        .maybeSingle();
-
-      if (metaData) setMeta(metaData);
-      else setMeta(null);
+      // Carregar meta do mês selecionado (com fallback para meta mais recente)
+      const metaData = await fetchMetaWithFallback(vendedorId, mesSelecionado, anoSelecionado);
+      setMeta(metaData);
 
       const primeiroDia = new Date(anoSelecionado, mesSelecionado - 1, 1);
       const ultimoDia = new Date(anoSelecionado, mesSelecionado, 0);
