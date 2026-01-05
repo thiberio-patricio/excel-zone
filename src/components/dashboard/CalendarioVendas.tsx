@@ -4,9 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Calendar } from "lucide-react";
+import { Calendar, Palmtree, CalendarDays } from "lucide-react";
 
 interface CalendarioVendasProps {
   vendedorId: string;
@@ -14,6 +15,19 @@ interface CalendarioVendasProps {
   onUpdate?: () => void;
   mes?: number;
   ano?: number;
+}
+
+interface Feriado {
+  id: string;
+  data: string;
+  descricao: string;
+}
+
+interface Ferias {
+  id: string;
+  vendedor_id: string;
+  data_inicio: string;
+  data_fim: string;
 }
 
 export default function CalendarioVendas({
@@ -39,6 +53,8 @@ export default function CalendarioVendas({
     observacoes: string | null;
   }>>([]);
   const [meta, setMeta] = useState<number | null>(null);
+  const [feriados, setFeriados] = useState<Feriado[]>([]);
+  const [ferias, setFerias] = useState<Ferias[]>([]);
 
   useEffect(() => {
     carregarDados();
@@ -68,9 +84,41 @@ export default function CalendarioVendas({
         .maybeSingle();
 
       setMeta(metaData?.valor_meta || null);
+
+      // Carregar feriados do mês
+      const { data: feriadosData } = await supabase
+        .from("feriados")
+        .select("id, data, descricao")
+        .gte("data", primeiroDia.toISOString().split('T')[0])
+        .lte("data", ultimoDia.toISOString().split('T')[0]);
+
+      setFeriados(feriadosData || []);
+
+      // Carregar férias do vendedor que intersectam com o mês
+      const { data: feriasData } = await supabase
+        .from("ferias")
+        .select("id, vendedor_id, data_inicio, data_fim")
+        .eq("vendedor_id", vendedorId)
+        .lte("data_inicio", ultimoDia.toISOString().split('T')[0])
+        .gte("data_fim", primeiroDia.toISOString().split('T')[0]);
+
+      setFerias(feriasData || []);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
+  };
+
+  const isFeriado = (dataStr: string): Feriado | undefined => {
+    return feriados.find(f => f.data === dataStr);
+  };
+
+  const isFerias = (dataStr: string): boolean => {
+    const data = new Date(dataStr + 'T00:00:00');
+    return ferias.some(f => {
+      const inicio = new Date(f.data_inicio + 'T00:00:00');
+      const fim = new Date(f.data_fim + 'T00:00:00');
+      return data >= inicio && data <= fim;
+    });
   };
 
   const getDiasDoMes = () => {
@@ -214,6 +262,21 @@ export default function CalendarioVendas({
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Legenda */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Badge variant="outline" className="bg-success/10 border-success">
+              Venda registrada
+            </Badge>
+            <Badge variant="outline" className="bg-amber-500/10 border-amber-500 text-amber-700">
+              <CalendarDays className="w-3 h-3 mr-1" />
+              Feriado
+            </Badge>
+            <Badge variant="outline" className="bg-blue-500/10 border-blue-500 text-blue-700">
+              <Palmtree className="w-3 h-3 mr-1" />
+              Férias
+            </Badge>
+          </div>
+
           {/* Legenda dos dias da semana */}
           <div className="grid grid-cols-6 gap-2 mb-2">
             {diasSemana.map((dia) => (
@@ -236,6 +299,8 @@ export default function CalendarioVendas({
               const isSelected = selectedDate === dataStr;
               const vendaReal = venda ? venda.valor - venda.devolucao : 0;
               const vendaEsperada = calcularVendaEsperada(dia);
+              const feriadoDoDia = isFeriado(dataStr);
+              const emFerias = isFerias(dataStr);
 
               return (
                 <button
@@ -243,9 +308,13 @@ export default function CalendarioVendas({
                   onClick={() => handleDayClick(dia)}
                   disabled={isReadOnly && !venda}
                   className={`
-                    p-3 rounded-lg border transition-all min-h-[80px] flex flex-col justify-between
+                    p-3 rounded-lg border transition-all min-h-[80px] flex flex-col justify-between relative
                     ${isSelected
                       ? 'bg-primary text-primary-foreground border-primary shadow-md'
+                      : feriadoDoDia
+                      ? 'bg-amber-500/10 border-amber-500 hover:bg-amber-500/20'
+                      : emFerias
+                      ? 'bg-blue-500/10 border-blue-500 hover:bg-blue-500/20'
                       : venda
                       ? 'bg-success/10 border-success hover:bg-success/20'
                       : 'bg-card border-border hover:bg-muted'
@@ -253,12 +322,36 @@ export default function CalendarioVendas({
                     ${isReadOnly && !venda ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                   `}
                 >
-                  <div className="text-sm font-semibold">
-                    {dia.getDate()}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">
+                      {dia.getDate()}
+                    </span>
+                    <div className="flex gap-1">
+                      {feriadoDoDia && (
+                        <CalendarDays className="w-3 h-3 text-amber-600" />
+                      )}
+                      {emFerias && (
+                        <Palmtree className="w-3 h-3 text-blue-600" />
+                      )}
+                    </div>
                   </div>
                   
+                  {/* Feriado */}
+                  {feriadoDoDia && !isSelected && (
+                    <div className="text-[10px] text-amber-700 truncate">
+                      {feriadoDoDia.descricao}
+                    </div>
+                  )}
+                  
+                  {/* Férias */}
+                  {emFerias && !feriadoDoDia && !isSelected && (
+                    <div className="text-[10px] text-blue-700">
+                      Férias
+                    </div>
+                  )}
+                  
                   {/* Venda Real (dias com venda registrada) */}
-                  {venda && (
+                  {venda && !feriadoDoDia && !emFerias && (
                     <div className="text-xs mt-1">
                       <div className="font-medium text-success">
                         R$ {vendaReal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -267,8 +360,8 @@ export default function CalendarioVendas({
                     </div>
                   )}
                   
-                  {/* Venda Esperada (dias sem venda registrada) */}
-                  {!venda && vendaEsperada !== null && (
+                  {/* Venda Esperada (dias sem venda registrada, sem feriado e sem férias) */}
+                  {!venda && !feriadoDoDia && !emFerias && vendaEsperada !== null && (
                     <div className="text-xs mt-1">
                       <div className="font-medium text-primary">
                         R$ {vendaEsperada.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

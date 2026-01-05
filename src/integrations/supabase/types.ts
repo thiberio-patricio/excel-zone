@@ -47,6 +47,71 @@ export type Database = {
         }
         Relationships: []
       }
+      feriados: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string
+          filial_id: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: string
+          descricao: string
+          filial_id?: string | null
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          filial_id?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feriados_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ferias: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string
+          data_inicio: string
+          id: string
+          observacoes: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim: string
+          data_inicio: string
+          id?: string
+          observacoes?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          observacoes?: string | null
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       filiais: {
         Row: {
           created_at: string
