@@ -117,12 +117,17 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
+      // Use signed URL for private bucket (1 year expiry for profile photos)
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('profile-photos')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 31536000); // 1 year in seconds
 
-      setFotoUrl(publicUrl);
-      toast.success("Foto carregada com sucesso!");
+      if (signedUrlError) throw signedUrlError;
+      
+      if (signedUrlData?.signedUrl) {
+        setFotoUrl(signedUrlData.signedUrl);
+        toast.success("Foto carregada com sucesso!");
+      }
     } catch (error: any) {
       toast.error("Erro ao fazer upload da foto");
       console.error("Erro:", error);
