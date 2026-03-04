@@ -9,6 +9,7 @@ import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 import GerenciarVendedores from "./GerenciarVendedores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import GerenciarFeriadosFerias from "./GerenciarFeriadosFerias";
+import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface GerenteDashboardProps {
   profile: {
@@ -150,20 +151,13 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         setTotalVendas(total);
       }
 
-      // Buscar todas as metas dos vendedores
-      const { data: metasData, error: metasError } = await supabase
-        .from("metas")
-        .select("valor_meta")
-        .in("vendedor_id", vendedorIds)
-        .eq("mes", mesSelecionado)
-        .eq("ano", anoSelecionado);
+      // Buscar todas as metas dos vendedores (com fallback)
+      const metasResults = await Promise.all(
+        vendedorIds.map(id => fetchMetaWithFallback(id, mesSelecionado, anoSelecionado))
+      );
 
-      if (metasError) throw metasError;
-
-      if (metasData) {
-        const totalMetasValue = metasData.reduce((acc, m) => acc + Number(m.valor_meta), 0);
-        setTotalMetas(totalMetasValue);
-      }
+      const totalMetasValue = metasResults.reduce((acc, m) => acc + (m ? Number(m.valor_meta) : 0), 0);
+      setTotalMetas(totalMetasValue);
     } catch (error: any) {
       toast.error("Erro ao carregar totais");
       console.error("Erro detalhado:", error);
@@ -212,20 +206,14 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             .gte("data", primeiroDia)
             .lte("data", ultimoDiaFormatado);
 
-          const { data: meta, error: metaError } = await supabase
-            .from("metas")
-            .select("valor_meta")
-            .eq("vendedor_id", vendedor.id)
-            .eq("mes", mesSelecionado)
-            .eq("ano", anoSelecionado)
-            .maybeSingle();
+          const meta = await fetchMetaWithFallback(vendedor.id, mesSelecionado, anoSelecionado);
 
           const totalVendido = (vendas || []).reduce(
             (acc, v) => acc + (Number(v.valor) - Number(v.devolucao)),
             0
           );
 
-          console.log(`Dashboard - ${vendedor.nome}: vendas=${totalVendido}, meta=${meta?.valor_meta}, erros:`, vendasError, metaError);
+          console.log(`Dashboard - ${vendedor.nome}: vendas=${totalVendido}, meta=${meta?.valor_meta}, erros:`, vendasError);
 
           return {
             nome: vendedor.nome,
