@@ -165,7 +165,8 @@ export default function CalendarioVendas({
       if (d.getDay() !== 0) { // Exclui domingos
         const dStr = d.toISOString().split('T')[0];
         const temVenda = vendas.find(v => v.data === dStr);
-        if (!temVenda) {
+        const ehFeriado = !!isFeriado(dStr); // Exclui feriados
+        if (!temVenda && !ehFeriado) {
           diasSemVenda++;
         }
       }
