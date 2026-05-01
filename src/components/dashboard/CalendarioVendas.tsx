@@ -154,9 +154,10 @@ export default function CalendarioVendas({
 
     const dataStr = formatarDataLocal(data);
 
-    // Não calcular para domingos nem feriados
+    // Não calcular para domingos, feriados ou férias
     if (data.getDay() === 0) return null;
     if (isFeriado(dataStr)) return null;
+    if (isFerias(dataStr)) return null;
 
     // Se já tem venda registrada nesse dia, não mostra esperada
     const vendaExistente = vendas.find(v => v.data === dataStr);
@@ -167,7 +168,7 @@ export default function CalendarioVendas({
       acc + (v.valor - v.devolucao), 0
     );
 
-    // Calcular dias sem venda registrada (excluindo domingos e feriados)
+    // Calcular dias sem venda registrada (excluindo domingos, feriados e férias)
     const ultimoDiaMes = new Date(ano, mes, 0);
     let diasSemVenda = 0;
 
@@ -175,6 +176,7 @@ export default function CalendarioVendas({
       if (d.getDay() === 0) continue; // Exclui domingos
       const dStr = formatarDataLocal(d);
       if (isFeriado(dStr)) continue; // Exclui feriados
+      if (isFerias(dStr)) continue; // Exclui férias
       const temVenda = vendas.find(v => v.data === dStr);
       if (!temVenda) {
         diasSemVenda++;
