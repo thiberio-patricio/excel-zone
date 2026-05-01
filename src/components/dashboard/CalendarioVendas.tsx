@@ -299,7 +299,7 @@ export default function CalendarioVendas({
                 return <div key={`empty-${index}`} className="p-3" />;
               }
 
-              const dataStr = dia.toISOString().split('T')[0];
+              const dataStr = formatarDataLocal(dia);
               const venda = vendas.find(v => v.data === dataStr);
               const isSelected = selectedDate === dataStr;
               const vendaReal = venda ? venda.valor - venda.devolucao : 0;
