@@ -188,7 +188,7 @@ export default function CalendarioVendas({
   };
 
   const handleDayClick = (data: Date) => {
-    const dataStr = data.toISOString().split('T')[0];
+    const dataStr = formatarDataLocal(data);
     setSelectedDate(dataStr);
 
     const venda = vendas.find(v => v.data === dataStr);
