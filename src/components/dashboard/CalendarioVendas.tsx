@@ -142,33 +142,42 @@ export default function CalendarioVendas({
     return dias;
   };
 
+  const formatarDataLocal = (d: Date): string => {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+
   const calcularVendaEsperada = (data: Date): number | null => {
     if (!meta) return null;
 
-    const dataStr = data.toISOString().split('T')[0];
-    
+    const dataStr = formatarDataLocal(data);
+
+    // Não calcular para domingos nem feriados
+    if (data.getDay() === 0) return null;
+    if (isFeriado(dataStr)) return null;
+
     // Se já tem venda registrada nesse dia, não mostra esperada
     const vendaExistente = vendas.find(v => v.data === dataStr);
     if (vendaExistente) return null;
 
     // Calcular total de vendas já registradas no mês
-    const vendaRealTotal = vendas.reduce((acc, v) => 
+    const vendaRealTotal = vendas.reduce((acc, v) =>
       acc + (v.valor - v.devolucao), 0
     );
 
-    // Calcular dias sem venda registrada (excluindo domingos)
+    // Calcular dias sem venda registrada (excluindo domingos e feriados)
     const ultimoDiaMes = new Date(ano, mes, 0);
-    const primeiroDiaMes = new Date(ano, mes - 1, 1);
     let diasSemVenda = 0;
-    
-    for (let d = new Date(primeiroDiaMes); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
-      if (d.getDay() !== 0) { // Exclui domingos
-        const dStr = d.toISOString().split('T')[0];
-        const temVenda = vendas.find(v => v.data === dStr);
-        const ehFeriado = !!isFeriado(dStr); // Exclui feriados
-        if (!temVenda && !ehFeriado) {
-          diasSemVenda++;
-        }
+
+    for (let d = new Date(ano, mes - 1, 1); d <= ultimoDiaMes; d.setDate(d.getDate() + 1)) {
+      if (d.getDay() === 0) continue; // Exclui domingos
+      const dStr = formatarDataLocal(d);
+      if (isFeriado(dStr)) continue; // Exclui feriados
+      const temVenda = vendas.find(v => v.data === dStr);
+      if (!temVenda) {
+        diasSemVenda++;
       }
     }
 
