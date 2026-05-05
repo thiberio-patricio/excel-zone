@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { TrendingUp, Target, Calendar } from "lucide-react";
+import { TrendingUp, Target, Calendar, RotateCcw } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
