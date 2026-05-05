@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { TrendingUp, Target, Calendar } from "lucide-react";
+import { TrendingUp, Target, Calendar, RotateCcw } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
@@ -32,6 +32,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [totalVendido, setTotalVendido] = useState(0);
+  const [totalDevolucoes, setTotalDevolucoes] = useState(0);
 
   const mesAtualDate = new Date().getMonth() + 1;
   const anoAtualDate = new Date().getFullYear();
@@ -66,7 +67,9 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
       if (vendasData) {
         setVendas(vendasData);
         const total = vendasData.reduce((acc, v) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
+        const totalDev = vendasData.reduce((acc, v) => acc + Number(v.devolucao), 0);
         setTotalVendido(total);
+        setTotalDevolucoes(totalDev);
       }
     } catch (error: any) {
       toast.error("Erro ao carregar dados");
@@ -130,7 +133,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
@@ -139,6 +142,18 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
           <CardContent>
             <div className="text-2xl font-bold text-primary">
               R$ {totalVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Devoluções</CardTitle>
+            <RotateCcw className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              R$ {totalDevolucoes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
