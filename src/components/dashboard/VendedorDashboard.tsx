@@ -32,6 +32,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [totalVendido, setTotalVendido] = useState(0);
+  const [totalDevolucoes, setTotalDevolucoes] = useState(0);
 
   const mesAtualDate = new Date().getMonth() + 1;
   const anoAtualDate = new Date().getFullYear();
@@ -66,7 +67,9 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
       if (vendasData) {
         setVendas(vendasData);
         const total = vendasData.reduce((acc, v) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
+        const totalDev = vendasData.reduce((acc, v) => acc + Number(v.devolucao), 0);
         setTotalVendido(total);
+        setTotalDevolucoes(totalDev);
       }
     } catch (error: any) {
       toast.error("Erro ao carregar dados");
