@@ -133,7 +133,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Vendido</CardTitle>
@@ -142,6 +142,18 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
           <CardContent>
             <div className="text-2xl font-bold text-primary">
               R$ {totalVendido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Devoluções</CardTitle>
+            <RotateCcw className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">
+              R$ {totalDevolucoes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
