@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +83,11 @@ export default function Login() {
                 disabled={loading}
                 className="h-11 bg-background border-border focus:border-primary focus:ring-primary"
               />
+            </div>
+            <div className="text-right">
+              <Link to="/forgot-password" className="text-sm text-primary hover:underline">
+                Esqueci minha senha
+              </Link>
             </div>
             <Button
               type="submit"
