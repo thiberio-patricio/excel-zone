@@ -124,8 +124,12 @@ export default function VisaoGeral() {
   };
 
   const chartConfig = {
+    meta: {
+      label: "Meta",
+      color: "hsl(var(--muted-foreground))",
+    },
     total: {
-      label: "Vendas",
+      label: "Vendido",
       color: "hsl(var(--primary))",
     },
   };
