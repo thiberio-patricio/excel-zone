@@ -107,8 +107,8 @@ export default function VisaoGeral() {
       });
 
       const vendasFilialArray = Array.from(filialAggMap.values())
-        .filter((f) => f.total > 0 || f.meta > 0)
-        .sort((a, b) => b.meta - a.meta);
+        .filter((f) => f.nome !== "Sem Filial" || f.total > 0 || f.meta > 0)
+        .sort((a, b) => a.nome.localeCompare(b.nome));
 
       setStats({
         totalFiliais: filiaisRes.data?.length || 0,
