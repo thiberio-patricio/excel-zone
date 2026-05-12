@@ -126,7 +126,7 @@ export default function VisaoGeral() {
   const chartConfig = {
     meta: {
       label: "Meta",
-      color: "hsl(var(--muted-foreground))",
+      color: "hsl(215 90% 50%)",
     },
     total: {
       label: "Vendido",
