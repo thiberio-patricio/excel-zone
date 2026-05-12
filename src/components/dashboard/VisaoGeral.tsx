@@ -183,7 +183,7 @@ export default function VisaoGeral() {
       {vendasPorFilial.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Vendas por Filial - Mês Atual</CardTitle>
+            <CardTitle>Meta vs Vendido por Filial - Mês Atual</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -203,16 +203,23 @@ export default function VisaoGeral() {
                   <ChartTooltip 
                     content={
                       <ChartTooltipContent 
-                        formatter={(value) => 
-                          `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                        formatter={(value, name) => 
+                          `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                         }
                       />
                     } 
                   />
                   <Bar 
+                    dataKey="meta" 
+                    fill="hsl(var(--muted-foreground))" 
+                    radius={[8, 8, 0, 0]}
+                    name="meta"
+                  />
+                  <Bar 
                     dataKey="total" 
                     fill="hsl(var(--primary))" 
                     radius={[8, 8, 0, 0]}
+                    name="total"
                   />
                 </BarChart>
               </ResponsiveContainer>
