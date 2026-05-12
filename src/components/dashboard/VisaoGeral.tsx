@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 
 interface VendasFilial {
   nome: string;
   total: number;
+  meta: number;
 }
 
 export default function VisaoGeral() {
