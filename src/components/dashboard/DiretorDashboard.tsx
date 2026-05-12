@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, BarChart3 } from "lucide-react";
+import { Building2, Users, BarChart3, ShieldCheck } from "lucide-react";
 import GerenciarFiliais from "./GerenciarFiliais";
 import GerenciarGerentes from "./GerenciarGerentes";
+import GerenciarDiretores from "./GerenciarDiretores";
 import VisaoGeral from "./VisaoGeral";
 
 interface DiretorDashboardProps {
