@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, TrendingUp } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 
 interface VendasFilial {
   nome: string;
@@ -126,7 +126,7 @@ export default function VisaoGeral() {
   const chartConfig = {
     meta: {
       label: "Meta",
-      color: "hsl(var(--muted-foreground))",
+      color: "hsl(215 90% 50%)",
     },
     total: {
       label: "Vendido",
@@ -209,9 +209,12 @@ export default function VisaoGeral() {
                       />
                     } 
                   />
+                  <Legend
+                    formatter={(value) => (value === "meta" ? "Meta" : "Vendido")}
+                  />
                   <Bar 
                     dataKey="meta" 
-                    fill="hsl(var(--muted-foreground))" 
+                    fill="hsl(215 90% 50%)" 
                     radius={[8, 8, 0, 0]}
                     name="meta"
                   />
