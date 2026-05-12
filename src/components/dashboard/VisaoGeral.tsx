@@ -8,6 +8,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 
 interface VendasFilial {
   nome: string;
   total: number;
+  meta: number;
 }
 
 export default function VisaoGeral() {
@@ -25,7 +26,11 @@ export default function VisaoGeral() {
 
   const carregarEstatisticas = async () => {
     try {
-      const [filiaisRes, gerentesRes, vendedoresRes, vendasRes] = await Promise.all([
+      const now = new Date();
+      const mesAtual = now.getMonth() + 1;
+      const anoAtual = now.getFullYear();
+
+      const [filiaisRes, gerentesRes, vendedoresRes, vendasRes, metasRes, profilesRes] = await Promise.all([
         supabase.from("filiais").select("id, nome"),
         supabase
           .from("user_roles")
@@ -47,7 +52,15 @@ export default function VisaoGeral() {
               )
             )
           `)
-          .gte("data", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+          .gte("data", new Date(anoAtual, now.getMonth(), 1).toISOString()),
+        supabase
+          .from("metas")
+          .select("vendedor_id, valor_meta")
+          .eq("mes", mesAtual)
+          .eq("ano", anoAtual),
+        supabase
+          .from("profiles")
+          .select("id, filial_id"),
       ]);
 
       const vendasTotal = vendasRes.data?.reduce(
@@ -55,22 +68,47 @@ export default function VisaoGeral() {
         0
       ) || 0;
 
-      // Calcular vendas por filial
-      const vendasFilialMap = new Map<string, number>();
-      
-      vendasRes.data?.forEach((venda: any) => {
-        const filialNome = venda.vendedor?.filiais?.nome || "Sem Filial";
-        const valorVenda = Number(venda.valor) - Number(venda.devolucao);
-        vendasFilialMap.set(
-          filialNome, 
-          (vendasFilialMap.get(filialNome) || 0) + valorVenda
-        );
+      // Mapa vendedor_id -> filial_id
+      const vendedorFilialMap = new Map<string, string | null>();
+      (profilesRes.data || []).forEach((p: any) => {
+        vendedorFilialMap.set(p.id, p.filial_id);
       });
 
-      const vendasFilialArray = Array.from(vendasFilialMap.entries()).map(([nome, total]) => ({
-        nome,
-        total
-      })).sort((a, b) => b.total - a.total);
+      // Mapa filial_id -> nome
+      const filialNomeMap = new Map<string, string>();
+      (filiaisRes.data || []).forEach((f: any) => {
+        filialNomeMap.set(f.id, f.nome);
+      });
+
+      // Inicializa todas as filiais (mesmo sem vendas/metas)
+      const filialAggMap = new Map<string, { nome: string; total: number; meta: number }>();
+      (filiaisRes.data || []).forEach((f: any) => {
+        filialAggMap.set(f.id, { nome: f.nome, total: 0, meta: 0 });
+      });
+      filialAggMap.set("sem-filial", { nome: "Sem Filial", total: 0, meta: 0 });
+
+      // Soma vendas por filial
+      vendasRes.data?.forEach((venda: any) => {
+        const filialId = venda.vendedor?.filial_id || "sem-filial";
+        const nome = venda.vendedor?.filiais?.nome || filialNomeMap.get(filialId) || "Sem Filial";
+        const valor = Number(venda.valor) - Number(venda.devolucao);
+        const cur = filialAggMap.get(filialId) || { nome, total: 0, meta: 0 };
+        cur.total += valor;
+        cur.nome = nome;
+        filialAggMap.set(filialId, cur);
+      });
+
+      // Soma metas por filial (via vendedor->filial)
+      (metasRes.data || []).forEach((m: any) => {
+        const filialId = vendedorFilialMap.get(m.vendedor_id) || "sem-filial";
+        const cur = filialAggMap.get(filialId) || { nome: filialNomeMap.get(filialId) || "Sem Filial", total: 0, meta: 0 };
+        cur.meta += Number(m.valor_meta);
+        filialAggMap.set(filialId, cur);
+      });
+
+      const vendasFilialArray = Array.from(filialAggMap.values())
+        .filter((f) => f.total > 0 || f.meta > 0)
+        .sort((a, b) => b.meta - a.meta);
 
       setStats({
         totalFiliais: filiaisRes.data?.length || 0,
@@ -86,8 +124,12 @@ export default function VisaoGeral() {
   };
 
   const chartConfig = {
+    meta: {
+      label: "Meta",
+      color: "hsl(var(--muted-foreground))",
+    },
     total: {
-      label: "Vendas",
+      label: "Vendido",
       color: "hsl(var(--primary))",
     },
   };
@@ -141,7 +183,7 @@ export default function VisaoGeral() {
       {vendasPorFilial.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Vendas por Filial - Mês Atual</CardTitle>
+            <CardTitle>Meta vs Vendido por Filial - Mês Atual</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -161,16 +203,23 @@ export default function VisaoGeral() {
                   <ChartTooltip 
                     content={
                       <ChartTooltipContent 
-                        formatter={(value) => 
-                          `R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                        formatter={(value, name) => 
+                          `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
                         }
                       />
                     } 
                   />
                   <Bar 
+                    dataKey="meta" 
+                    fill="hsl(var(--muted-foreground))" 
+                    radius={[8, 8, 0, 0]}
+                    name="meta"
+                  />
+                  <Bar 
                     dataKey="total" 
                     fill="hsl(var(--primary))" 
                     radius={[8, 8, 0, 0]}
+                    name="total"
                   />
                 </BarChart>
               </ResponsiveContainer>

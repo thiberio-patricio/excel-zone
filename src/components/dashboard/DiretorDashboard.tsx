@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, BarChart3 } from "lucide-react";
+import { Building2, Users, BarChart3, ShieldCheck } from "lucide-react";
 import GerenciarFiliais from "./GerenciarFiliais";
 import GerenciarGerentes from "./GerenciarGerentes";
+import GerenciarDiretores from "./GerenciarDiretores";
 import VisaoGeral from "./VisaoGeral";
 
 interface DiretorDashboardProps {
@@ -20,7 +21,7 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
           <TabsTrigger value="visao-geral" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             <span className="hidden sm:inline">Visão Geral</span>
@@ -32,6 +33,10 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
           <TabsTrigger value="gerentes" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             <span className="hidden sm:inline">Gerentes</span>
+          </TabsTrigger>
+          <TabsTrigger value="diretores" className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4" />
+            <span className="hidden sm:inline">Diretores</span>
           </TabsTrigger>
         </TabsList>
 
@@ -45,6 +50,10 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
 
         <TabsContent value="gerentes" className="mt-6">
           <GerenciarGerentes />
+        </TabsContent>
+
+        <TabsContent value="diretores" className="mt-6">
+          <GerenciarDiretores />
         </TabsContent>
       </Tabs>
     </div>
