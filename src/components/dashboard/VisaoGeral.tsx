@@ -209,9 +209,12 @@ export default function VisaoGeral() {
                       />
                     } 
                   />
+                  <Legend
+                    formatter={(value) => (value === "meta" ? "Meta" : "Vendido")}
+                  />
                   <Bar 
                     dataKey="meta" 
-                    fill="hsl(var(--muted-foreground))" 
+                    fill="hsl(215 90% 50%)" 
                     radius={[8, 8, 0, 0]}
                     name="meta"
                   />
