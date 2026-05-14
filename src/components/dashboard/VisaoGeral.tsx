@@ -97,11 +97,21 @@ export default function VisaoGeral() {
         filialAggMap.set(filialId, cur);
       });
 
-      // Soma metas por filial (via vendedor->filial)
+      // Para cada vendedor, mantém apenas a meta mais recente (herança mês a mês)
+      const metaMaisRecentePorVendedor = new Map<string, { valor_meta: number; rank: number }>();
       (metasRes.data || []).forEach((m: any) => {
-        const filialId = vendedorFilialMap.get(m.vendedor_id) || "sem-filial";
+        const rank = Number(m.ano) * 12 + Number(m.mes);
+        const atual = metaMaisRecentePorVendedor.get(m.vendedor_id);
+        if (!atual || rank > atual.rank) {
+          metaMaisRecentePorVendedor.set(m.vendedor_id, { valor_meta: Number(m.valor_meta), rank });
+        }
+      });
+
+      // Soma metas por filial (via vendedor->filial)
+      metaMaisRecentePorVendedor.forEach((m, vendedorId) => {
+        const filialId = vendedorFilialMap.get(vendedorId) || "sem-filial";
         const cur = filialAggMap.get(filialId) || { nome: filialNomeMap.get(filialId) || "Sem Filial", total: 0, meta: 0 };
-        cur.meta += Number(m.valor_meta);
+        cur.meta += m.valor_meta;
         filialAggMap.set(filialId, cur);
       });
 
