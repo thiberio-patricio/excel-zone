@@ -55,9 +55,8 @@ export default function VisaoGeral() {
           .gte("data", new Date(anoAtual, now.getMonth(), 1).toISOString()),
         supabase
           .from("metas")
-          .select("vendedor_id, valor_meta")
-          .eq("mes", mesAtual)
-          .eq("ano", anoAtual),
+          .select("vendedor_id, valor_meta, mes, ano")
+          .or(`ano.lt.${anoAtual},and(ano.eq.${anoAtual},mes.lte.${mesAtual})`),
         supabase
           .from("profiles")
           .select("id, filial_id"),
