@@ -192,8 +192,9 @@ export default function VisaoGeral() {
 
       {vendasPorFilial.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
             <CardTitle>Meta vs Vendido por Filial - Mês Atual</CardTitle>
+            <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -224,13 +225,13 @@ export default function VisaoGeral() {
                   />
                   <Bar 
                     dataKey="meta" 
-                    fill="hsl(215 90% 50%)" 
+                    fill={chartTheme.meta}
                     radius={[8, 8, 0, 0]}
                     name="meta"
                   />
                   <Bar 
                     dataKey="total" 
-                    fill="hsl(var(--primary))" 
+                    fill={chartTheme.vendido}
                     radius={[8, 8, 0, 0]}
                     name="total"
                   />
