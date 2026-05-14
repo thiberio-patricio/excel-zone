@@ -205,15 +205,24 @@ Deno.serve(async (req) => {
 
       userId = userData.user.id
 
-      // Wait a bit for the trigger to create the profile
+      // Wait a bit in case a trigger creates the profile
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Ensure profile has the correct filial_id
-      if (filial_id) {
-        await supabaseAdmin
-          .from('profiles')
-          .update({ filial_id, foto_url: foto_url || null })
-          .eq('id', userId)
+      // Ensure profile exists (upsert) — trigger may not be installed
+      const { error: profileUpsertError } = await supabaseAdmin
+        .from('profiles')
+        .upsert({
+          id: userId,
+          nome: nome || 'Usuário',
+          email,
+          filial_id: filial_id || null,
+          foto_url: foto_url || null,
+          must_change_password: true,
+        }, { onConflict: 'id' })
+
+      if (profileUpsertError) {
+        console.error('Profile upsert error:', profileUpsertError)
+        throw profileUpsertError
       }
     }
 
