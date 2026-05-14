@@ -84,10 +84,9 @@ export default function VisaoGeral() {
       (filiaisRes.data || []).forEach((f: any) => {
         filialAggMap.set(f.id, { nome: f.nome, total: 0, meta: 0 });
       });
-      filialAggMap.set("sem-filial", { nome: "Sem Filial", total: 0, meta: 0 });
-
-      // Soma vendas por filial
+      // Soma vendas por filial (ignorando vendas sem filial vinculada)
       vendasRes.data?.forEach((venda: any) => {
+        if (!venda.vendedor?.filial_id) return;
         const filialId = venda.vendedor?.filial_id || "sem-filial";
         const nome = venda.vendedor?.filiais?.nome || filialNomeMap.get(filialId) || "Sem Filial";
         const valor = Number(venda.valor) - Number(venda.devolucao);
@@ -107,16 +106,16 @@ export default function VisaoGeral() {
         }
       });
 
-      // Soma metas por filial (via vendedor->filial)
+      // Soma metas por filial (ignorando vendedores sem filial)
       metaMaisRecentePorVendedor.forEach((m, vendedorId) => {
-        const filialId = vendedorFilialMap.get(vendedorId) || "sem-filial";
-        const cur = filialAggMap.get(filialId) || { nome: filialNomeMap.get(filialId) || "Sem Filial", total: 0, meta: 0 };
+        const filialId = vendedorFilialMap.get(vendedorId);
+        if (!filialId) return;
+        const cur = filialAggMap.get(filialId) || { nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0 };
         cur.meta += m.valor_meta;
         filialAggMap.set(filialId, cur);
       });
 
       const vendasFilialArray = Array.from(filialAggMap.values())
-        .filter((f) => f.nome !== "Sem Filial" || f.total > 0 || f.meta > 0)
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
       setStats({
