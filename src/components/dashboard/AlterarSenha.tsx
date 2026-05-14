@@ -15,8 +15,13 @@ export default function AlterarSenha() {
   const handleAlterarSenha = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (novaSenha.length < 6) {
-      toast.error("A senha deve ter pelo menos 6 caracteres");
+    if (novaSenha.length < 8) {
+      toast.error("A senha deve ter pelo menos 8 caracteres");
+      return;
+    }
+
+    if (!/[A-Za-z]/.test(novaSenha) || !/[0-9]/.test(novaSenha)) {
+      toast.error("A senha deve conter letras e números");
       return;
     }
 
@@ -41,7 +46,16 @@ export default function AlterarSenha() {
       toast.success("Senha alterada com sucesso!");
       window.location.reload();
     } catch (error: any) {
-      toast.error("Erro ao alterar senha: " + error.message);
+      const msg = (error?.message || "").toLowerCase();
+      if (msg.includes("weak") || msg.includes("pwned") || msg.includes("known")) {
+        toast.error(
+          "Esta senha é muito comum e foi encontrada em vazamentos públicos. Escolha uma senha mais forte, combinando letras maiúsculas, minúsculas, números e símbolos."
+        );
+      } else if (msg.includes("should be different")) {
+        toast.error("A nova senha deve ser diferente da senha atual.");
+      } else {
+        toast.error("Erro ao alterar senha: " + error.message);
+      }
     } finally {
       setLoading(false);
     }
