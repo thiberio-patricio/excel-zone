@@ -106,16 +106,16 @@ export default function VisaoGeral() {
         }
       });
 
-      // Soma metas por filial (via vendedor->filial)
+      // Soma metas por filial (ignorando vendedores sem filial)
       metaMaisRecentePorVendedor.forEach((m, vendedorId) => {
-        const filialId = vendedorFilialMap.get(vendedorId) || "sem-filial";
-        const cur = filialAggMap.get(filialId) || { nome: filialNomeMap.get(filialId) || "Sem Filial", total: 0, meta: 0 };
+        const filialId = vendedorFilialMap.get(vendedorId);
+        if (!filialId) return;
+        const cur = filialAggMap.get(filialId) || { nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0 };
         cur.meta += m.valor_meta;
         filialAggMap.set(filialId, cur);
       });
 
       const vendasFilialArray = Array.from(filialAggMap.values())
-        .filter((f) => f.nome !== "Sem Filial" || f.total > 0 || f.meta > 0)
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
       setStats({
