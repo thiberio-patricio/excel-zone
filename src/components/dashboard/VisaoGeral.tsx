@@ -84,10 +84,9 @@ export default function VisaoGeral() {
       (filiaisRes.data || []).forEach((f: any) => {
         filialAggMap.set(f.id, { nome: f.nome, total: 0, meta: 0 });
       });
-      filialAggMap.set("sem-filial", { nome: "Sem Filial", total: 0, meta: 0 });
-
-      // Soma vendas por filial
+      // Soma vendas por filial (ignorando vendas sem filial vinculada)
       vendasRes.data?.forEach((venda: any) => {
+        if (!venda.vendedor?.filial_id) return;
         const filialId = venda.vendedor?.filial_id || "sem-filial";
         const nome = venda.vendedor?.filiais?.nome || filialNomeMap.get(filialId) || "Sem Filial";
         const valor = Number(venda.valor) - Number(venda.devolucao);
