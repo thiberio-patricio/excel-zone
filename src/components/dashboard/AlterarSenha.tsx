@@ -34,13 +34,7 @@ export default function AlterarSenha() {
 
       if (updateError) throw updateError;
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não encontrado");
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({ must_change_password: false })
-        .eq("id", user.id);
+      const { error: profileError } = await supabase.rpc("complete_password_change");
 
       if (profileError) throw profileError;
 

@@ -292,6 +292,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_password_change: { Args: never; Returns: undefined }
       get_user_filial_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
