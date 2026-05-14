@@ -84,8 +84,11 @@ export default function AlterarSenha() {
                 onChange={(e) => setNovaSenha(e.target.value)}
                 placeholder="Digite a nova senha"
                 required
-                minLength={6}
+                minLength={8}
               />
+              <p className="text-xs text-muted-foreground">
+                Mínimo 8 caracteres, com letras e números. Evite senhas comuns como "123456" ou "senha".
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirmar-senha">Confirmar Senha</Label>
@@ -96,7 +99,7 @@ export default function AlterarSenha() {
                 onChange={(e) => setConfirmarSenha(e.target.value)}
                 placeholder="Confirme a nova senha"
                 required
-                minLength={6}
+                minLength={8}
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
