@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, TrendingUp } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 
 interface VendasFilial {
   nome: string;
@@ -12,6 +13,7 @@ interface VendasFilial {
 }
 
 export default function VisaoGeral() {
+  const { theme: chartTheme, themeId: chartThemeId, setThemeId: setChartThemeId } = useChartColors();
   const [stats, setStats] = useState({
     totalFiliais: 0,
     totalGerentes: 0,
@@ -134,11 +136,11 @@ export default function VisaoGeral() {
   const chartConfig = {
     meta: {
       label: "Meta",
-      color: "hsl(215 90% 50%)",
+      color: chartTheme.meta,
     },
     total: {
       label: "Vendido",
-      color: "hsl(var(--primary))",
+      color: chartTheme.vendido,
     },
   };
 
