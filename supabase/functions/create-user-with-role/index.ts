@@ -179,13 +179,7 @@ Deno.serve(async (req) => {
         }
       })
 
-      // Update profile with filial_id if provided
-      if (filial_id) {
-        await supabaseAdmin
-          .from('profiles')
-          .update({ filial_id, foto_url: foto_url || null })
-          .eq('id', userId)
-      }
+      // Profile is ensured after both creation paths below.
     } else {
       // Create user with admin client
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
@@ -205,24 +199,48 @@ Deno.serve(async (req) => {
 
       userId = userData.user.id
 
-      // Wait a bit in case a trigger creates the profile
-      await new Promise(resolve => setTimeout(resolve, 500))
+    }
 
-      // Ensure profile exists (upsert) — trigger may not be installed
-      const { error: profileUpsertError } = await supabaseAdmin
+    // Ensure profile exists for both existing and newly-created auth users.
+    // Some users may already exist in auth without a profile, which would hide them from managers.
+    const { data: existingProfile, error: profileQueryError } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (profileQueryError) throw profileQueryError
+
+    if (existingProfile) {
+      const { error: profileUpdateError } = await supabaseAdmin
         .from('profiles')
-        .upsert({
+        .update({
+          nome: nome || 'Usuário',
+          email,
+          filial_id: filial_id || null,
+          foto_url: foto_url || null,
+        })
+        .eq('id', userId)
+
+      if (profileUpdateError) {
+        console.error('Profile update error:', profileUpdateError)
+        throw profileUpdateError
+      }
+    } else {
+      const { error: profileInsertError } = await supabaseAdmin
+        .from('profiles')
+        .insert({
           id: userId,
           nome: nome || 'Usuário',
           email,
           filial_id: filial_id || null,
           foto_url: foto_url || null,
           must_change_password: true,
-        }, { onConflict: 'id' })
+        })
 
-      if (profileUpsertError) {
-        console.error('Profile upsert error:', profileUpsertError)
-        throw profileUpsertError
+      if (profileInsertError) {
+        console.error('Profile insert error:', profileInsertError)
+        throw profileInsertError
       }
     }
 
