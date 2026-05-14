@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Users, TrendingUp } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 
 interface VendasFilial {
   nome: string;
@@ -12,6 +13,7 @@ interface VendasFilial {
 }
 
 export default function VisaoGeral() {
+  const { theme: chartTheme, themeId: chartThemeId, setThemeId: setChartThemeId } = useChartColors();
   const [stats, setStats] = useState({
     totalFiliais: 0,
     totalGerentes: 0,
@@ -134,11 +136,11 @@ export default function VisaoGeral() {
   const chartConfig = {
     meta: {
       label: "Meta",
-      color: "hsl(215 90% 50%)",
+      color: chartTheme.meta,
     },
     total: {
       label: "Vendido",
-      color: "hsl(var(--primary))",
+      color: chartTheme.vendido,
     },
   };
 
@@ -190,8 +192,9 @@ export default function VisaoGeral() {
 
       {vendasPorFilial.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
             <CardTitle>Meta vs Vendido por Filial - Mês Atual</CardTitle>
+            <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
           </CardHeader>
           <CardContent>
             <ChartContainer config={chartConfig} className="h-[300px] w-full">
@@ -222,13 +225,13 @@ export default function VisaoGeral() {
                   />
                   <Bar 
                     dataKey="meta" 
-                    fill="hsl(215 90% 50%)" 
+                    fill={chartTheme.meta}
                     radius={[8, 8, 0, 0]}
                     name="meta"
                   />
                   <Bar 
                     dataKey="total" 
-                    fill="hsl(var(--primary))" 
+                    fill={chartTheme.vendido}
                     radius={[8, 8, 0, 0]}
                     name="total"
                   />

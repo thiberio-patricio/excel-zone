@@ -10,6 +10,7 @@ import GerenciarVendedores from "./GerenciarVendedores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import GerenciarFeriadosFerias from "./GerenciarFeriadosFerias";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
+import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 
 interface GerenteDashboardProps {
   profile: {
@@ -27,6 +28,7 @@ interface Vendedor {
 }
 
 export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
+  const { theme: chartTheme, themeId: chartThemeId, setThemeId: setChartThemeId } = useChartColors();
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
   const [totalVendas, setTotalVendas] = useState(0);
@@ -349,13 +351,18 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         <TabsContent value="dashboard" className="space-y-4">
           <Card className="border-none shadow-lg bg-gradient-to-br from-card to-card/50">
             <CardHeader className="pb-8">
-              <CardTitle className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
-                <BarChart className="h-6 w-6 text-primary" />
-                Performance da Equipe
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
-                Vendas realizadas versus metas estabelecidas
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <CardTitle className="flex items-center gap-3 text-2xl font-semibold tracking-tight">
+                    <BarChart className="h-6 w-6 text-primary" />
+                    Performance da Equipe
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Vendas realizadas versus metas estabelecidas
+                  </p>
+                </div>
+                <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
+              </div>
             </CardHeader>
             <CardContent className="pt-0">
               <ResponsiveContainer width="100%" height={450}>
@@ -366,12 +373,12 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                 >
                   <defs>
                     <linearGradient id="colorVendido" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(0 85% 45%)" stopOpacity={0.95}/>
-                      <stop offset="100%" stopColor="hsl(0 85% 55%)" stopOpacity={0.8}/>
+                      <stop offset="0%" stopColor={chartTheme.vendidoStart} stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor={chartTheme.vendidoEnd} stopOpacity={0.8}/>
                     </linearGradient>
                     <linearGradient id="colorMeta" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(0 0% 20%)" stopOpacity={0.9}/>
-                      <stop offset="100%" stopColor="hsl(0 0% 35%)" stopOpacity={0.75}/>
+                      <stop offset="0%" stopColor={chartTheme.metaStart} stopOpacity={0.9}/>
+                      <stop offset="100%" stopColor={chartTheme.metaEnd} stopOpacity={0.75}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid 
