@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.create-manager]
 verify_jwt = true
+
+[functions.create-admin-user]
+verify_jwt = false
