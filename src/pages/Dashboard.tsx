@@ -21,7 +21,7 @@ interface Profile {
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [userRole, setUserRole] = useState<"vendedor" | "gerente" | "diretor" | null>(null);
+  const [userRole, setUserRole] = useState<"vendedor" | "gerente" | "diretor" | "admin" | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -87,7 +87,8 @@ export default function Dashboard() {
     const labels: Record<string, string> = {
       vendedor: "Vendedor",
       gerente: "Gerente",
-      diretor: "Diretor"
+      diretor: "Diretor",
+      admin: "Administrador",
     };
     return labels[role] || role;
   };
@@ -159,7 +160,7 @@ export default function Dashboard() {
         <AlterarSenha />
       ) : (
         <main className="container mx-auto px-4 py-4 sm:py-8">
-          {userRole === 'diretor' ? (
+          {(userRole === 'diretor' || userRole === 'admin') ? (
             <DiretorDashboard profile={profile} />
           ) : userRole === 'gerente' ? (
             <GerenteDashboard profile={profile} />
