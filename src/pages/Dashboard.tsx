@@ -87,7 +87,8 @@ export default function Dashboard() {
     const labels: Record<string, string> = {
       vendedor: "Vendedor",
       gerente: "Gerente",
-      diretor: "Diretor"
+      diretor: "Diretor",
+      admin: "Administrador",
     };
     return labels[role] || role;
   };
