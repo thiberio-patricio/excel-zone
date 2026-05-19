@@ -160,7 +160,7 @@ export default function Dashboard() {
         <AlterarSenha />
       ) : (
         <main className="container mx-auto px-4 py-4 sm:py-8">
-          {userRole === 'diretor' ? (
+          {(userRole === 'diretor' || userRole === 'admin') ? (
             <DiretorDashboard profile={profile} />
           ) : userRole === 'gerente' ? (
             <GerenteDashboard profile={profile} />
