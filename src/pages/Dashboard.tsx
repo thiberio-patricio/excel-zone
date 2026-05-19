@@ -21,7 +21,7 @@ interface Profile {
 
 export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [userRole, setUserRole] = useState<"vendedor" | "gerente" | "diretor" | null>(null);
+  const [userRole, setUserRole] = useState<"vendedor" | "gerente" | "diretor" | "admin" | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
