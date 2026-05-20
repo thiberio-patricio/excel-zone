@@ -1,12 +1,21 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Users, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Building2, Users, TrendingUp, ArrowLeft } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
+import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface VendasFilial {
+  filialId: string;
+  nome: string;
+  total: number;
+  meta: number;
+}
+
+interface VendasVendedor {
   nome: string;
   total: number;
   meta: number;
@@ -21,6 +30,9 @@ export default function VisaoGeral() {
     vendasMesAtual: 0
   });
   const [vendasPorFilial, setVendasPorFilial] = useState<VendasFilial[]>([]);
+  const [filialSelecionada, setFilialSelecionada] = useState<{ id: string; nome: string } | null>(null);
+  const [vendasPorVendedor, setVendasPorVendedor] = useState<VendasVendedor[]>([]);
+  const [loadingVendedores, setLoadingVendedores] = useState(false);
 
   useEffect(() => {
     carregarEstatisticas();
@@ -69,36 +81,31 @@ export default function VisaoGeral() {
         0
       ) || 0;
 
-      // Mapa vendedor_id -> filial_id
       const vendedorFilialMap = new Map<string, string | null>();
       (profilesRes.data || []).forEach((p: any) => {
         vendedorFilialMap.set(p.id, p.filial_id);
       });
 
-      // Mapa filial_id -> nome
       const filialNomeMap = new Map<string, string>();
       (filiaisRes.data || []).forEach((f: any) => {
         filialNomeMap.set(f.id, f.nome);
       });
 
-      // Inicializa todas as filiais (mesmo sem vendas/metas)
-      const filialAggMap = new Map<string, { nome: string; total: number; meta: number }>();
+      const filialAggMap = new Map<string, { filialId: string; nome: string; total: number; meta: number }>();
       (filiaisRes.data || []).forEach((f: any) => {
-        filialAggMap.set(f.id, { nome: f.nome, total: 0, meta: 0 });
+        filialAggMap.set(f.id, { filialId: f.id, nome: f.nome, total: 0, meta: 0 });
       });
-      // Soma vendas por filial (ignorando vendas sem filial vinculada)
       vendasRes.data?.forEach((venda: any) => {
         if (!venda.vendedor?.filial_id) return;
         const filialId = venda.vendedor?.filial_id || "sem-filial";
         const nome = venda.vendedor?.filiais?.nome || filialNomeMap.get(filialId) || "Sem Filial";
         const valor = Number(venda.valor) - Number(venda.devolucao);
-        const cur = filialAggMap.get(filialId) || { nome, total: 0, meta: 0 };
+        const cur = filialAggMap.get(filialId) || { filialId, nome, total: 0, meta: 0 };
         cur.total += valor;
         cur.nome = nome;
         filialAggMap.set(filialId, cur);
       });
 
-      // Para cada vendedor, mantém apenas a meta mais recente (herança mês a mês)
       const metaMaisRecentePorVendedor = new Map<string, { valor_meta: number; rank: number }>();
       (metasRes.data || []).forEach((m: any) => {
         const rank = Number(m.ano) * 12 + Number(m.mes);
@@ -108,11 +115,10 @@ export default function VisaoGeral() {
         }
       });
 
-      // Soma metas por filial (ignorando vendedores sem filial)
       metaMaisRecentePorVendedor.forEach((m, vendedorId) => {
         const filialId = vendedorFilialMap.get(vendedorId);
         if (!filialId) return;
-        const cur = filialAggMap.get(filialId) || { nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0 };
+        const cur = filialAggMap.get(filialId) || { filialId, nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0 };
         cur.meta += m.valor_meta;
         filialAggMap.set(filialId, cur);
       });
@@ -131,6 +137,73 @@ export default function VisaoGeral() {
     } catch (error) {
       console.error("Erro ao carregar estatísticas:", error);
     }
+  };
+
+  const carregarVendedoresDaFilial = async (filialId: string, filialNome: string) => {
+    setLoadingVendedores(true);
+    setFilialSelecionada({ id: filialId, nome: filialNome });
+    try {
+      const now = new Date();
+      const mesAtual = now.getMonth() + 1;
+      const anoAtual = now.getFullYear();
+      const primeiroDia = new Date(anoAtual, now.getMonth(), 1).toISOString().split("T")[0];
+      const ultimoDiaDate = new Date(anoAtual, mesAtual, 0);
+      const ultimoDia = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
+
+      // Vendedores da filial
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nome")
+        .eq("filial_id", filialId);
+
+      const vendedorIds = (profiles || []).map((p) => p.id);
+      if (vendedorIds.length === 0) {
+        setVendasPorVendedor([]);
+        return;
+      }
+
+      // Filtrar apenas vendedores (não gerentes)
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "vendedor")
+        .in("user_id", vendedorIds);
+      const vendedorOnlyIds = new Set((roles || []).map((r: any) => r.user_id));
+      const vendedoresProfiles = (profiles || []).filter((p) => vendedorOnlyIds.has(p.id));
+
+      const result = await Promise.all(
+        vendedoresProfiles.map(async (v) => {
+          const { data: vendas } = await supabase
+            .from("vendas")
+            .select("valor, devolucao")
+            .eq("vendedor_id", v.id)
+            .gte("data", primeiroDia)
+            .lte("data", ultimoDia);
+          const total = (vendas || []).reduce(
+            (acc, x: any) => acc + (Number(x.valor) - Number(x.devolucao)),
+            0
+          );
+          const meta = await fetchMetaWithFallback(v.id, mesAtual, anoAtual);
+          return {
+            nome: v.nome,
+            total,
+            meta: Number(meta?.valor_meta) || 0,
+          };
+        })
+      );
+
+      setVendasPorVendedor(result.sort((a, b) => a.nome.localeCompare(b.nome)));
+    } catch (error) {
+      console.error("Erro ao carregar vendedores da filial:", error);
+      setVendasPorVendedor([]);
+    } finally {
+      setLoadingVendedores(false);
+    }
+  };
+
+  const voltarParaFiliais = () => {
+    setFilialSelecionada(null);
+    setVendasPorVendedor([]);
   };
 
   const chartConfig = {
@@ -190,56 +263,126 @@ export default function VisaoGeral() {
         </Card>
       </div>
 
-      {vendasPorFilial.length > 0 && (
+      {filialSelecionada ? (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-            <CardTitle>Meta vs Vendido por Filial - Mês Atual</CardTitle>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" onClick={voltarParaFiliais}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar para Filiais
+              </Button>
+              <CardTitle>Meta vs Vendido — {filialSelecionada.nome}</CardTitle>
+            </div>
             <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
           </CardHeader>
           <CardContent>
-            <ChartContainer config={chartConfig} className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={vendasPorFilial}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis 
-                    dataKey="nome" 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--foreground))' }}
-                  />
-                  <YAxis 
-                    className="text-xs"
-                    tick={{ fill: 'hsl(var(--foreground))' }}
-                    tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                  />
-                  <ChartTooltip 
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value, name) => 
-                          `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                        }
-                      />
-                    } 
-                  />
-                  <Legend
-                    formatter={(value) => (value === "meta" ? "Meta" : "Vendido")}
-                  />
-                  <Bar 
-                    dataKey="meta" 
-                    fill={chartTheme.meta}
-                    radius={[8, 8, 0, 0]}
-                    name="meta"
-                  />
-                  <Bar 
-                    dataKey="total" 
-                    fill={chartTheme.vendido}
-                    radius={[8, 8, 0, 0]}
-                    name="total"
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
+            {loadingVendedores ? (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                Carregando...
+              </div>
+            ) : vendasPorVendedor.length === 0 ? (
+              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+                Nenhum vendedor encontrado nesta filial.
+              </div>
+            ) : (
+              <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={vendasPorVendedor}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis
+                      dataKey="nome"
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                      angle={-25}
+                      textAnchor="end"
+                      height={70}
+                    />
+                    <YAxis
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                      tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value, name) =>
+                            `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                          }
+                        />
+                      }
+                    />
+                    <Legend formatter={(value) => (value === "meta" ? "Meta" : "Vendido")} />
+                    <Bar dataKey="meta" fill={chartTheme.meta} radius={[8, 8, 0, 0]} name="meta" />
+                    <Bar dataKey="total" fill={chartTheme.vendido} radius={[8, 8, 0, 0]} name="total" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            )}
           </CardContent>
         </Card>
+      ) : (
+        vendasPorFilial.length > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
+              <div>
+                <CardTitle>Meta vs Vendido por Filial - Mês Atual</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Clique em uma barra para ver os vendedores da filial.
+                </p>
+              </div>
+              <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={vendasPorFilial}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis
+                      dataKey="nome"
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                    />
+                    <YAxis
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                      tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                    />
+                    <ChartTooltip
+                      content={
+                        <ChartTooltipContent
+                          formatter={(value, name) =>
+                            `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                          }
+                        />
+                      }
+                    />
+                    <Legend formatter={(value) => (value === "meta" ? "Meta" : "Vendido")} />
+                    <Bar
+                      dataKey="meta"
+                      fill={chartTheme.meta}
+                      radius={[8, 8, 0, 0]}
+                      name="meta"
+                      cursor="pointer"
+                      onClick={(data: any) =>
+                        carregarVendedoresDaFilial(data.filialId, data.nome)
+                      }
+                    />
+                    <Bar
+                      dataKey="total"
+                      fill={chartTheme.vendido}
+                      radius={[8, 8, 0, 0]}
+                      name="total"
+                      cursor="pointer"
+                      onClick={(data: any) =>
+                        carregarVendedoresDaFilial(data.filialId, data.nome)
+                      }
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+        )
       )}
     </div>
   );
