@@ -27,7 +27,8 @@ export default function VisaoGeral() {
     totalFiliais: 0,
     totalGerentes: 0,
     totalVendedores: 0,
-    vendasMesAtual: 0
+    vendasMesAtual: 0,
+    metaGeral: 0
   });
   const [vendasPorFilial, setVendasPorFilial] = useState<VendasFilial[]>([]);
   const [filialSelecionada, setFilialSelecionada] = useState<{ id: string; nome: string } | null>(null);
