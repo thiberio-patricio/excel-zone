@@ -127,11 +127,14 @@ export default function VisaoGeral() {
       const vendasFilialArray = Array.from(filialAggMap.values())
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
+      const metaGeralTotal = Array.from(filialAggMap.values()).reduce((acc, f) => acc + f.meta, 0);
+
       setStats({
         totalFiliais: filiaisRes.data?.length || 0,
         totalGerentes: gerentesRes.count || 0,
         totalVendedores: vendedoresRes.count || 0,
-        vendasMesAtual: vendasTotal
+        vendasMesAtual: vendasTotal,
+        metaGeral: metaGeralTotal
       });
       
       setVendasPorFilial(vendasFilialArray);
