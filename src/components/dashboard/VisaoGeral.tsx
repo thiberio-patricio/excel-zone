@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, TrendingUp, ArrowLeft } from "lucide-react";
+import { Building2, Users, TrendingUp, Target, ArrowLeft } from "lucide-react";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
@@ -27,7 +27,8 @@ export default function VisaoGeral() {
     totalFiliais: 0,
     totalGerentes: 0,
     totalVendedores: 0,
-    vendasMesAtual: 0
+    vendasMesAtual: 0,
+    metaGeral: 0
   });
   const [vendasPorFilial, setVendasPorFilial] = useState<VendasFilial[]>([]);
   const [filialSelecionada, setFilialSelecionada] = useState<{ id: string; nome: string } | null>(null);
@@ -126,11 +127,14 @@ export default function VisaoGeral() {
       const vendasFilialArray = Array.from(filialAggMap.values())
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
+      const metaGeralTotal = Array.from(filialAggMap.values()).reduce((acc, f) => acc + f.meta, 0);
+
       setStats({
         totalFiliais: filiaisRes.data?.length || 0,
         totalGerentes: gerentesRes.count || 0,
         totalVendedores: vendedoresRes.count || 0,
-        vendasMesAtual: vendasTotal
+        vendasMesAtual: vendasTotal,
+        metaGeral: metaGeralTotal
       });
       
       setVendasPorFilial(vendasFilialArray);
@@ -219,7 +223,7 @@ export default function VisaoGeral() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Filiais</CardTitle>
@@ -258,6 +262,18 @@ export default function VisaoGeral() {
           <CardContent>
             <div className="text-2xl font-bold">
               R$ {stats.vendasMesAtual.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Meta Geral</CardTitle>
+            <Target className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              R$ {stats.metaGeral.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
