@@ -37,12 +37,6 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
     try {
       const hoje = new Date();
       const hojeStr = formatarDataLocal(hoje);
-
-      // Garante que mostra no máximo uma vez por dia
-      const flagKey = `meta-msg-shown-${vendedorId}-${hojeStr}`;
-      if (localStorage.getItem(flagKey)) return;
-
-      // Descobrir o último dia útil anterior a hoje (pulando domingos, feriados e férias)
       const mes = hoje.getMonth() + 1;
       const ano = hoje.getFullYear();
 
@@ -56,7 +50,8 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
             .select("data, valor, devolucao")
             .eq("vendedor_id", vendedorId)
             .gte("data", formatarDataLocal(primeiroDiaMes))
-            .lte("data", formatarDataLocal(ultimoDiaMes)),
+            .lte("data", formatarDataLocal(ultimoDiaMes))
+            .order("data", { ascending: true }),
           supabase
             .from("feriados")
             .select("data")
@@ -76,7 +71,7 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
 
       const feriadosSet = new Set((feriadosData || []).map((f: any) => f.data));
       const ferias = feriasData || [];
-      const vendas = vendasData || [];
+      const vendas = (vendasData || []).filter((v: any) => v.data <= hojeStr);
 
       const isFerias = (dataStr: string): boolean => {
         const d = new Date(dataStr + "T00:00:00").getTime();
@@ -88,62 +83,71 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
       };
 
       const isDiaUtil = (d: Date): boolean => {
-        if (d.getDay() === 0) return false; // domingo
+        if (d.getDay() === 0) return false;
         const s = formatarDataLocal(d);
         if (feriadosSet.has(s)) return false;
         if (isFerias(s)) return false;
         return true;
       };
 
-      // Encontrar último dia útil antes de hoje (dentro do mês atual)
-      const ontem = new Date(hoje);
-      ontem.setDate(ontem.getDate() - 1);
+      // Dias já notificados (persistente)
+      const shownKey = `meta-msg-days-shown-${vendedorId}`;
+      let diasMostrados: string[] = [];
+      try {
+        diasMostrados = JSON.parse(localStorage.getItem(shownKey) || "[]");
+      } catch {
+        diasMostrados = [];
+      }
+      const mostradosSet = new Set(diasMostrados);
 
-      let diaAlvo: Date | null = null;
-      const cursor = new Date(ontem);
-      while (cursor >= primeiroDiaMes) {
-        if (isDiaUtil(cursor)) {
-          diaAlvo = new Date(cursor);
+      // Procurar o primeiro dia (em ordem cronológica) onde:
+      // - há venda preenchida
+      // - é dia útil
+      // - venda real >= meta esperada calculada para aquele dia
+      // - ainda não foi mostrada mensagem
+      let diaBatido: string | null = null;
+      for (const venda of vendas) {
+        const dataStr = venda.data as string;
+        if (mostradosSet.has(dataStr)) continue;
+
+        const dataObj = new Date(dataStr + "T00:00:00");
+        if (!isDiaUtil(dataObj)) continue;
+
+        // Vendas reais ANTES deste dia
+        const vendasAntes = vendas
+          .filter((v: any) => v.data < dataStr)
+          .reduce((acc: number, v: any) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
+
+        // Dias úteis sem venda do dia atual até o fim do mês (incluindo o próprio dia)
+        let diasUteisRestantes = 0;
+        for (
+          let d = new Date(dataObj);
+          d <= ultimoDiaMes;
+          d.setDate(d.getDate() + 1)
+        ) {
+          if (!isDiaUtil(d)) continue;
+          const ds = formatarDataLocal(d);
+          if (ds === dataStr) {
+            diasUteisRestantes++;
+            continue;
+          }
+          const temVenda = vendas.find((v: any) => v.data === ds);
+          if (!temVenda) diasUteisRestantes++;
+        }
+
+        if (diasUteisRestantes <= 0) continue;
+
+        const metaDiariaEsperada = (meta - vendasAntes) / diasUteisRestantes;
+        if (metaDiariaEsperada <= 0) continue;
+
+        const vendaReal = Number(venda.valor) - Number(venda.devolucao);
+        if (vendaReal >= metaDiariaEsperada) {
+          diaBatido = dataStr;
           break;
         }
-        cursor.setDate(cursor.getDate() - 1);
-      }
-      if (!diaAlvo) return;
-
-      const diaAlvoStr = formatarDataLocal(diaAlvo);
-
-      // Vendas reais até o dia ANTES do dia alvo (para calcular a meta esperada daquele dia)
-      const vendasAteAnterior = vendas
-        .filter((v: any) => v.data < diaAlvoStr)
-        .reduce((acc: number, v: any) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
-
-      // Dias úteis sem venda do dia alvo até o fim do mês
-      let diasUteisRestantes = 0;
-      for (
-        let d = new Date(diaAlvo);
-        d <= ultimoDiaMes;
-        d.setDate(d.getDate() + 1)
-      ) {
-        if (!isDiaUtil(d)) continue;
-        const ds = formatarDataLocal(d);
-        if (ds === diaAlvoStr) {
-          diasUteisRestantes++;
-          continue;
-        }
-        const temVenda = vendas.find((v: any) => v.data === ds);
-        if (!temVenda) diasUteisRestantes++;
       }
 
-      if (diasUteisRestantes <= 0) return;
-
-      const metaDiariaEsperada = (meta - vendasAteAnterior) / diasUteisRestantes;
-      if (metaDiariaEsperada <= 0) return;
-
-      const vendaDoDia = vendas.find((v: any) => v.data === diaAlvoStr);
-      if (!vendaDoDia) return;
-
-      const vendaRealDia = Number(vendaDoDia.valor) - Number(vendaDoDia.devolucao);
-      if (vendaRealDia < metaDiariaEsperada) return;
+      if (!diaBatido) return;
 
       // Selecionar mensagem evitando repetição
       const histKey = `meta-msg-history-${vendedorId}`;
@@ -154,10 +158,13 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
         historico = [];
       }
       const escolhida = getMensagemAleatoria(historico);
-      const novoHist = historico.includes(escolhida.id) ? [escolhida.id] : [...historico, escolhida.id];
+      const novoHist = [...historico, escolhida.id];
       const limpo = novoHist.length >= MENSAGENS_INCENTIVO.length ? [escolhida.id] : novoHist;
       localStorage.setItem(histKey, JSON.stringify(limpo));
-      localStorage.setItem(flagKey, "1");
+
+      // Marca o dia como notificado
+      diasMostrados.push(diaBatido);
+      localStorage.setItem(shownKey, JSON.stringify(diasMostrados));
 
       setMensagem(escolhida.texto);
       setOpen(true);
