@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { TrendingUp, Target, Calendar, RotateCcw } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
+import MensagemMetaBatida from "./MensagemMetaBatida";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface VendedorDashboardProps {
@@ -90,6 +91,8 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
 
   return (
     <div className="space-y-6">
+      <MensagemMetaBatida vendedorId={profile.id} />
+
       {/* Seletor de Mês/Ano */}
       <Card>
         <CardHeader>
