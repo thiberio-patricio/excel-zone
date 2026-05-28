@@ -91,6 +91,8 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
 
   return (
     <div className="space-y-6">
+      <MensagemMetaBatida vendedorId={profile.id} />
+
       {/* Seletor de Mês/Ano */}
       <Card>
         <CardHeader>
