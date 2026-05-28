@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { TrendingUp, Target, Calendar, RotateCcw } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
+import MensagemMetaBatida from "./MensagemMetaBatida";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface VendedorDashboardProps {
