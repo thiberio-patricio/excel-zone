@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Users, TrendingUp, Target, ArrowLeft } from "lucide-react";
+import { Building2, Users, TrendingUp, Target, ArrowLeft, Calendar } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
@@ -21,8 +22,16 @@ interface VendasVendedor {
   meta: number;
 }
 
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
 export default function VisaoGeral() {
   const { theme: chartTheme, themeId: chartThemeId, setThemeId: setChartThemeId } = useChartColors();
+  const now = new Date();
+  const [mesSelecionado, setMesSelecionado] = useState<number>(now.getMonth() + 1);
+  const [anoSelecionado, setAnoSelecionado] = useState<number>(now.getFullYear());
   const [stats, setStats] = useState({
     totalFiliais: 0,
     totalGerentes: 0,
@@ -37,13 +46,26 @@ export default function VisaoGeral() {
 
   useEffect(() => {
     carregarEstatisticas();
-  }, []);
+    if (filialSelecionada) {
+      carregarVendedoresDaFilial(filialSelecionada.id, filialSelecionada.nome);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mesSelecionado, anoSelecionado]);
+
+  const anosDisponiveis = (() => {
+    const anoAtual = now.getFullYear();
+    const anos: number[] = [];
+    for (let a = anoAtual - 5; a <= anoAtual + 1; a++) anos.push(a);
+    return anos;
+  })();
 
   const carregarEstatisticas = async () => {
     try {
-      const now = new Date();
-      const mesAtual = now.getMonth() + 1;
-      const anoAtual = now.getFullYear();
+      const mes = mesSelecionado;
+      const ano = anoSelecionado;
+      const primeiroDia = new Date(ano, mes - 1, 1).toISOString().split("T")[0];
+      const ultimoDiaDate = new Date(ano, mes, 0);
+      const ultimoDia = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
 
       const [filiaisRes, gerentesRes, vendedoresRes, vendasRes, metasRes, profilesRes] = await Promise.all([
         supabase.from("filiais").select("id, nome"),
@@ -67,11 +89,12 @@ export default function VisaoGeral() {
               )
             )
           `)
-          .gte("data", new Date(anoAtual, now.getMonth(), 1).toISOString()),
+          .gte("data", primeiroDia)
+          .lte("data", ultimoDia),
         supabase
           .from("metas")
           .select("vendedor_id, valor_meta, mes, ano")
-          .or(`ano.lt.${anoAtual},and(ano.eq.${anoAtual},mes.lte.${mesAtual})`),
+          .or(`ano.lt.${ano},and(ano.eq.${ano},mes.lte.${mes})`),
         supabase
           .from("profiles")
           .select("id, filial_id"),
@@ -147,12 +170,11 @@ export default function VisaoGeral() {
     setLoadingVendedores(true);
     setFilialSelecionada({ id: filialId, nome: filialNome });
     try {
-      const now = new Date();
-      const mesAtual = now.getMonth() + 1;
-      const anoAtual = now.getFullYear();
-      const primeiroDia = new Date(anoAtual, now.getMonth(), 1).toISOString().split("T")[0];
-      const ultimoDiaDate = new Date(anoAtual, mesAtual, 0);
-      const ultimoDia = `${anoAtual}-${String(mesAtual).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
+      const mes = mesSelecionado;
+      const ano = anoSelecionado;
+      const primeiroDia = new Date(ano, mes - 1, 1).toISOString().split("T")[0];
+      const ultimoDiaDate = new Date(ano, mes, 0);
+      const ultimoDia = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
 
       // Vendedores da filial
       const { data: profiles } = await supabase
@@ -187,7 +209,7 @@ export default function VisaoGeral() {
             (acc, x: any) => acc + (Number(x.valor) - Number(x.devolucao)),
             0
           );
-          const meta = await fetchMetaWithFallback(v.id, mesAtual, anoAtual);
+          const meta = await fetchMetaWithFallback(v.id, mes, ano);
           return {
             nome: v.nome,
             total,
@@ -221,8 +243,38 @@ export default function VisaoGeral() {
     },
   };
 
+  const labelPeriodo = `${MESES[mesSelecionado - 1]}/${anoSelecionado}`;
+
   return (
     <div className="space-y-6">
+      {/* Seletor de período */}
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-4">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">Período:</span>
+          <Select value={String(mesSelecionado)} onValueChange={(v) => setMesSelecionado(Number(v))}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MESES.map((nome, idx) => (
+                <SelectItem key={idx + 1} value={String(idx + 1)}>{nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(anoSelecionado)} onValueChange={(v) => setAnoSelecionado(Number(v))}>
+            <SelectTrigger className="w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {anosDisponiveis.map((a) => (
+                <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -256,7 +308,7 @@ export default function VisaoGeral() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas Mês Atual</CardTitle>
+            <CardTitle className="text-sm font-medium">Vendas {labelPeriodo}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -287,7 +339,7 @@ export default function VisaoGeral() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar para Filiais
               </Button>
-              <CardTitle>Meta vs Vendido — {filialSelecionada.nome}</CardTitle>
+              <CardTitle>Meta vs Vendido — {filialSelecionada.nome} ({labelPeriodo})</CardTitle>
             </div>
             <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
           </CardHeader>
@@ -341,7 +393,7 @@ export default function VisaoGeral() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
               <div>
-                <CardTitle>Meta vs Vendido por Filial - Mês Atual</CardTitle>
+                <CardTitle>Meta vs Vendido por Filial - {labelPeriodo}</CardTitle>
                 <p className="text-xs text-muted-foreground mt-1">
                   Clique em uma barra para ver os vendedores da filial.
                 </p>
