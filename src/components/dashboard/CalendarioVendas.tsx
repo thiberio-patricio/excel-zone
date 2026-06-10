@@ -189,14 +189,39 @@ export default function CalendarioVendas({
     return metaRestante / diasSemVenda;
   };
 
+  const formatarMoedaInput = (value: string): string => {
+    const numeric = value.replace(/\D/g, "");
+    const numberValue = parseInt(numeric || "0", 10) / 100;
+    return numberValue.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  };
+
+  const parseMoeda = (value: string): number => {
+    return parseFloat(value.replace(/\R\$\s?|/g, "").replace(/\./g, "").replace(",", ".") || "0");
+  };
+
   const handleDayClick = (data: Date) => {
     const dataStr = formatarDataLocal(data);
     setSelectedDate(dataStr);
 
     const venda = vendas.find(v => v.data === dataStr);
     if (venda) {
-      setValor(venda.valor.toString());
-      setDevolucao(venda.devolucao.toString());
+      setValor(
+        venda.valor.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+          minimumFractionDigits: 2,
+        })
+      );
+      setDevolucao(
+        venda.devolucao.toLocaleString("pt-BR", {
+          style: "currency",
+          currency: "BRL",
+          minimumFractionDigits: 2,
+        })
+      );
       setObservacoes(venda.observacoes || "");
     } else {
       setValor("");
@@ -212,14 +237,16 @@ export default function CalendarioVendas({
     }
 
     try {
+      const valorNum = parseMoeda(valor);
+      const devolucaoNum = parseMoeda(devolucao);
       const vendaExistente = vendas.find(v => v.data === selectedDate);
 
       if (vendaExistente) {
         const { error } = await supabase
           .from("vendas")
           .update({
-            valor: parseFloat(valor),
-            devolucao: parseFloat(devolucao || "0"),
+            valor: valorNum,
+            devolucao: devolucaoNum,
             observacoes: observacoes || null,
           })
           .eq("id", vendaExistente.id);
@@ -231,8 +258,8 @@ export default function CalendarioVendas({
           .insert({
             vendedor_id: vendedorId,
             data: selectedDate,
-            valor: parseFloat(valor),
-            devolucao: parseFloat(devolucao || "0"),
+            valor: valorNum,
+            devolucao: devolucaoNum,
             observacoes: observacoes || null,
           });
 
@@ -395,11 +422,10 @@ export default function CalendarioVendas({
               <Label htmlFor="valor">Venda do Dia (R$)</Label>
               <Input
                 id="valor"
-                type="number"
-                step="0.01"
-                placeholder="0,00"
+                type="text"
+                placeholder="R$ 0,00"
                 value={valor}
-                onChange={(e) => setValor(e.target.value)}
+                onChange={(e) => setValor(formatarMoedaInput(e.target.value))}
                 disabled={isReadOnly}
               />
             </div>
@@ -407,11 +433,10 @@ export default function CalendarioVendas({
               <Label htmlFor="devolucao">Devolução do Dia (R$)</Label>
               <Input
                 id="devolucao"
-                type="number"
-                step="0.01"
-                placeholder="0,00"
+                type="text"
+                placeholder="R$ 0,00"
                 value={devolucao}
-                onChange={(e) => setDevolucao(e.target.value)}
+                onChange={(e) => setDevolucao(formatarMoedaInput(e.target.value))}
                 disabled={isReadOnly}
               />
             </div>
