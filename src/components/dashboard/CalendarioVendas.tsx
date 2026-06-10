@@ -445,7 +445,7 @@ export default function CalendarioVendas({
               <Input
                 id="vendaReal"
                 type="text"
-                value={`R$ ${(parseFloat(valor || "0") - parseFloat(devolucao || "0")).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                value={`R$ ${(parseMoeda(valor) - parseMoeda(devolucao)).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 disabled
                 className="font-bold"
               />
