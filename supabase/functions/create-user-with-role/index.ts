@@ -150,6 +150,32 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Branch isolation: gerentes can only create users within their own filial.
+    // Override any client-supplied filial_id with the caller's actual filial_id.
+    let effectiveFilialId: string | null = filial_id ?? null
+    if (isCallerGerente && !isCallerDiretor) {
+      const { data: callerProfile, error: callerProfileErr } = await supabaseAdmin
+        .from('profiles')
+        .select('filial_id')
+        .eq('id', caller.id)
+        .maybeSingle()
+      if (callerProfileErr || !callerProfile?.filial_id) {
+        console.error('Failed to load caller filial:', callerProfileErr)
+        return new Response(
+          JSON.stringify({ error: 'Não foi possível verificar a filial do gerente' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      if (filial_id && filial_id !== callerProfile.filial_id) {
+        console.error('Gerente attempted cross-filial user creation', { caller: caller.id })
+        return new Response(
+          JSON.stringify({ error: 'Gerentes só podem criar usuários na própria filial' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      effectiveFilialId = callerProfile.filial_id
+    }
+
     // Find existing user by email
     const { data: existingUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers()
     if (listErr) throw listErr
