@@ -459,6 +459,7 @@ export default function VisaoGeral() {
                         className="text-xs fill-foreground"
                       />
                     </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
             </CardContent>
