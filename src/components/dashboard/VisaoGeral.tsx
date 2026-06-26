@@ -243,6 +243,10 @@ export default function VisaoGeral() {
       label: "Vendido",
       color: chartTheme.vendido,
     },
+    percentual: {
+      label: "Percentual",
+      color: chartTheme.percentual,
+    },
   };
 
   const labelPeriodo = `${MESES[mesSelecionado - 1]}/${anoSelecionado}`;
