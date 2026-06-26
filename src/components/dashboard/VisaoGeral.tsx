@@ -451,8 +451,14 @@ export default function VisaoGeral() {
                       onClick={(data: any) =>
                         carregarVendedoresDaFilial(data.filialId, data.nome)
                       }
-                    />
-                  </BarChart>
+                    >
+                      <LabelList
+                        dataKey="percentual"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                 </ResponsiveContainer>
               </ChartContainer>
             </CardContent>
