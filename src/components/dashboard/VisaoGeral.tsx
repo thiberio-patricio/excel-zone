@@ -18,9 +18,11 @@ interface VendasFilial {
 }
 
 interface VendasVendedor {
+  id: string;
   nome: string;
   total: number;
   meta: number;
+  percentual: number;
 }
 
 const MESES = [
