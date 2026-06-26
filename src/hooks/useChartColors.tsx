@@ -36,6 +36,7 @@ export const CHART_THEMES: Record<ChartThemeId, ChartTheme> = {
     metaEnd: "hsl(0 0% 35%)",
     vendido: "hsl(0 85% 50%)",
     meta: "hsl(0 0% 25%)",
+    percentual: "hsl(45 90% 50%)",
   },
   "azul-ambar": {
     id: "azul-ambar",
