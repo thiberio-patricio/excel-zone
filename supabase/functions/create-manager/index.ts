@@ -156,8 +156,13 @@ Deno.serve(async (req) => {
     )
   } catch (error) {
     console.error('Function error:', error);
+    const rawMsg = error instanceof Error ? error.message : ''
+    let clientMsg = 'Erro ao criar gerente. Tente novamente.'
+    if (/already been registered|already exists|duplicate key/i.test(rawMsg)) {
+      clientMsg = 'Email já cadastrado.'
+    }
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: clientMsg }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

@@ -150,6 +150,32 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Branch isolation: gerentes can only create users within their own filial.
+    // Override any client-supplied filial_id with the caller's actual filial_id.
+    let effectiveFilialId: string | null = filial_id ?? null
+    if (isCallerGerente && !isCallerDiretor) {
+      const { data: callerProfile, error: callerProfileErr } = await supabaseAdmin
+        .from('profiles')
+        .select('filial_id')
+        .eq('id', caller.id)
+        .maybeSingle()
+      if (callerProfileErr || !callerProfile?.filial_id) {
+        console.error('Failed to load caller filial:', callerProfileErr)
+        return new Response(
+          JSON.stringify({ error: 'Não foi possível verificar a filial do gerente' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      if (filial_id && filial_id !== callerProfile.filial_id) {
+        console.error('Gerente attempted cross-filial user creation', { caller: caller.id })
+        return new Response(
+          JSON.stringify({ error: 'Gerentes só podem criar usuários na própria filial' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      effectiveFilialId = callerProfile.filial_id
+    }
+
     // Find existing user by email
     const { data: existingUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers()
     if (listErr) throw listErr
@@ -174,7 +200,7 @@ Deno.serve(async (req) => {
         user_metadata: {
           nome: nome || existingUser.user_metadata?.nome || 'Usuário',
           role: assignedRole,
-          filial_id: filial_id || existingUser.user_metadata?.filial_id,
+          filial_id: effectiveFilialId || existingUser.user_metadata?.filial_id,
           foto_url: foto_url || existingUser.user_metadata?.foto_url
         }
       })
@@ -189,7 +215,7 @@ Deno.serve(async (req) => {
         user_metadata: {
           nome: nome || 'Usuário',
           role: assignedRole,
-          filial_id: filial_id || null,
+          filial_id: effectiveFilialId,
           foto_url: foto_url || null
         }
       })
@@ -217,7 +243,7 @@ Deno.serve(async (req) => {
         .update({
           nome: nome || 'Usuário',
           email,
-          filial_id: filial_id || null,
+          filial_id: effectiveFilialId,
           foto_url: foto_url || null,
         })
         .eq('id', userId)
@@ -233,7 +259,7 @@ Deno.serve(async (req) => {
           id: userId,
           nome: nome || 'Usuário',
           email,
-          filial_id: filial_id || null,
+          filial_id: effectiveFilialId,
           foto_url: foto_url || null,
           must_change_password: true,
         })
@@ -274,11 +300,14 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error: any) {
-    // Improve error visibility for debugging
-    const errMsg = error?.message || error?.error || (typeof error === 'string' ? error : JSON.stringify(error)) || 'Unknown error'
     console.error('create-user-with-role error:', error)
+    const rawMsg: string = error?.message || ''
+    let clientMsg = 'Erro ao processar usuário. Tente novamente.'
+    if (/already been registered|already exists|duplicate key/i.test(rawMsg)) {
+      clientMsg = 'Email já cadastrado.'
+    }
     return new Response(
-      JSON.stringify({ error: errMsg }),
+      JSON.stringify({ error: clientMsg }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
