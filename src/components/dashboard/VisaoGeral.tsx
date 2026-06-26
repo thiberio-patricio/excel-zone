@@ -214,10 +214,13 @@ export default function VisaoGeral() {
             0
           );
           const meta = await fetchMetaWithFallback(v.id, mes, ano);
+          const metaValor = Number(meta?.valor_meta) || 0;
           return {
+            id: v.id,
             nome: v.nome,
             total,
-            meta: Number(meta?.valor_meta) || 0,
+            meta: metaValor,
+            percentual: metaValor > 0 ? Math.round((total / metaValor) * 100) : 0,
           };
         })
       );
