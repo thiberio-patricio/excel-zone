@@ -19,11 +19,22 @@ interface DiretorDashboardProps {
 
 export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
   const [activeTab, setActiveTab] = useState("visao-geral");
+  const [vendedorSelecionado, setVendedorSelecionado] = useState<string | null>(null);
+
+  const handleVendedorSelecionado = (vendedorId: string) => {
+    setVendedorSelecionado(vendedorId);
+    setActiveTab("vendedor");
+  };
+
+  const handleVoltarDoVendedor = () => {
+    setActiveTab("visao-geral");
+    setVendedorSelecionado(null);
+  };
 
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
           <TabsTrigger value="visao-geral" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             <span className="hidden sm:inline">Visão Geral</span>
@@ -40,10 +51,14 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
             <ShieldCheck className="w-4 h-4" />
             <span className="hidden sm:inline">Diretores</span>
           </TabsTrigger>
+          <TabsTrigger value="vendedor" className="flex items-center gap-2" disabled={!vendedorSelecionado}>
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">Vendedor</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral" className="mt-6">
-          <VisaoGeral />
+          <VisaoGeral onVendedorSelecionado={handleVendedorSelecionado} />
         </TabsContent>
 
         <TabsContent value="filiais" className="mt-6">
