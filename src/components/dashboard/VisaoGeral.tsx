@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Building2, Users, TrendingUp, Target, ArrowLeft, Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LabelList } from "recharts";
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
