@@ -122,8 +122,12 @@ export function ChartThemePicker({
                   style={{ backgroundColor: t.vendido }}
                 />
                 <span
-                  className="w-3 h-3 rounded-r-sm"
+                  className="w-3 h-3"
                   style={{ backgroundColor: t.meta }}
+                />
+                <span
+                  className="w-3 h-3 rounded-r-sm"
+                  style={{ backgroundColor: t.percentual }}
                 />
               </div>
               <span>{t.label}</span>
