@@ -14,6 +14,7 @@ interface VendasFilial {
   nome: string;
   total: number;
   meta: number;
+  percentual: number;
 }
 
 interface VendasVendedor {
