@@ -23,6 +23,7 @@ export interface ChartTheme {
   // Cores sólidas (para gráficos que não usam gradiente)
   vendido: string;
   meta: string;
+  percentual: string;
 }
 
 export const CHART_THEMES: Record<ChartThemeId, ChartTheme> = {
