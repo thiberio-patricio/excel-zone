@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
           id: userId,
           nome: nome || 'Usuário',
           email,
-          filial_id: filial_id || null,
+          filial_id: effectiveFilialId,
           foto_url: foto_url || null,
           must_change_password: true,
         })
