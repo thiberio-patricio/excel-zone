@@ -30,7 +30,11 @@ const MESES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-export default function VisaoGeral() {
+interface VisaoGeralProps {
+  onVendedorSelecionado?: (vendedorId: string) => void;
+}
+
+export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
   const { theme: chartTheme, themeId: chartThemeId, setThemeId: setChartThemeId } = useChartColors();
   const now = new Date();
   const [mesSelecionado, setMesSelecionado] = useState<number>(now.getMonth() + 1);
@@ -46,6 +50,12 @@ export default function VisaoGeral() {
   const [filialSelecionada, setFilialSelecionada] = useState<{ id: string; nome: string } | null>(null);
   const [vendasPorVendedor, setVendasPorVendedor] = useState<VendasVendedor[]>([]);
   const [loadingVendedores, setLoadingVendedores] = useState(false);
+
+  const handleVendedorClick = (data: any) => {
+    if (data?.id && onVendedorSelecionado) {
+      onVendedorSelecionado(data.id);
+    }
+  };
 
   useEffect(() => {
     carregarEstatisticas();
