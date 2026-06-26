@@ -148,6 +148,7 @@ export default function VisaoGeral() {
       });
 
       const vendasFilialArray = Array.from(filialAggMap.values())
+        .map((f) => ({ ...f, percentual: f.meta > 0 ? Math.round((f.total / f.meta) * 100) : 0 }))
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
       const metaGeralTotal = Array.from(filialAggMap.values()).reduce((acc, f) => acc + f.meta, 0);
