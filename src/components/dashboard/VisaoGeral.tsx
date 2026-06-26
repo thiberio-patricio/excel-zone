@@ -394,15 +394,35 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value, name) =>
-                            `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                          }
+                          formatter={(value, name, props) => {
+                            if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
+                            return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                          }}
                         />
                       }
                     />
-                    <Legend formatter={(value) => (value === "meta" ? "Meta" : "Vendido")} />
-                    <Bar dataKey="meta" fill={chartTheme.meta} radius={[8, 8, 0, 0]} name="meta" />
-                    <Bar dataKey="total" fill={chartTheme.vendido} radius={[8, 8, 0, 0]} name="total" />
+                    <Legend formatter={(value) => (value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : "Vendido")} />
+                    <Bar
+                      dataKey="meta"
+                      fill={chartTheme.meta}
+                      radius={[8, 8, 0, 0]}
+                      name="meta"
+                    />
+                    <Bar
+                      dataKey="total"
+                      fill={chartTheme.vendido}
+                      radius={[8, 8, 0, 0]}
+                      name="total"
+                      cursor="pointer"
+                      onClick={handleVendedorClick}
+                    >
+                      <LabelList
+                        dataKey="percentual"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
