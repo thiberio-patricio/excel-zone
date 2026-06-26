@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
         .update({
           nome: nome || 'Usuário',
           email,
-          filial_id: filial_id || null,
+          filial_id: effectiveFilialId,
           foto_url: foto_url || null,
         })
         .eq('id', userId)
