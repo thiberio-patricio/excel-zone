@@ -300,11 +300,14 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error: any) {
-    // Improve error visibility for debugging
-    const errMsg = error?.message || error?.error || (typeof error === 'string' ? error : JSON.stringify(error)) || 'Unknown error'
     console.error('create-user-with-role error:', error)
+    const rawMsg: string = error?.message || ''
+    let clientMsg = 'Erro ao processar usuário. Tente novamente.'
+    if (/already been registered|already exists|duplicate key/i.test(rawMsg)) {
+      clientMsg = 'Email já cadastrado.'
+    }
     return new Response(
-      JSON.stringify({ error: errMsg }),
+      JSON.stringify({ error: clientMsg }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
