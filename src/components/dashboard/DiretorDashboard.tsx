@@ -72,6 +72,25 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
         <TabsContent value="diretores" className="mt-6">
           <GerenciarDiretores />
         </TabsContent>
+
+        <TabsContent value="vendedor" className="mt-6">
+          {vendedorSelecionado ? (
+            <div className="space-y-4">
+              <Button variant="outline" size="sm" onClick={handleVoltarDoVendedor}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar para Visão Geral
+              </Button>
+              <VisualizarVendedor
+                vendedorId={vendedorSelecionado}
+                onDataChange={() => {}}
+              />
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              Selecione um vendedor no gráfico de filial para visualizar seu calendário.
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );
