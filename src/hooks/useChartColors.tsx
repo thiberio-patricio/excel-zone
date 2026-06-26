@@ -23,6 +23,7 @@ export interface ChartTheme {
   // Cores sólidas (para gráficos que não usam gradiente)
   vendido: string;
   meta: string;
+  percentual: string;
 }
 
 export const CHART_THEMES: Record<ChartThemeId, ChartTheme> = {
@@ -35,6 +36,7 @@ export const CHART_THEMES: Record<ChartThemeId, ChartTheme> = {
     metaEnd: "hsl(0 0% 35%)",
     vendido: "hsl(0 85% 50%)",
     meta: "hsl(0 0% 25%)",
+    percentual: "hsl(45 90% 50%)",
   },
   "azul-ambar": {
     id: "azul-ambar",
@@ -45,6 +47,7 @@ export const CHART_THEMES: Record<ChartThemeId, ChartTheme> = {
     metaEnd: "hsl(38 92% 58%)",
     vendido: "hsl(215 90% 50%)",
     meta: "hsl(38 92% 50%)",
+    percentual: "hsl(160 70% 45%)",
   },
   "verde-roxo": {
     id: "verde-roxo",
@@ -55,6 +58,7 @@ export const CHART_THEMES: Record<ChartThemeId, ChartTheme> = {
     metaEnd: "hsl(265 70% 60%)",
     vendido: "hsl(160 75% 42%)",
     meta: "hsl(265 70% 52%)",
+    percentual: "hsl(25 90% 55%)",
   },
 };
 
@@ -118,8 +122,12 @@ export function ChartThemePicker({
                   style={{ backgroundColor: t.vendido }}
                 />
                 <span
-                  className="w-3 h-3 rounded-r-sm"
+                  className="w-3 h-3"
                   style={{ backgroundColor: t.meta }}
+                />
+                <span
+                  className="w-3 h-3 rounded-r-sm"
+                  style={{ backgroundColor: t.percentual }}
                 />
               </div>
               <span>{t.label}</span>
