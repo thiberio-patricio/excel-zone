@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, BarChart3, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Building2, Users, BarChart3, ShieldCheck, User, ArrowLeft } from "lucide-react";
 import GerenciarFiliais from "./GerenciarFiliais";
 import GerenciarGerentes from "./GerenciarGerentes";
 import GerenciarDiretores from "./GerenciarDiretores";
+import VisualizarVendedor from "./VisualizarVendedor";
 import VisaoGeral from "./VisaoGeral";
 
 interface DiretorDashboardProps {
@@ -17,11 +19,22 @@ interface DiretorDashboardProps {
 
 export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
   const [activeTab, setActiveTab] = useState("visao-geral");
+  const [vendedorSelecionado, setVendedorSelecionado] = useState<string | null>(null);
+
+  const handleVendedorSelecionado = (vendedorId: string) => {
+    setVendedorSelecionado(vendedorId);
+    setActiveTab("vendedor");
+  };
+
+  const handleVoltarDoVendedor = () => {
+    setActiveTab("visao-geral");
+    setVendedorSelecionado(null);
+  };
 
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
           <TabsTrigger value="visao-geral" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />
             <span className="hidden sm:inline">Visão Geral</span>
@@ -38,10 +51,14 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
             <ShieldCheck className="w-4 h-4" />
             <span className="hidden sm:inline">Diretores</span>
           </TabsTrigger>
+          <TabsTrigger value="vendedor" className="flex items-center gap-2" disabled={!vendedorSelecionado}>
+            <User className="w-4 h-4" />
+            <span className="hidden sm:inline">Vendedor</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral" className="mt-6">
-          <VisaoGeral />
+          <VisaoGeral onVendedorSelecionado={handleVendedorSelecionado} />
         </TabsContent>
 
         <TabsContent value="filiais" className="mt-6">
@@ -54,6 +71,25 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
 
         <TabsContent value="diretores" className="mt-6">
           <GerenciarDiretores />
+        </TabsContent>
+
+        <TabsContent value="vendedor" className="mt-6">
+          {vendedorSelecionado ? (
+            <div className="space-y-4">
+              <Button variant="outline" size="sm" onClick={handleVoltarDoVendedor}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar para Visão Geral
+              </Button>
+              <VisualizarVendedor
+                vendedorId={vendedorSelecionado}
+                onDataChange={() => {}}
+              />
+            </div>
+          ) : (
+            <div className="text-muted-foreground">
+              Selecione um vendedor no gráfico de filial para visualizar seu calendário.
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -18,9 +18,11 @@ interface VendasFilial {
 }
 
 interface VendasVendedor {
+  id: string;
   nome: string;
   total: number;
   meta: number;
+  percentual: number;
 }
 
 const MESES = [
@@ -28,7 +30,11 @@ const MESES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-export default function VisaoGeral() {
+interface VisaoGeralProps {
+  onVendedorSelecionado?: (vendedorId: string) => void;
+}
+
+export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
   const { theme: chartTheme, themeId: chartThemeId, setThemeId: setChartThemeId } = useChartColors();
   const now = new Date();
   const [mesSelecionado, setMesSelecionado] = useState<number>(now.getMonth() + 1);
@@ -44,6 +50,12 @@ export default function VisaoGeral() {
   const [filialSelecionada, setFilialSelecionada] = useState<{ id: string; nome: string } | null>(null);
   const [vendasPorVendedor, setVendasPorVendedor] = useState<VendasVendedor[]>([]);
   const [loadingVendedores, setLoadingVendedores] = useState(false);
+
+  const handleVendedorClick = (data: any) => {
+    if (data?.id && onVendedorSelecionado) {
+      onVendedorSelecionado(data.id);
+    }
+  };
 
   useEffect(() => {
     carregarEstatisticas();
@@ -212,10 +224,13 @@ export default function VisaoGeral() {
             0
           );
           const meta = await fetchMetaWithFallback(v.id, mes, ano);
+          const metaValor = Number(meta?.valor_meta) || 0;
           return {
+            id: v.id,
             nome: v.nome,
             total,
-            meta: Number(meta?.valor_meta) || 0,
+            meta: metaValor,
+            percentual: metaValor > 0 ? Math.round((total / metaValor) * 100) : 0,
           };
         })
       );
@@ -345,7 +360,12 @@ export default function VisaoGeral() {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar para Filiais
               </Button>
-              <CardTitle>Meta vs Vendido — {filialSelecionada.nome} ({labelPeriodo})</CardTitle>
+              <div>
+                <CardTitle>Meta vs Vendido — {filialSelecionada.nome} ({labelPeriodo})</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Clique em uma barra de vendedor para ver o calendário de vendas.
+                </p>
+              </div>
             </div>
             <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
           </CardHeader>
@@ -379,15 +399,35 @@ export default function VisaoGeral() {
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value, name) =>
-                            `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                          }
+                          formatter={(value, name, props) => {
+                            if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
+                            return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                          }}
                         />
                       }
                     />
-                    <Legend formatter={(value) => (value === "meta" ? "Meta" : "Vendido")} />
-                    <Bar dataKey="meta" fill={chartTheme.meta} radius={[8, 8, 0, 0]} name="meta" />
-                    <Bar dataKey="total" fill={chartTheme.vendido} radius={[8, 8, 0, 0]} name="total" />
+                    <Legend formatter={(value) => (value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : "Vendido")} />
+                    <Bar
+                      dataKey="meta"
+                      fill={chartTheme.meta}
+                      radius={[8, 8, 0, 0]}
+                      name="meta"
+                    />
+                    <Bar
+                      dataKey="total"
+                      fill={chartTheme.vendido}
+                      radius={[8, 8, 0, 0]}
+                      name="total"
+                      cursor="pointer"
+                      onClick={handleVendedorClick}
+                    >
+                      <LabelList
+                        dataKey="percentual"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
