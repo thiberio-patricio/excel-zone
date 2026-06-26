@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Building2, Users, TrendingUp, Target, ArrowLeft, Calendar } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend, LabelList } from "recharts";
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
@@ -417,24 +417,15 @@ export default function VisaoGeral() {
                       tick={{ fill: 'hsl(var(--foreground))' }}
                     />
                     <YAxis
-                      yAxisId="left"
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--foreground))' }}
                       tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
                     />
-                    <YAxis
-                      yAxisId="right"
-                      orientation="right"
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--foreground))' }}
-                      tickFormatter={(value) => `${value}%`}
-                      domain={[0, 'auto']}
-                    />
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value, name) => {
-                            if (name === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
+                          formatter={(value, name, props) => {
+                            if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
                             return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
                           }}
                         />
@@ -443,7 +434,6 @@ export default function VisaoGeral() {
                     <Legend formatter={(value) => (value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : "Vendido")} />
                     <Bar
                       dataKey="meta"
-                      yAxisId="left"
                       fill={chartTheme.meta}
                       radius={[8, 8, 0, 0]}
                       name="meta"
@@ -454,7 +444,6 @@ export default function VisaoGeral() {
                     />
                     <Bar
                       dataKey="total"
-                      yAxisId="left"
                       fill={chartTheme.vendido}
                       radius={[8, 8, 0, 0]}
                       name="total"
@@ -462,18 +451,14 @@ export default function VisaoGeral() {
                       onClick={(data: any) =>
                         carregarVendedoresDaFilial(data.filialId, data.nome)
                       }
-                    />
-                    <Bar
-                      dataKey="percentual"
-                      yAxisId="right"
-                      fill={chartTheme.percentual}
-                      radius={[8, 8, 0, 0]}
-                      name="percentual"
-                      cursor="pointer"
-                      onClick={(data: any) =>
-                        carregarVendedoresDaFilial(data.filialId, data.nome)
-                      }
-                    />
+                    >
+                      <LabelList
+                        dataKey="percentual"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
