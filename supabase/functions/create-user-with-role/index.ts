@@ -200,7 +200,7 @@ Deno.serve(async (req) => {
         user_metadata: {
           nome: nome || existingUser.user_metadata?.nome || 'Usuário',
           role: assignedRole,
-          filial_id: filial_id || existingUser.user_metadata?.filial_id,
+          filial_id: effectiveFilialId || existingUser.user_metadata?.filial_id,
           foto_url: foto_url || existingUser.user_metadata?.foto_url
         }
       })
