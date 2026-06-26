@@ -417,22 +417,33 @@ export default function VisaoGeral() {
                       tick={{ fill: 'hsl(var(--foreground))' }}
                     />
                     <YAxis
+                      yAxisId="left"
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--foreground))' }}
                       tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
                     />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                      tickFormatter={(value) => `${value}%`}
+                      domain={[0, 'auto']}
+                    />
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
-                          formatter={(value, name) =>
-                            `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                          }
+                          formatter={(value, name) => {
+                            if (name === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
+                            return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                          }}
                         />
                       }
                     />
-                    <Legend formatter={(value) => (value === "meta" ? "Meta" : "Vendido")} />
+                    <Legend formatter={(value) => (value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : "Vendido")} />
                     <Bar
                       dataKey="meta"
+                      yAxisId="left"
                       fill={chartTheme.meta}
                       radius={[8, 8, 0, 0]}
                       name="meta"
@@ -443,9 +454,21 @@ export default function VisaoGeral() {
                     />
                     <Bar
                       dataKey="total"
+                      yAxisId="left"
                       fill={chartTheme.vendido}
                       radius={[8, 8, 0, 0]}
                       name="total"
+                      cursor="pointer"
+                      onClick={(data: any) =>
+                        carregarVendedoresDaFilial(data.filialId, data.nome)
+                      }
+                    />
+                    <Bar
+                      dataKey="percentual"
+                      yAxisId="right"
+                      fill={chartTheme.percentual}
+                      radius={[8, 8, 0, 0]}
+                      name="percentual"
                       cursor="pointer"
                       onClick={(data: any) =>
                         carregarVendedoresDaFilial(data.filialId, data.nome)
