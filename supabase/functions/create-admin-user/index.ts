@@ -122,9 +122,13 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error: any) {
-    const msg = error?.message || 'Erro desconhecido'
     console.error('create-admin-user error:', error)
-    return new Response(JSON.stringify({ error: msg }), {
+    const rawMsg: string = error?.message || ''
+    let clientMsg = 'Erro ao criar administrador. Tente novamente.'
+    if (/already been registered|already exists|duplicate key/i.test(rawMsg)) {
+      clientMsg = 'Email já cadastrado.'
+    }
+    return new Response(JSON.stringify({ error: clientMsg }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
