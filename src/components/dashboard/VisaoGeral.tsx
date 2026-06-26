@@ -360,7 +360,12 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar para Filiais
               </Button>
-              <CardTitle>Meta vs Vendido — {filialSelecionada.nome} ({labelPeriodo})</CardTitle>
+              <div>
+                <CardTitle>Meta vs Vendido — {filialSelecionada.nome} ({labelPeriodo})</CardTitle>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Clique em uma barra de vendedor para ver o calendário de vendas.
+                </p>
+              </div>
             </div>
             <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
           </CardHeader>
