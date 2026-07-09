@@ -221,6 +221,9 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             nome: vendedor.nome,
             vendido: totalVendido,
             meta: Number(meta?.valor_meta) || 0,
+            percentual: meta?.valor_meta
+              ? Math.round((totalVendido / Number(meta.valor_meta)) * 100)
+              : 0,
           };
         })
       );
