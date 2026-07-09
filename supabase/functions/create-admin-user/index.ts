@@ -41,41 +41,32 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Authorization: allow if no admin exists yet (bootstrap), otherwise require an existing admin caller.
-    const { data: existingAdmins, error: countErr } = await supabaseAdmin
+    // Authorization: require an authenticated admin caller.
+    // The former "bootstrap when no admin exists" branch allowed anonymous
+    // admin creation and has been removed. The first admin must be created
+    // manually in the database (Cloud → Users + insert into user_roles).
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user: caller } } = await supabaseAdmin.auth.getUser(token)
+    if (!caller) {
+      return new Response(JSON.stringify({ error: 'Token inválido' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const { data: callerRoles } = await supabaseAdmin
       .from('user_roles')
-      .select('user_id')
-      .eq('role', 'admin')
-      .limit(1)
-
-    if (countErr) throw countErr
-
-    const hasAdmin = (existingAdmins?.length ?? 0) > 0
-
-    if (hasAdmin) {
-      const authHeader = req.headers.get('Authorization')
-      if (!authHeader?.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ error: 'Não autorizado' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      const token = authHeader.replace('Bearer ', '')
-      const { data: { user: caller } } = await supabaseAdmin.auth.getUser(token)
-      if (!caller) {
-        return new Response(JSON.stringify({ error: 'Token inválido' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-      const { data: callerRoles } = await supabaseAdmin
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', caller.id)
-      const isAdmin = callerRoles?.some((r: any) => r.role === 'admin')
-      if (!isAdmin) {
-        return new Response(JSON.stringify({ error: 'Apenas administradores podem criar outros administradores' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+      .select('role')
+      .eq('user_id', caller.id)
+    const isAdmin = callerRoles?.some((r: any) => r.role === 'admin')
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: 'Apenas administradores podem criar outros administradores' }), {
+        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
     }
 
     // Check for existing auth user
