@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Users, TrendingUp, Target, BarChart, Calendar } from "lucide-react";
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from "recharts";
 import GerenciarVendedores from "./GerenciarVendedores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import GerenciarFeriadosFerias from "./GerenciarFeriadosFerias";
@@ -221,6 +221,9 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             nome: vendedor.nome,
             vendido: totalVendido,
             meta: Number(meta?.valor_meta) || 0,
+            percentual: meta?.valor_meta
+              ? Math.round((totalVendido / Number(meta.valor_meta)) * 100)
+              : 0,
           };
         })
       );
@@ -447,7 +450,14 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     name="Vendido"
                     radius={[8, 8, 0, 0]}
                     maxBarSize={60}
-                  />
+                  >
+                    <LabelList
+                      dataKey="percentual"
+                      position="top"
+                      formatter={(value: number) => `${value}%`}
+                      style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }}
+                    />
+                  </Bar>
                   <Bar 
                     dataKey="meta" 
                     fill="url(#colorMeta)" 
