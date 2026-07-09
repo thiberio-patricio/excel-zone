@@ -80,12 +80,28 @@ export default function CalendarioVendas({
       const metaData = await fetchMetaWithFallback(vendedorId, mes, ano);
       setMeta(metaData?.valor_meta || null);
 
-      // Carregar feriados do mês
-      const { data: feriadosData } = await supabase
+      // Descobrir filial do vendedor para filtrar feriados
+      const { data: vendedorProfile } = await supabase
+        .from("profiles")
+        .select("filial_id")
+        .eq("id", vendedorId)
+        .maybeSingle();
+      const vendedorFilialId = vendedorProfile?.filial_id ?? null;
+
+      // Carregar feriados do mês (globais + da filial do vendedor)
+      let feriadosQuery = supabase
         .from("feriados")
-        .select("id, data, descricao")
+        .select("id, data, descricao, filial_id")
         .gte("data", primeiroDia.toISOString().split('T')[0])
         .lte("data", ultimoDia.toISOString().split('T')[0]);
+
+      if (vendedorFilialId) {
+        feriadosQuery = feriadosQuery.or(`filial_id.is.null,filial_id.eq.${vendedorFilialId}`);
+      } else {
+        feriadosQuery = feriadosQuery.is("filial_id", null);
+      }
+
+      const { data: feriadosData } = await feriadosQuery;
 
       setFeriados(feriadosData || []);
 
