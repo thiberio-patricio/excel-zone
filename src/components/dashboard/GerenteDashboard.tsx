@@ -450,7 +450,14 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     name="Vendido"
                     radius={[8, 8, 0, 0]}
                     maxBarSize={60}
-                  />
+                  >
+                    <LabelList
+                      dataKey="percentual"
+                      position="top"
+                      formatter={(value: number) => `${value}%`}
+                      style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }}
+                    />
+                  </Bar>
                   <Bar 
                     dataKey="meta" 
                     fill="url(#colorMeta)" 
