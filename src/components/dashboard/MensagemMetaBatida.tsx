@@ -43,6 +43,24 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
       const primeiroDiaMes = new Date(ano, mes - 1, 1);
       const ultimoDiaMes = new Date(ano, mes, 0);
 
+      const { data: vendedorProfile } = await supabase
+        .from("profiles")
+        .select("filial_id")
+        .eq("id", vendedorId)
+        .maybeSingle();
+      const vendedorFilialId = vendedorProfile?.filial_id ?? null;
+
+      let feriadosQuery = supabase
+        .from("feriados")
+        .select("data, filial_id")
+        .gte("data", formatarDataLocal(primeiroDiaMes))
+        .lte("data", formatarDataLocal(ultimoDiaMes));
+      if (vendedorFilialId) {
+        feriadosQuery = feriadosQuery.or(`filial_id.is.null,filial_id.eq.${vendedorFilialId}`);
+      } else {
+        feriadosQuery = feriadosQuery.is("filial_id", null);
+      }
+
       const [{ data: vendasData }, { data: feriadosData }, { data: feriasData }, metaData] =
         await Promise.all([
           supabase
@@ -52,11 +70,7 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
             .gte("data", formatarDataLocal(primeiroDiaMes))
             .lte("data", formatarDataLocal(ultimoDiaMes))
             .order("data", { ascending: true }),
-          supabase
-            .from("feriados")
-            .select("data")
-            .gte("data", formatarDataLocal(primeiroDiaMes))
-            .lte("data", formatarDataLocal(ultimoDiaMes)),
+          feriadosQuery,
           supabase
             .from("ferias")
             .select("data_inicio, data_fim")
