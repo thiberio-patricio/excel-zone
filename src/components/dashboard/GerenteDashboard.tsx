@@ -28,6 +28,19 @@ interface Vendedor {
 }
 
 export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
+  const validTabs = ["dashboard", "vendedores", "vendas", "feriados"];
+  const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
+  const [activeTab, setActiveTab] = useState(
+    validTabs.includes(initialHash) ? initialHash : "dashboard"
+  );
+  useEffect(() => {
+    const onHashChange = () => {
+      const h = window.location.hash.replace("#", "");
+      if (validTabs.includes(h)) setActiveTab(h);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
   const { theme: chartTheme, themeId: chartThemeId, setThemeId: setChartThemeId } = useChartColors();
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
@@ -343,7 +356,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </CardContent>
       </Card>
 
-      <GerenteTabs>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 max-w-3xl">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="vendedores">Gerenciar Equipe</TabsTrigger>
