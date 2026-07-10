@@ -343,7 +343,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="dashboard" className="space-y-4">
+      <GerenteTabs>
         <TabsList className="grid w-full grid-cols-4 max-w-3xl">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="vendedores">Gerenciar Equipe</TabsTrigger>

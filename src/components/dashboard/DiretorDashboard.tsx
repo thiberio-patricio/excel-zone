@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Building2, Users, BarChart3, ShieldCheck, User, ArrowLeft } from "lucide-react";
@@ -18,8 +18,21 @@ interface DiretorDashboardProps {
 }
 
 export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
-  const [activeTab, setActiveTab] = useState("visao-geral");
+  const validTabs = ["visao-geral", "filiais", "gerentes", "diretores", "vendedor"];
+  const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
+  const [activeTab, setActiveTab] = useState(
+    validTabs.includes(initialHash) ? initialHash : "visao-geral"
+  );
   const [vendedorSelecionado, setVendedorSelecionado] = useState<string | null>(null);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const h = window.location.hash.replace("#", "");
+      if (validTabs.includes(h)) setActiveTab(h);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   const handleVendedorSelecionado = (vendedorId: string) => {
     setVendedorSelecionado(vendedorId);
