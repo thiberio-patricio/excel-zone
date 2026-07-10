@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Loader2, LogOut } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/layout/AppSidebar";
+import { Topbar } from "@/components/layout/Topbar";
 import VendedorDashboard from "@/components/dashboard/VendedorDashboard";
 import GerenteDashboard from "@/components/dashboard/GerenteDashboard";
 import DiretorDashboard from "@/components/dashboard/DiretorDashboard";
 import AlterarSenha from "@/components/dashboard/AlterarSenha";
-import logoUnidos from "@/assets/logo-unidos.png";
 
 interface Profile {
   id: string;
@@ -19,52 +20,53 @@ interface Profile {
   must_change_password: boolean;
 }
 
+type Role = "vendedor" | "gerente" | "diretor" | "admin";
+
+const defaultSection: Record<Role, string> = {
+  diretor: "visao-geral",
+  admin: "visao-geral",
+  gerente: "dashboard",
+  vendedor: "dashboard",
+};
+
+const roleLabels: Record<string, string> = {
+  vendedor: "Vendedor",
+  gerente: "Gerente",
+  diretor: "Diretor",
+  admin: "Administrador",
+};
+
 export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [userRole, setUserRole] = useState<"vendedor" | "gerente" | "diretor" | "admin" | null>(null);
+  const [userRole, setUserRole] = useState<Role | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState<string>("visao-geral");
   const navigate = useNavigate();
 
   useEffect(() => {
     checkUser();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/login");
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (!session) navigate("/login");
     });
-
     return () => subscription.unsubscribe();
   }, [navigate]);
 
   const checkUser = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        navigate("/login");
-        return;
-      }
+      if (!user) { navigate("/login"); return; }
 
       const { data: profileData, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
+        .from("profiles").select("*").eq("id", user.id).single();
       if (error) throw error;
 
-      // Buscar role do usuário
       const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .single();
-
+        .from("user_roles").select("role").eq("user_id", user.id).single();
       if (roleError) throw roleError;
-      
+
       setProfile(profileData);
-      setUserRole(roleData.role);
+      setUserRole(roleData.role as Role);
+      setActiveSection(defaultSection[roleData.role as Role]);
     } catch (error: any) {
       toast.error("Erro ao carregar perfil");
       navigate("/login");
@@ -78,97 +80,62 @@ export default function Dashboard() {
       await supabase.auth.signOut();
       toast.success("Logout realizado com sucesso!");
       navigate("/login");
-    } catch (error: any) {
+    } catch {
       toast.error("Erro ao fazer logout");
     }
   };
 
-  const getRoleLabel = (role: string) => {
-    const labels: Record<string, string> = {
-      vendedor: "Vendedor",
-      gerente: "Gerente",
-      diretor: "Diretor",
-      admin: "Administrador",
-    };
-    return labels[role] || role;
+  const handleSelect = (section: string) => {
+    setActiveSection(section);
+    // sync via hash so child dashboards can pick up
+    window.location.hash = section;
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center gradient-hero">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!profile || !userRole) {
-    return null;
+  if (!profile || !userRole) return null;
+
+  if (profile.must_change_password) {
+    return (
+      <div className="min-h-screen gradient-hero">
+        <AlterarSenha />
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
-      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
-            {/* Logo */}
-            <img 
-              src={logoUnidos} 
-              alt="Unidos Importados" 
-              className="h-10 sm:h-12 w-auto object-contain"
-            />
-            
-            {/* Divider */}
-            <div className="hidden sm:block h-10 w-px bg-border" />
-            
-            {/* User Info */}
-            <div className="flex items-center gap-3 ml-auto sm:ml-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold text-base sm:text-lg border-2 border-primary/20 shadow-md overflow-hidden">
-                {profile.foto_url ? (
-                  <img
-                    src={profile.foto_url}
-                    alt={profile.nome}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  profile.nome.charAt(0).toUpperCase()
-                )}
-              </div>
-              <div className="hidden xs:block">
-                <h1 className="text-base sm:text-lg font-semibold text-foreground leading-tight">
-                  {profile.nome}
-                </h1>
-                <p className="text-xs sm:text-sm text-primary font-medium">
-                  {getRoleLabel(userRole)}
-                </p>
-              </div>
+    <SidebarProvider defaultOpen>
+      <div className="min-h-screen flex w-full gradient-hero">
+        <AppSidebar
+          role={userRole}
+          activeSection={activeSection}
+          onSelect={handleSelect}
+        />
+        <SidebarInset className="bg-transparent">
+          <Topbar
+            profile={profile}
+            roleLabel={roleLabels[userRole]}
+            onLogout={handleLogout}
+          />
+          <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10 animate-fade-in">
+            <div className="mx-auto max-w-[1400px]">
+              {(userRole === "diretor" || userRole === "admin") ? (
+                <DiretorDashboard profile={profile} />
+              ) : userRole === "gerente" ? (
+                <GerenteDashboard profile={profile} />
+              ) : (
+                <VendedorDashboard profile={profile} />
+              )}
             </div>
-          </div>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLogout} 
-            className="self-end sm:self-auto border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </Button>
-        </div>
-      </header>
-
-      {profile.must_change_password ? (
-        <AlterarSenha />
-      ) : (
-        <main className="container mx-auto px-4 py-4 sm:py-8">
-          {(userRole === 'diretor' || userRole === 'admin') ? (
-            <DiretorDashboard profile={profile} />
-          ) : userRole === 'gerente' ? (
-            <GerenteDashboard profile={profile} />
-          ) : (
-            <VendedorDashboard profile={profile} />
-          )}
-        </main>
-      )}
-    </div>
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }
