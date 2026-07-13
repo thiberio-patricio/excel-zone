@@ -447,14 +447,18 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
               <div
                 className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br ${k.gradient} blur-3xl opacity-60`}
               />
-              <div className="relative flex items-start justify-between">
-                <div className="space-y-1">
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0 flex-1">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
                     {k.label}
                   </p>
-                  <p className="font-display text-2xl xl:text-3xl font-bold text-foreground leading-tight">
-                    {k.value}
-                  </p>
+                  {k.customValue ? (
+                    k.customValue
+                  ) : (
+                    <p className="font-display text-xl xl:text-2xl 2xl:text-3xl font-bold text-foreground leading-tight whitespace-nowrap truncate">
+                      {k.value}
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-xl bg-white/5 p-2 border border-white/10">
                   <Icon className="h-4 w-4 text-primary" />
