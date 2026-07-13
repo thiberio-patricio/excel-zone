@@ -360,11 +360,20 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
     return items;
   }, [vendedores, stats, derived]);
 
-  const kpis = [
+  const kpis: any[] = [
     {
       label: "Total Equipe",
-      value: `${stats.totalVendedores + stats.totalGerentes}`,
-      hint: `${stats.totalVendedores} vendedores · ${stats.totalGerentes} gerentes`,
+      customValue: (
+        <div className="flex flex-col leading-tight">
+          <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
+            {stats.totalVendedores} vendedores
+          </span>
+          <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
+            {stats.totalGerentes} gerentes
+          </span>
+        </div>
+      ),
+      hint: `${stats.totalFiliais} filiais ativas`,
       icon: Users,
       gradient: "from-primary/30 via-primary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",
