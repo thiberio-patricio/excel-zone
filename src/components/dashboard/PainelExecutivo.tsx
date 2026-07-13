@@ -616,8 +616,8 @@ function Heatmap({ points, loading }: { points: DailyPoint[]; loading: boolean }
 
   if (loading) {
     return (
-      <div className="grid grid-cols-7 gap-2">
-        {Array.from({ length: 35 }).map((_, i) => (
+      <div className="grid grid-cols-6 gap-2">
+        {Array.from({ length: 30 }).map((_, i) => (
           <div key={i} className="aspect-square rounded-lg skeleton" />
         ))}
       </div>
