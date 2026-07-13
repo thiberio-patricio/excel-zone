@@ -42,15 +42,15 @@ interface NavItem {
 const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
   diretor: [
     {
-      label: "Operação",
+      label: "Performance",
       items: [
-        { id: "visao-geral", title: "Visão Geral", icon: LayoutDashboard },
-        { id: "filiais", title: "Filiais", icon: Building2 },
+        { id: "visao-geral", title: "Dashboard", icon: LayoutDashboard },
       ],
     },
     {
-      label: "Equipe",
+      label: "Gestão",
       items: [
+        { id: "filiais", title: "Filiais", icon: Building2 },
         { id: "gerentes", title: "Gerentes", icon: Users },
         { id: "diretores", title: "Diretores", icon: ShieldCheck },
       ],
@@ -58,15 +58,15 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
   ],
   admin: [
     {
-      label: "Operação",
+      label: "Performance",
       items: [
-        { id: "visao-geral", title: "Visão Geral", icon: LayoutDashboard },
-        { id: "filiais", title: "Filiais", icon: Building2 },
+        { id: "visao-geral", title: "Dashboard", icon: LayoutDashboard },
       ],
     },
     {
-      label: "Equipe",
+      label: "Gestão",
       items: [
+        { id: "filiais", title: "Filiais", icon: Building2 },
         { id: "gerentes", title: "Gerentes", icon: Users },
         { id: "diretores", title: "Diretores", icon: ShieldCheck },
       ],
@@ -77,14 +77,14 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       label: "Performance",
       items: [
         { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
-        { id: "vendedores", title: "Equipe", icon: Users },
       ],
     },
     {
       label: "Gestão",
       items: [
         { id: "vendas", title: "Vendas", icon: UserSquare2 },
-        { id: "feriados", title: "Feriados / Férias", icon: CalendarDays },
+        { id: "vendedores", title: "Equipe", icon: Users },
+        { id: "feriados", title: "Férias / Feriados", icon: CalendarDays },
       ],
     },
   ],

@@ -360,11 +360,20 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
     return items;
   }, [vendedores, stats, derived]);
 
-  const kpis = [
+  const kpis: any[] = [
     {
       label: "Total Equipe",
-      value: `${stats.totalVendedores + stats.totalGerentes}`,
-      hint: `${stats.totalVendedores} vendedores · ${stats.totalGerentes} gerentes`,
+      customValue: (
+        <div className="flex flex-col leading-tight">
+          <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
+            {stats.totalVendedores} vendedores
+          </span>
+          <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
+            {stats.totalGerentes} gerentes
+          </span>
+        </div>
+      ),
+      hint: `${stats.totalFiliais} filiais ativas`,
       icon: Users,
       gradient: "from-primary/30 via-primary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",
@@ -438,14 +447,18 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
               <div
                 className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br ${k.gradient} blur-3xl opacity-60`}
               />
-              <div className="relative flex items-start justify-between">
-                <div className="space-y-1">
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0 flex-1">
                   <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
                     {k.label}
                   </p>
-                  <p className="font-display text-2xl xl:text-3xl font-bold text-foreground leading-tight">
-                    {k.value}
-                  </p>
+                  {k.customValue ? (
+                    k.customValue
+                  ) : (
+                    <p className="font-display text-xl xl:text-2xl 2xl:text-3xl font-bold text-foreground leading-tight whitespace-nowrap truncate">
+                      {k.value}
+                    </p>
+                  )}
                 </div>
                 <div className="rounded-xl bg-white/5 p-2 border border-white/10">
                   <Icon className="h-4 w-4 text-primary" />
@@ -616,8 +629,8 @@ function Heatmap({ points, loading }: { points: DailyPoint[]; loading: boolean }
 
   if (loading) {
     return (
-      <div className="grid grid-cols-7 gap-2">
-        {Array.from({ length: 35 }).map((_, i) => (
+      <div className="grid grid-cols-6 gap-2">
+        {Array.from({ length: 30 }).map((_, i) => (
           <div key={i} className="aspect-square rounded-lg skeleton" />
         ))}
       </div>
@@ -625,26 +638,29 @@ function Heatmap({ points, loading }: { points: DailyPoint[]; loading: boolean }
   }
 
   // Build 7-col grid (Sun..Sat) with offset for first day
-  if (points.length === 0) {
+  // Exclude Sundays (weekday 0) from heatmap
+  const visiblePoints = points.filter((p) => p.weekday !== 0);
+  if (visiblePoints.length === 0) {
     return <p className="text-sm text-muted-foreground">Sem dados no período.</p>;
   }
-  const firstWeekday = points[0].weekday;
+  const firstWeekday = visiblePoints[0].weekday; // 1..6
   const cells: (DailyPoint | null)[] = [];
-  for (let i = 0; i < firstWeekday; i++) cells.push(null);
-  points.forEach((p) => cells.push(p));
+  // Grid is 6 columns: Seg..Sáb (weekday 1..6)
+  for (let i = 0; i < firstWeekday - 1; i++) cells.push(null);
+  visiblePoints.forEach((p) => cells.push(p));
 
-  const diasSemana = ["D", "S", "T", "Q", "Q", "S", "S"];
+  const diasSemana = ["S", "T", "Q", "Q", "S", "S"];
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1.5 mb-2">
+      <div className="grid grid-cols-6 gap-1.5 mb-2">
         {diasSemana.map((d, i) => (
           <div key={i} className="text-center text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
             {d}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-6 gap-1.5">
         {cells.map((c, i) => {
           if (!c) return <div key={i} className="aspect-square" />;
           const intensity = c.total / max;
