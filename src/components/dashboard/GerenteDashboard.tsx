@@ -357,12 +357,6 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 max-w-3xl">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="vendedores">Gerenciar Equipe</TabsTrigger>
-          <TabsTrigger value="vendas">Visualizar Vendas</TabsTrigger>
-          <TabsTrigger value="feriados">Feriados/Férias</TabsTrigger>
-        </TabsList>
 
         <TabsContent value="dashboard" className="space-y-4">
           <Card className="border-none shadow-lg bg-gradient-to-br from-card to-card/50">
