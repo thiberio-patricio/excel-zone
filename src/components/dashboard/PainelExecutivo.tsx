@@ -625,26 +625,29 @@ function Heatmap({ points, loading }: { points: DailyPoint[]; loading: boolean }
   }
 
   // Build 7-col grid (Sun..Sat) with offset for first day
-  if (points.length === 0) {
+  // Exclude Sundays (weekday 0) from heatmap
+  const visiblePoints = points.filter((p) => p.weekday !== 0);
+  if (visiblePoints.length === 0) {
     return <p className="text-sm text-muted-foreground">Sem dados no período.</p>;
   }
-  const firstWeekday = points[0].weekday;
+  const firstWeekday = visiblePoints[0].weekday; // 1..6
   const cells: (DailyPoint | null)[] = [];
-  for (let i = 0; i < firstWeekday; i++) cells.push(null);
-  points.forEach((p) => cells.push(p));
+  // Grid is 6 columns: Seg..Sáb (weekday 1..6)
+  for (let i = 0; i < firstWeekday - 1; i++) cells.push(null);
+  visiblePoints.forEach((p) => cells.push(p));
 
-  const diasSemana = ["D", "S", "T", "Q", "Q", "S", "S"];
+  const diasSemana = ["S", "T", "Q", "Q", "S", "S"];
 
   return (
     <div>
-      <div className="grid grid-cols-7 gap-1.5 mb-2">
+      <div className="grid grid-cols-6 gap-1.5 mb-2">
         {diasSemana.map((d, i) => (
           <div key={i} className="text-center text-[10px] uppercase tracking-wider text-muted-foreground/70 font-semibold">
             {d}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-6 gap-1.5">
         {cells.map((c, i) => {
           if (!c) return <div key={i} className="aspect-square" />;
           const intensity = c.total / max;
