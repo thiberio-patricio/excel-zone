@@ -551,6 +551,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
           <GerenciarFeriadosFerias />
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
+
