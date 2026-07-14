@@ -205,7 +205,9 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
           carregarDados();
           onDataChange?.();
         }}
-      />
+        />
+      </div>
     </div>
   );
 }
+
