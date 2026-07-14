@@ -234,22 +234,16 @@ export default function GerenciarGerentes() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Gerenciar Gerentes
-            </CardTitle>
-            <CardDescription>Cadastre gerentes e atribua a filiais</CardDescription>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) limparFormulario();
-          }}>
+    <div>
+      <PageHeader
+        icon={Users}
+        eyebrow="Gestão"
+        title="Gerentes"
+        description="Cadastre gerentes e atribua às filiais."
+        actions={
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) limparFormulario(); }}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" className="gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02] transition-transform">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Gerente
               </Button>
@@ -257,43 +251,23 @@ export default function GerenciarGerentes() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Novo Gerente</DialogTitle>
-                <DialogDescription>
-                  Preencha os dados do gerente
-                </DialogDescription>
+                <DialogDescription>Preencha os dados do gerente</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <Label htmlFor="nome">Nome *</Label>
-                  <Input
-                    id="nome"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Nome completo"
-                  />
+                  <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email@exemplo.com"
-                  />
+                  <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@exemplo.com" />
                   {email && !email.includes("@") && (
                     <p className="text-sm text-destructive">Digite um email válido</p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="senha">Senha *</Label>
-                  <Input
-                    id="senha"
-                    type="password"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                    minLength={6}
-                  />
+                  <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Mínimo 6 caracteres" minLength={6} />
                   {senha && senha.length < 6 && (
                     <p className="text-sm text-destructive">Senha deve ter no mínimo 6 caracteres</p>
                   )}
@@ -306,75 +280,91 @@ export default function GerenciarGerentes() {
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
                       {filiais.length === 0 ? (
-                        <SelectItem value="none" disabled>
-                          Cadastre uma filial primeiro
-                        </SelectItem>
+                        <SelectItem value="none" disabled>Cadastre uma filial primeiro</SelectItem>
                       ) : (
                         filiais.map((filial) => (
-                          <SelectItem key={filial.id} value={filial.id}>
-                            {filial.nome}
-                          </SelectItem>
+                          <SelectItem key={filial.id} value={filial.id}>{filial.nome}</SelectItem>
                         ))
                       )}
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleCriarGerente} className="w-full">
-                  Criar Gerente
-                </Button>
+                <Button onClick={handleCriarGerente} className="w-full gradient-primary text-primary-foreground shadow-glow">Criar Gerente</Button>
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead className="hidden sm:table-cell">Email</TableHead>
-                <TableHead className="hidden md:table-cell">Filial</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {gerentes.map((gerente) => (
-                <TableRow key={gerente.id}>
-                  <TableCell className="font-medium">{gerente.nome}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{gerente.email}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {(gerente as any).filiais?.nome || "-"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja deletar o gerente "{gerente.nome}"? Esta ação não pode ser desfeita.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDeletar(gerente.id, gerente.email)}>
-                            Deletar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
+        }
+      />
+
+      <PageCard padded={false}>
+        {loading ? (
+          <TableSkeleton rows={4} columns={4} />
+        ) : gerentes.length === 0 ? (
+          <EmptyState icon={Users} title="Nenhum gerente cadastrado" description="Cadastre o primeiro gerente para atribuir a uma filial." />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/5 hover:bg-transparent">
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Nome</TableHead>
+                  <TableHead className="hidden sm:table-cell text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Email</TableHead>
+                  <TableHead className="hidden md:table-cell text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Filial</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {gerentes.map((gerente) => (
+                  <TableRow key={gerente.id} className="border-white/5 hover:bg-white/[0.03] transition-colors">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                          <Users className="h-4 w-4 text-primary" />
+                        </div>
+                        <span>{gerente.nome}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{gerente.email}</span>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {(gerente as any).filiais?.nome ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
+                          <Building2 className="h-3 w-3" />
+                          {(gerente as any).filiais.nome}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="hover:bg-destructive/10">
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja deletar o gerente "{gerente.nome}"? Esta ação não pode ser desfeita.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeletar(gerente.id, gerente.email)}>Deletar</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </PageCard>
+    </div>
   );
 }
+
