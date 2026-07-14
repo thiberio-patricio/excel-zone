@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, TrendingUp, Target, BarChart, Calendar } from "lucide-react";
+import { Users, TrendingUp, Target, BarChart, Calendar, UserSquare2, LayoutDashboard } from "lucide-react";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from "recharts";
 import GerenciarVendedores from "./GerenciarVendedores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import GerenciarFeriadosFerias from "./GerenciarFeriadosFerias";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageCard } from "@/components/layout/PageCard";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface GerenteDashboardProps {
   profile: {
