@@ -445,91 +445,76 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleCriarUsuario} className="w-full">
+                <Button onClick={handleCriarUsuario} className="w-full gradient-primary text-primary-foreground shadow-glow">
                   Criar Usuário
                 </Button>
               </div>
             </DialogContent>
             </Dialog>
-          </CardContent>
-        </Card>
+          </PageCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Nova Meta</CardTitle>
-          </CardHeader>
-        <CardContent>
-          <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full" variant="outline">
-                <Target className="w-4 h-4 mr-2" />
-                Definir Meta
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Definir Meta de Vendas</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="vendedor">Vendedor</Label>
-                  <Select value={vendedorId} onValueChange={setVendedorId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um vendedor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendedores.map((vendedor) => (
-                        <SelectItem key={vendedor.id} value={vendedor.id}>
-                          {vendedor.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="mes">Mês</Label>
-                  <Select value={mes.toString()} onValueChange={(value) => setMes(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {meses.map((nome, index) => (
-                        <SelectItem key={index + 1} value={(index + 1).toString()}>
-                          {nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="ano">Ano</Label>
-                  <Input
-                    id="ano"
-                    type="number"
-                    value={ano}
-                    onChange={(e) => setAno(parseInt(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="valorMeta">Valor da Meta (R$)</Label>
-                  <Input
-                    id="valorMeta"
-                    type="number"
-                    step="0.01"
-                    value={valorMeta}
-                    onChange={(e) => setValorMeta(e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-                <Button onClick={handleCriarMeta} className="w-full">
+          <PageCard>
+            <h3 className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 mb-3">Nova Meta</h3>
+            <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full" variant="outline">
+                  <Target className="w-4 h-4 mr-2" />
                   Definir Meta
                 </Button>
-              </div>
-            </DialogContent>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Definir Meta de Vendas</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="vendedor">Vendedor</Label>
+                    <Select value={vendedorId} onValueChange={setVendedorId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>
+                            {vendedor.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="mes">Mês</Label>
+                    <Select value={mes.toString()} onValueChange={(value) => setMes(parseInt(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {meses.map((nome, index) => (
+                          <SelectItem key={index + 1} value={(index + 1).toString()}>
+                            {nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ano">Ano</Label>
+                    <Input id="ano" type="number" value={ano} onChange={(e) => setAno(parseInt(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="valorMeta">Valor da Meta (R$)</Label>
+                    <Input id="valorMeta" type="number" step="0.01" value={valorMeta} onChange={(e) => setValorMeta(e.target.value)} placeholder="0.00" />
+                  </div>
+                  <Button onClick={handleCriarMeta} className="w-full gradient-primary text-primary-foreground shadow-glow">
+                    Definir Meta
+                  </Button>
+                </div>
+              </DialogContent>
             </Dialog>
-          </CardContent>
-        </Card>
+          </PageCard>
+        </div>
       </div>
     </div>
   );
 }
+
