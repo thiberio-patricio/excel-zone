@@ -20,7 +20,10 @@ import { AreaChart, Area, ResponsiveContainer } from "recharts";
 interface PainelExecutivoProps {
   mes: number;
   ano: number;
-  stats: {
+  /** When provided, scopes all data (KPIs, heatmap, AI insights) to a single branch. */
+  filialId?: string | null;
+  /** Optional pre-computed stats (used by Diretor view). Ignored when filialId is set. */
+  stats?: {
     totalFiliais: number;
     totalGerentes: number;
     totalVendedores: number;
@@ -57,15 +60,18 @@ const shortBRL = (v: number) => {
   return `R$ ${v.toFixed(0)}`;
 };
 
-export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProps) {
+export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }: PainelExecutivoProps) {
   const [dailySales, setDailySales] = useState<DailyPoint[]>([]);
   const [vendedores, setVendedores] = useState<VendedorInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
+  const [computedStats, setComputedStats] = useState(emptyStats);
+  const stats = filialId ? computedStats : (statsProp || emptyStats);
 
   useEffect(() => {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, ano]);
+  }, [mes, ano, filialId]);
 
   const carregar = async () => {
     setLoading(true);
@@ -91,12 +97,26 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
         supabase.from("user_roles").select("user_id, role").eq("role", "vendedor"),
       ]);
 
-      // Daily aggregation
+      // Determine which vendedores are in scope (role=vendedor, filtered by filial if provided)
+      const profilesById = new Map<string, any>();
+      (profilesRes.data || []).forEach((p: any) => profilesById.set(p.id, p));
+
+      const roleVendedorIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
+      const allowedVendedorIds = new Set<string>();
+      roleVendedorIds.forEach((vid) => {
+        const p = profilesById.get(vid);
+        if (!p) return;
+        if (filialId && p.filial_id !== filialId) return;
+        allowedVendedorIds.add(vid);
+      });
+
+      // Daily aggregation (scoped)
       const totalDias = ultimoDiaDate.getDate();
       const dailyMap = new Map<number, number>();
       for (let d = 1; d <= totalDias; d++) dailyMap.set(d, 0);
 
       (vendasRes.data || []).forEach((v: any) => {
+        if (!allowedVendedorIds.has(v.vendedor_id)) return;
         const d = new Date(v.data + "T00:00:00");
         const dia = d.getDate();
         const val = Number(v.valor) - Number(v.devolucao);
@@ -114,15 +134,11 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
       });
       setDailySales(daily);
 
-      // Per vendedor
-      const vendedorIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
-      const profilesById = new Map<string, any>();
-      (profilesRes.data || []).forEach((p: any) => profilesById.set(p.id, p));
-
       // Latest meta per vendedor
       const metaLatestByVendedor = new Map<string, number>();
       const metaRankByVendedor = new Map<string, number>();
       (metasRes.data || []).forEach((m: any) => {
+        if (!allowedVendedorIds.has(m.vendedor_id)) return;
         const rank = Number(m.ano) * 12 + Number(m.mes);
         const cur = metaRankByVendedor.get(m.vendedor_id) ?? -1;
         if (rank > cur) {
@@ -131,10 +147,10 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
         }
       });
 
-      // Group vendas by vendedor
+      // Group vendas by vendedor (scoped)
       const vendasByVendedor = new Map<string, Array<{ dia: number; total: number }>>();
       (vendasRes.data || []).forEach((v: any) => {
-        if (!vendedorIds.has(v.vendedor_id)) return;
+        if (!allowedVendedorIds.has(v.vendedor_id)) return;
         const dia = new Date(v.data + "T00:00:00").getDate();
         const val = Number(v.valor) - Number(v.devolucao);
         const arr = vendasByVendedor.get(v.vendedor_id) || [];
@@ -185,14 +201,14 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
         });
       });
 
-      // Also include vendedores with 0 sales
-      (rolesRes.data || []).forEach((r: any) => {
-        if (vendasByVendedor.has(r.user_id)) return;
-        const profile = profilesById.get(r.user_id);
+      // Also include vendedores with 0 sales (scoped)
+      allowedVendedorIds.forEach((vid) => {
+        if (vendasByVendedor.has(vid)) return;
+        const profile = profilesById.get(vid);
         if (!profile) return;
-        const meta = metaLatestByVendedor.get(r.user_id) || 0;
+        const meta = metaLatestByVendedor.get(vid) || 0;
         insights.push({
-          id: r.user_id,
+          id: vid,
           nome: profile.nome,
           hoje: 0,
           ontem: 0,
@@ -205,6 +221,25 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
       });
 
       setVendedores(insights);
+
+      // Compute stats internally when scoped to a filial
+      if (filialId) {
+        const vendasMesAtual = Array.from(vendasByVendedor.values()).reduce(
+          (acc, arr) => acc + arr.reduce((s, r) => s + r.total, 0),
+          0
+        );
+        const metaGeral = Array.from(allowedVendedorIds).reduce(
+          (acc, vid) => acc + (metaLatestByVendedor.get(vid) || 0),
+          0
+        );
+        setComputedStats({
+          totalFiliais: 1,
+          totalGerentes: 0,
+          totalVendedores: allowedVendedorIds.size,
+          vendasMesAtual,
+          metaGeral,
+        });
+      }
     } catch (e) {
       console.error("PainelExecutivo error", e);
     } finally {
@@ -363,7 +398,11 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
   const kpis: any[] = [
     {
       label: "Total Equipe",
-      customValue: (
+      customValue: filialId ? (
+        <p className="font-display text-xl xl:text-2xl 2xl:text-3xl font-bold text-foreground leading-tight whitespace-nowrap truncate">
+          {stats.totalVendedores} <span className="text-base font-semibold text-muted-foreground">vendedores</span>
+        </p>
+      ) : (
         <div className="flex flex-col leading-tight">
           <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
             {stats.totalVendedores} vendedores
@@ -373,7 +412,7 @@ export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProp
           </span>
         </div>
       ),
-      hint: `${stats.totalFiliais} filiais ativas`,
+      hint: filialId ? "Equipe da sua filial" : `${stats.totalFiliais} filiais ativas`,
       icon: Users,
       gradient: "from-primary/30 via-primary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",

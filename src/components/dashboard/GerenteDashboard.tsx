@@ -15,12 +15,14 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { ProfilePhoto } from "@/components/ui/profile-photo";
+import PainelExecutivo from "./PainelExecutivo";
 
 interface GerenteDashboardProps {
   profile: {
     id: string;
     nome: string;
     email: string;
+    filial_id?: string | null;
   };
 }
 
@@ -262,80 +264,16 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         description={`Visão consolidada da equipe de ${profile.nome.split(" ")[0]}.`}
       />
       <div className="space-y-6">
-        <div className="grid gap-4 md:grid-cols-4">
-        <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Equipe</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {vendedores.length}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Vendedores ativos
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Vendas do Mês</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              R$ {totalVendas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Meta Geral</CardTitle>
-            <Target className="h-4 w-4 text-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-accent">
-              R$ {totalMetas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Progresso</CardTitle>
-            <BarChart className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">
-              {totalMetas > 0 ? ((totalVendas / totalMetas) * 100).toFixed(1) : 0}%
-            </div>
-            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-primary/80 transition-all duration-500"
-                style={{ width: `${Math.min(totalMetas > 0 ? (totalVendas / totalMetas) * 100 : 0, 100)}%` }}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Seletor de Mês/Ano */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
-            Selecionar Período
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex gap-4">
-          <div className="flex-1">
+        {/* Seletor de Mês/Ano */}
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-3 p-4">
+            <Calendar className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">Período:</span>
             <Select
               value={mesSelecionado.toString()}
               onValueChange={(value) => setMesSelecionado(parseInt(value))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-[160px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -346,13 +284,11 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="flex-1">
             <Select
               value={anoSelecionado.toString()}
               onValueChange={(value) => setAnoSelecionado(parseInt(value))}
             >
-              <SelectTrigger>
+              <SelectTrigger className="w-[110px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -363,9 +299,17 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        {/* Painel Executivo — KPIs premium, mapa de calor e central de IA (escopo: sua filial) */}
+        <PainelExecutivo
+          mes={mesSelecionado}
+          ano={anoSelecionado}
+          filialId={profile.filial_id ?? null}
+        />
+
+
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
 
