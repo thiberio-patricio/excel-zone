@@ -445,7 +445,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     },
     {
       label: "Vendas do Mês",
-      value: shortBRL(stats.vendasMesAtual),
+      value: formatBRL(stats.vendasMesAtual),
       hint:
         derived.trend >= 0
           ? `+${derived.trend.toFixed(0)}% vs. 3 dias`
@@ -458,8 +458,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     },
     {
       label: "Meta Geral",
-      value: shortBRL(stats.metaGeral),
-      hint: `Faltam ${shortBRL(derived.faltante)}`,
+      value: formatBRL(stats.metaGeral),
+      hint: `Faltam ${formatBRL(derived.faltante)}`,
       icon: Target,
       gradient: "from-premium/30 via-premium/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
@@ -478,7 +478,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     },
     {
       label: "Meta do Dia",
-      value: shortBRL(derived.metaDoDia),
+      value: formatBRL(derived.metaDoDia),
       hint: `${derived.restantes} dias úteis restantes`,
       icon: CalendarClock,
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
