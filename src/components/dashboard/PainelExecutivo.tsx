@@ -399,17 +399,32 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
     {
       label: "Total Equipe",
       customValue: filialId ? (
-        <p className="font-display text-xl xl:text-2xl 2xl:text-3xl font-bold text-foreground leading-tight whitespace-nowrap truncate">
-          {stats.totalVendedores} <span className="text-base font-semibold text-muted-foreground">vendedores</span>
-        </p>
+        <div className="flex items-baseline gap-1.5 min-w-0">
+          <span className="font-display text-2xl xl:text-3xl font-bold text-foreground leading-none">
+            {stats.totalVendedores}
+          </span>
+          <span className="text-xs font-semibold text-muted-foreground truncate">
+            vendedores
+          </span>
+        </div>
       ) : (
-        <div className="flex flex-col leading-tight">
-          <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
-            {stats.totalVendedores} vendedores
-          </span>
-          <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
-            {stats.totalGerentes} gerentes
-          </span>
+        <div className="flex flex-col leading-tight gap-0.5 min-w-0">
+          <div className="flex items-baseline gap-1 min-w-0">
+            <span className="font-display text-lg xl:text-xl font-bold text-foreground leading-none">
+              {stats.totalVendedores}
+            </span>
+            <span className="text-[11px] font-medium text-muted-foreground truncate">
+              vendedores
+            </span>
+          </div>
+          <div className="flex items-baseline gap-1 min-w-0">
+            <span className="font-display text-lg xl:text-xl font-bold text-foreground leading-none">
+              {stats.totalGerentes}
+            </span>
+            <span className="text-[11px] font-medium text-muted-foreground truncate">
+              gerentes
+            </span>
+          </div>
         </div>
       ),
       hint: filialId ? "Equipe da sua filial" : `${stats.totalFiliais} filiais ativas`,
@@ -494,7 +509,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
                   {k.customValue ? (
                     k.customValue
                   ) : (
-                    <p className="font-display text-xl xl:text-2xl 2xl:text-3xl font-bold text-foreground leading-tight whitespace-nowrap truncate">
+                    <p className="font-display text-lg md:text-xl xl:text-2xl font-bold text-foreground leading-tight truncate">
                       {k.value}
                     </p>
                   )}
