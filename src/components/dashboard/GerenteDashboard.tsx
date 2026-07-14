@@ -253,8 +253,15 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
+    <div>
+      <PageHeader
+        icon={LayoutDashboard}
+        eyebrow="Performance"
+        title="Dashboard"
+        description={`Visão consolidada da equipe de ${profile.nome.split(" ")[0]}.`}
+      />
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Equipe</CardTitle>
