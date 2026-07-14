@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ProfilePhoto } from "@/components/ui/profile-photo";
 
 interface TopbarProps {
   profile: {
