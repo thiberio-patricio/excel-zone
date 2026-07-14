@@ -201,14 +201,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
         });
       });
 
-      // Also include vendedores with 0 sales
-      (rolesRes.data || []).forEach((r: any) => {
-        if (vendasByVendedor.has(r.user_id)) return;
-        const profile = profilesById.get(r.user_id);
+      // Also include vendedores with 0 sales (scoped)
+      allowedVendedorIds.forEach((vid) => {
+        if (vendasByVendedor.has(vid)) return;
+        const profile = profilesById.get(vid);
         if (!profile) return;
-        const meta = metaLatestByVendedor.get(r.user_id) || 0;
+        const meta = metaLatestByVendedor.get(vid) || 0;
         insights.push({
-          id: r.user_id,
+          id: vid,
           nome: profile.nome,
           hoje: 0,
           ontem: 0,
@@ -221,6 +221,25 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
       });
 
       setVendedores(insights);
+
+      // Compute stats internally when scoped to a filial
+      if (filialId) {
+        const vendasMesAtual = Array.from(vendasByVendedor.values()).reduce(
+          (acc, arr) => acc + arr.reduce((s, r) => s + r.total, 0),
+          0
+        );
+        const metaGeral = Array.from(allowedVendedorIds).reduce(
+          (acc, vid) => acc + (metaLatestByVendedor.get(vid) || 0),
+          0
+        );
+        setComputedStats({
+          totalFiliais: 1,
+          totalGerentes: 0,
+          totalVendedores: allowedVendedorIds.size,
+          vendasMesAtual,
+          metaGeral,
+        });
+      }
     } catch (e) {
       console.error("PainelExecutivo error", e);
     } finally {
