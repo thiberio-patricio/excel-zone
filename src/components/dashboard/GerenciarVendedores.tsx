@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { ProfilePhoto } from "@/components/ui/profile-photo";
 
 interface GerenciarVendedoresProps {
   onUpdate: () => void;
