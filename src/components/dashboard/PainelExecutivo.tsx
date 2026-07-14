@@ -60,15 +60,18 @@ const shortBRL = (v: number) => {
   return `R$ ${v.toFixed(0)}`;
 };
 
-export default function PainelExecutivo({ mes, ano, stats }: PainelExecutivoProps) {
+export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }: PainelExecutivoProps) {
   const [dailySales, setDailySales] = useState<DailyPoint[]>([]);
   const [vendedores, setVendedores] = useState<VendedorInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
+  const [computedStats, setComputedStats] = useState(emptyStats);
+  const stats = filialId ? computedStats : (statsProp || emptyStats);
 
   useEffect(() => {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, ano]);
+  }, [mes, ano, filialId]);
 
   const carregar = async () => {
     setLoading(true);
