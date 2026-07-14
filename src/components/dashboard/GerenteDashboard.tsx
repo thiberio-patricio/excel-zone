@@ -21,6 +21,7 @@ interface GerenteDashboardProps {
     id: string;
     nome: string;
     email: string;
+    filial_id?: string | null;
   };
 }
 
