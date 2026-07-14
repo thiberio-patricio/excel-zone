@@ -97,12 +97,26 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
         supabase.from("user_roles").select("user_id, role").eq("role", "vendedor"),
       ]);
 
-      // Daily aggregation
+      // Determine which vendedores are in scope (role=vendedor, filtered by filial if provided)
+      const profilesById = new Map<string, any>();
+      (profilesRes.data || []).forEach((p: any) => profilesById.set(p.id, p));
+
+      const roleVendedorIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
+      const allowedVendedorIds = new Set<string>();
+      roleVendedorIds.forEach((vid) => {
+        const p = profilesById.get(vid);
+        if (!p) return;
+        if (filialId && p.filial_id !== filialId) return;
+        allowedVendedorIds.add(vid);
+      });
+
+      // Daily aggregation (scoped)
       const totalDias = ultimoDiaDate.getDate();
       const dailyMap = new Map<number, number>();
       for (let d = 1; d <= totalDias; d++) dailyMap.set(d, 0);
 
       (vendasRes.data || []).forEach((v: any) => {
+        if (!allowedVendedorIds.has(v.vendedor_id)) return;
         const d = new Date(v.data + "T00:00:00");
         const dia = d.getDate();
         const val = Number(v.valor) - Number(v.devolucao);
@@ -120,15 +134,11 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
       });
       setDailySales(daily);
 
-      // Per vendedor
-      const vendedorIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
-      const profilesById = new Map<string, any>();
-      (profilesRes.data || []).forEach((p: any) => profilesById.set(p.id, p));
-
       // Latest meta per vendedor
       const metaLatestByVendedor = new Map<string, number>();
       const metaRankByVendedor = new Map<string, number>();
       (metasRes.data || []).forEach((m: any) => {
+        if (!allowedVendedorIds.has(m.vendedor_id)) return;
         const rank = Number(m.ano) * 12 + Number(m.mes);
         const cur = metaRankByVendedor.get(m.vendedor_id) ?? -1;
         if (rank > cur) {
@@ -137,10 +147,10 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
         }
       });
 
-      // Group vendas by vendedor
+      // Group vendas by vendedor (scoped)
       const vendasByVendedor = new Map<string, Array<{ dia: number; total: number }>>();
       (vendasRes.data || []).forEach((v: any) => {
-        if (!vendedorIds.has(v.vendedor_id)) return;
+        if (!allowedVendedorIds.has(v.vendedor_id)) return;
         const dia = new Date(v.data + "T00:00:00").getDate();
         const val = Number(v.valor) - Number(v.devolucao);
         const arr = vendasByVendedor.get(v.vendedor_id) || [];
