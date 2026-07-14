@@ -20,7 +20,10 @@ import { AreaChart, Area, ResponsiveContainer } from "recharts";
 interface PainelExecutivoProps {
   mes: number;
   ano: number;
-  stats: {
+  /** When provided, scopes all data (KPIs, heatmap, AI insights) to a single branch. */
+  filialId?: string | null;
+  /** Optional pre-computed stats (used by Diretor view). Ignored when filialId is set. */
+  stats?: {
     totalFiliais: number;
     totalGerentes: number;
     totalVendedores: number;
