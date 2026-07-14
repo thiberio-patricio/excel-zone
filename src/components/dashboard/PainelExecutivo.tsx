@@ -509,7 +509,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
                   {k.customValue ? (
                     k.customValue
                   ) : (
-                    <p className="font-display text-xl xl:text-2xl 2xl:text-3xl font-bold text-foreground leading-tight whitespace-nowrap truncate">
+                    <p className="font-display text-lg md:text-xl xl:text-2xl font-bold text-foreground leading-tight truncate">
                       {k.value}
                     </p>
                   )}
