@@ -398,7 +398,11 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
   const kpis: any[] = [
     {
       label: "Total Equipe",
-      customValue: (
+      customValue: filialId ? (
+        <p className="font-display text-xl xl:text-2xl 2xl:text-3xl font-bold text-foreground leading-tight whitespace-nowrap truncate">
+          {stats.totalVendedores} <span className="text-base font-semibold text-muted-foreground">vendedores</span>
+        </p>
+      ) : (
         <div className="flex flex-col leading-tight">
           <span className="font-display text-xl xl:text-2xl font-bold text-foreground whitespace-nowrap">
             {stats.totalVendedores} vendedores
@@ -408,7 +412,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
           </span>
         </div>
       ),
-      hint: `${stats.totalFiliais} filiais ativas`,
+      hint: filialId ? "Equipe da sua filial" : `${stats.totalFiliais} filiais ativas`,
       icon: Users,
       gradient: "from-primary/30 via-primary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",
