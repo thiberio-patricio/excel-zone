@@ -76,15 +76,12 @@ export function Topbar({ profile, roleLabel, onLogout }: TopbarProps) {
             <div className="relative">
               <div className="absolute inset-0 rounded-full bg-gradient-primary blur-sm opacity-50" />
               <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-semibold text-sm overflow-hidden border border-white/10">
-                {profile.foto_url ? (
-                  <img
-                    src={profile.foto_url}
-                    alt={profile.nome}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  profile.nome.charAt(0).toUpperCase()
-                )}
+                <ProfilePhoto
+                  url={profile.foto_url}
+                  alt={profile.nome}
+                  className="w-full h-full object-cover"
+                  fallback={<>{profile.nome.charAt(0).toUpperCase()}</>}
+                />
               </div>
             </div>
             <div className="hidden lg:flex flex-col text-left leading-tight">
