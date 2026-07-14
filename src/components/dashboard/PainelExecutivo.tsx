@@ -30,6 +30,8 @@ interface PainelExecutivoProps {
     vendasMesAtual: number;
     metaGeral: number;
   };
+  /** Label used in AI insights to refer to the scope ("empresa" for diretor, filial name for gerente). */
+  escopoNome?: string;
 }
 
 interface DailyPoint {
