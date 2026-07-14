@@ -30,6 +30,8 @@ interface PainelExecutivoProps {
     vendasMesAtual: number;
     metaGeral: number;
   };
+  /** Label used in AI insights to refer to the scope ("empresa" for diretor, filial name for gerente). */
+  escopoNome?: string;
 }
 
 interface DailyPoint {
@@ -60,18 +62,27 @@ const shortBRL = (v: number) => {
   return `R$ ${v.toFixed(0)}`;
 };
 
-export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }: PainelExecutivoProps) {
+export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, escopoNome }: PainelExecutivoProps) {
   const [dailySales, setDailySales] = useState<DailyPoint[]>([]);
   const [vendedores, setVendedores] = useState<VendedorInsight[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filialNome, setFilialNome] = useState<string | null>(null);
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
   const [computedStats, setComputedStats] = useState(emptyStats);
   const stats = filialId ? computedStats : (statsProp || emptyStats);
+  const scopeLabel = escopoNome ?? (filialId ? (filialNome ?? "sua filial") : "empresa");
 
   useEffect(() => {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mes, ano, filialId]);
+
+  useEffect(() => {
+    if (!filialId) { setFilialNome(null); return; }
+    supabase.from("filiais").select("nome").eq("id", filialId).maybeSingle()
+      .then(({ data }) => setFilialNome((data as any)?.nome ?? null));
+  }, [filialId]);
+
 
   const carregar = async () => {
     setLoading(true);
@@ -381,7 +392,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
     items.push({
       tipo: "analise",
       titulo: "Ritmo necessário",
-      texto: `Para atingir a meta, a operação precisa vender ${shortBRL(
+      texto: `Para atingir a meta, ${scopeLabel === "empresa" ? "a empresa" : scopeLabel} precisa vender ${formatBRL(
         derived.metaDoDia
       )} por dia útil nos próximos ${derived.restantes} dias. ${
         derived.trend >= 0
@@ -393,7 +404,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
     });
 
     return items;
-  }, [vendedores, stats, derived]);
+  }, [vendedores, stats, derived, scopeLabel]);
 
   const kpis: any[] = [
     {
@@ -434,7 +445,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
     },
     {
       label: "Vendas do Mês",
-      value: shortBRL(stats.vendasMesAtual),
+      value: formatBRL(stats.vendasMesAtual),
       hint:
         derived.trend >= 0
           ? `+${derived.trend.toFixed(0)}% vs. 3 dias`
@@ -447,8 +458,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
     },
     {
       label: "Meta Geral",
-      value: shortBRL(stats.metaGeral),
-      hint: `Faltam ${shortBRL(derived.faltante)}`,
+      value: formatBRL(stats.metaGeral),
+      hint: `Faltam ${formatBRL(derived.faltante)}`,
       icon: Target,
       gradient: "from-premium/30 via-premium/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
@@ -467,7 +478,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
     },
     {
       label: "Meta do Dia",
-      value: shortBRL(derived.metaDoDia),
+      value: formatBRL(derived.metaDoDia),
       hint: `${derived.restantes} dias úteis restantes`,
       icon: CalendarClock,
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
@@ -509,7 +520,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp }
                   {k.customValue ? (
                     k.customValue
                   ) : (
-                    <p className="font-display text-lg md:text-xl xl:text-2xl font-bold text-foreground leading-tight truncate">
+                    <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight whitespace-nowrap">
                       {k.value}
                     </p>
                   )}
