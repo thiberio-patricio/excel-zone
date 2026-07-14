@@ -14,6 +14,7 @@ import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
+import { ProfilePhoto } from "@/components/ui/profile-photo";
 
 interface GerenteDashboardProps {
   profile: {
@@ -514,13 +515,16 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                       className="group relative p-4 text-left rounded-btn border border-white/5 bg-surface-1/40 hover:bg-white/[0.05] hover:border-primary/30 transition-all hover:scale-[1.02]"
                     >
                       <div className="flex items-center gap-3">
-                        {vendedor.foto_url ? (
-                          <img src={vendedor.foto_url} alt={vendedor.nome} className="h-10 w-10 rounded-xl object-cover border border-white/10" />
-                        ) : (
-                          <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold">
-                            {vendedor.nome.charAt(0).toUpperCase()}
-                          </div>
-                        )}
+                        <ProfilePhoto
+                          url={vendedor.foto_url}
+                          alt={vendedor.nome}
+                          className="h-10 w-10 rounded-xl object-cover border border-white/10"
+                          fallback={
+                            <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold">
+                              {vendedor.nome.charAt(0).toUpperCase()}
+                            </div>
+                          }
+                        />
                         <div className="min-w-0">
                           <div className="font-medium truncate">{vendedor.nome}</div>
                           <div className="text-xs text-muted-foreground truncate">{vendedor.email}</div>
