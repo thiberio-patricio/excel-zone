@@ -314,13 +314,16 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
                     <TableRow key={vendedor.id} className="border-white/5 hover:bg-white/[0.03] transition-colors">
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-3">
-                          {vendedor.foto_url ? (
-                            <img src={vendedor.foto_url} alt={vendedor.nome} className="h-9 w-9 rounded-xl object-cover border border-white/10" />
-                          ) : (
-                            <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold text-sm">
-                              {vendedor.nome.charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                          <ProfilePhoto
+                            url={vendedor.foto_url}
+                            alt={vendedor.nome}
+                            className="h-9 w-9 rounded-xl object-cover border border-white/10"
+                            fallback={
+                              <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold text-sm">
+                                {vendedor.nome.charAt(0).toUpperCase()}
+                              </div>
+                            }
+                          />
                           <span>{vendedor.nome}</span>
                         </div>
                       </TableCell>
