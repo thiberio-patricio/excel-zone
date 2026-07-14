@@ -3,10 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { TrendingUp, Target, Calendar, RotateCcw } from "lucide-react";
+import { TrendingUp, Target, Calendar, RotateCcw, LayoutDashboard } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
 import MensagemMetaBatida from "./MensagemMetaBatida";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface VendedorDashboardProps {
   profile: {
@@ -90,8 +91,16 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <MensagemMetaBatida vendedorId={profile.id} />
+    <div>
+      <PageHeader
+        icon={LayoutDashboard}
+        eyebrow="Meu Espaço"
+        title={`Olá, ${profile.nome.split(" ")[0]}`}
+        description="Acompanhe suas vendas, meta e evolução do mês."
+      />
+
+      <div className="space-y-6">
+        <MensagemMetaBatida vendedorId={profile.id} />
 
       {/* Seletor de Mês/Ano */}
       <Card>
@@ -192,12 +201,15 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
         </Card>
       </div>
 
-      <CalendarioVendas
-        vendedorId={profile.id}
-        isReadOnly={true}
-        mes={mesSelecionado}
-        ano={anoSelecionado}
-      />
+        <CalendarioVendas
+          vendedorId={profile.id}
+          isReadOnly={true}
+          mes={mesSelecionado}
+          ano={anoSelecionado}
+        />
+      </div>
     </div>
   );
 }
+
+

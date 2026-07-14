@@ -4,13 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Users, TrendingUp, Target, BarChart, Calendar } from "lucide-react";
+import { Users, TrendingUp, Target, BarChart, Calendar, UserSquare2, LayoutDashboard } from "lucide-react";
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LabelList } from "recharts";
 import GerenciarVendedores from "./GerenciarVendedores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import GerenciarFeriadosFerias from "./GerenciarFeriadosFerias";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageCard } from "@/components/layout/PageCard";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface GerenteDashboardProps {
   profile: {
@@ -250,8 +253,15 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-4">
+    <div>
+      <PageHeader
+        icon={LayoutDashboard}
+        eyebrow="Performance"
+        title="Dashboard"
+        description={`Visão consolidada da equipe de ${profile.nome.split(" ")[0]}.`}
+      />
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-4">
         <Card className="bg-gradient-to-br from-card to-card/50 shadow-md">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Equipe</CardTitle>
@@ -483,38 +493,66 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </TabsContent>
 
         <TabsContent value="vendas" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Selecione um vendedor</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-2">
-                {vendedores.map((vendedor) => (
-                  <button
-                    key={vendedor.id}
-                    onClick={() => setSelectedVendedor(vendedor.id)}
-                    className={`p-4 text-left rounded-lg border transition-colors ${
-                      selectedVendedor === vendedor.id
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-card hover:bg-muted border-border'
-                    }`}
-                  >
-                    {vendedor.nome}
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {!selectedVendedor && (
+            <PageHeader
+              icon={UserSquare2}
+              eyebrow="Gestão"
+              title="Vendas"
+              description="Selecione um vendedor para visualizar e editar o calendário de vendas."
+            />
+          )}
+          {!selectedVendedor && (
+            <PageCard>
+              {vendedores.length === 0 ? (
+                <EmptyState icon={Users} title="Nenhum vendedor cadastrado" description="Cadastre vendedores em Equipe para começar a acompanhar vendas." />
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {vendedores.map((vendedor) => (
+                    <button
+                      key={vendedor.id}
+                      onClick={() => setSelectedVendedor(vendedor.id)}
+                      className="group relative p-4 text-left rounded-btn border border-white/5 bg-surface-1/40 hover:bg-white/[0.05] hover:border-primary/30 transition-all hover:scale-[1.02]"
+                    >
+                      <div className="flex items-center gap-3">
+                        {vendedor.foto_url ? (
+                          <img src={vendedor.foto_url} alt={vendedor.nome} className="h-10 w-10 rounded-xl object-cover border border-white/10" />
+                        ) : (
+                          <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold">
+                            {vendedor.nome.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-medium truncate">{vendedor.nome}</div>
+                          <div className="text-xs text-muted-foreground truncate">{vendedor.email}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </PageCard>
+          )}
 
           {selectedVendedor && (
-            <VisualizarVendedor vendedorId={selectedVendedor} onDataChange={recarregarTudo} />
+            <div className="space-y-4">
+              <button
+                onClick={() => setSelectedVendedor(null)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1.5"
+              >
+                ← Voltar para lista de vendedores
+              </button>
+              <VisualizarVendedor vendedorId={selectedVendedor} onDataChange={recarregarTudo} />
+            </div>
           )}
         </TabsContent>
+
 
         <TabsContent value="feriados" className="space-y-4">
           <GerenciarFeriadosFerias />
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }
+

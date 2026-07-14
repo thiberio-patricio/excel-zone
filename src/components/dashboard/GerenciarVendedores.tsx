@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { UserPlus, Target, Upload, Trash2 } from "lucide-react";
+import { UserPlus, Target, Upload, Trash2, Users, Mail } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageCard } from "@/components/layout/PageCard";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface GerenciarVendedoresProps {
   onUpdate: () => void;
@@ -277,73 +279,90 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Lista de usuários */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Usuários Cadastrados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {vendedores.map((vendedor) => (
-                <TableRow key={vendedor.id}>
-                  <TableCell className="font-medium">{vendedor.nome}</TableCell>
-                  <TableCell>{vendedor.email}</TableCell>
-                  <TableCell className="text-right">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={deletingUser === vendedor.id}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Tem certeza que deseja excluir o usuário {vendedor.nome}? 
-                            Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeletarUsuario(vendedor.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Excluir
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+    <div>
+      <PageHeader
+        icon={Users}
+        eyebrow="Gestão"
+        title="Equipe"
+        description="Gerencie vendedores, gerentes e defina metas mensais."
+      />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Novo Usuário</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <div className="space-y-4">
+        {/* Lista de usuários */}
+        <PageCard padded={false}>
+          <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-white/5">
+            <h3 className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground/80">Usuários Cadastrados</h3>
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary">
+              {vendedores.length} {vendedores.length === 1 ? "usuário" : "usuários"}
+            </span>
+          </div>
+          {vendedores.length === 0 ? (
+            <EmptyState icon={Users} title="Nenhum usuário cadastrado" description="Cadastre o primeiro vendedor ou gerente para começar." />
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Nome</TableHead>
+                    <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Email</TableHead>
+                    <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendedores.map((vendedor) => (
+                    <TableRow key={vendedor.id} className="border-white/5 hover:bg-white/[0.03] transition-colors">
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          {vendedor.foto_url ? (
+                            <img src={vendedor.foto_url} alt={vendedor.nome} className="h-9 w-9 rounded-xl object-cover border border-white/10" />
+                          ) : (
+                            <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold text-sm">
+                              {vendedor.nome.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span>{vendedor.nome}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />{vendedor.email}</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" disabled={deletingUser === vendedor.id} className="hover:bg-destructive/10">
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir o usuário {vendedor.nome}? Esta ação não pode ser desfeita e todos os dados relacionados serão removidos.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeletarUsuario(vendedor.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </PageCard>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <PageCard>
+            <h3 className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 mb-3">Novo Usuário</h3>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full">
+                <Button className="w-full gradient-primary text-primary-foreground shadow-glow">
                   <UserPlus className="w-4 h-4 mr-2" />
                   Cadastrar Usuário
                 </Button>
@@ -426,91 +445,76 @@ export default function GerenciarVendedores({ onUpdate }: GerenciarVendedoresPro
                     </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleCriarUsuario} className="w-full">
+                <Button onClick={handleCriarUsuario} className="w-full gradient-primary text-primary-foreground shadow-glow">
                   Criar Usuário
                 </Button>
               </div>
             </DialogContent>
             </Dialog>
-          </CardContent>
-        </Card>
+          </PageCard>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Nova Meta</CardTitle>
-          </CardHeader>
-        <CardContent>
-          <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full" variant="outline">
-                <Target className="w-4 h-4 mr-2" />
-                Definir Meta
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Definir Meta de Vendas</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="vendedor">Vendedor</Label>
-                  <Select value={vendedorId} onValueChange={setVendedorId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um vendedor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendedores.map((vendedor) => (
-                        <SelectItem key={vendedor.id} value={vendedor.id}>
-                          {vendedor.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="mes">Mês</Label>
-                  <Select value={mes.toString()} onValueChange={(value) => setMes(parseInt(value))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {meses.map((nome, index) => (
-                        <SelectItem key={index + 1} value={(index + 1).toString()}>
-                          {nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="ano">Ano</Label>
-                  <Input
-                    id="ano"
-                    type="number"
-                    value={ano}
-                    onChange={(e) => setAno(parseInt(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="valorMeta">Valor da Meta (R$)</Label>
-                  <Input
-                    id="valorMeta"
-                    type="number"
-                    step="0.01"
-                    value={valorMeta}
-                    onChange={(e) => setValorMeta(e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-                <Button onClick={handleCriarMeta} className="w-full">
+          <PageCard>
+            <h3 className="font-display text-sm font-semibold uppercase tracking-[0.14em] text-muted-foreground/80 mb-3">Nova Meta</h3>
+            <Dialog open={metaOpen} onOpenChange={setMetaOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full" variant="outline">
+                  <Target className="w-4 h-4 mr-2" />
                   Definir Meta
                 </Button>
-              </div>
-            </DialogContent>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Definir Meta de Vendas</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="vendedor">Vendedor</Label>
+                    <Select value={vendedorId} onValueChange={setVendedorId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>
+                            {vendedor.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="mes">Mês</Label>
+                    <Select value={mes.toString()} onValueChange={(value) => setMes(parseInt(value))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {meses.map((nome, index) => (
+                          <SelectItem key={index + 1} value={(index + 1).toString()}>
+                            {nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="ano">Ano</Label>
+                    <Input id="ano" type="number" value={ano} onChange={(e) => setAno(parseInt(e.target.value))} />
+                  </div>
+                  <div>
+                    <Label htmlFor="valorMeta">Valor da Meta (R$)</Label>
+                    <Input id="valorMeta" type="number" step="0.01" value={valorMeta} onChange={(e) => setValorMeta(e.target.value)} placeholder="0.00" />
+                  </div>
+                  <Button onClick={handleCriarMeta} className="w-full gradient-primary text-primary-foreground shadow-glow">
+                    Definir Meta
+                  </Button>
+                </div>
+              </DialogContent>
             </Dialog>
-          </CardContent>
-        </Card>
+          </PageCard>
+        </div>
       </div>
     </div>
   );
 }
+

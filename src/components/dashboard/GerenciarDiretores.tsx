@@ -3,12 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { ShieldCheck, Plus, Trash2 } from "lucide-react";
+import { ShieldCheck, Plus, Trash2, Mail } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageCard } from "@/components/layout/PageCard";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface Diretor {
   id: string;
@@ -111,22 +113,16 @@ export default function GerenciarDiretores() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5" />
-              Gerenciar Diretores
-            </CardTitle>
-            <CardDescription>Cadastre outros diretores do sistema</CardDescription>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={(open) => {
-            setDialogOpen(open);
-            if (!open) limpar();
-          }}>
+    <div>
+      <PageHeader
+        icon={ShieldCheck}
+        eyebrow="Gestão"
+        title="Diretores"
+        description="Cadastre outros diretores do sistema."
+        actions={
+          <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) limpar(); }}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" className="gradient-primary text-primary-foreground shadow-glow hover:scale-[1.02] transition-transform">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Diretor
               </Button>
@@ -149,60 +145,75 @@ export default function GerenciarDiretores() {
                   <Label htmlFor="dir-senha">Senha *</Label>
                   <Input id="dir-senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Mínimo 6 caracteres" minLength={6} />
                 </div>
-                <Button onClick={handleCriar} className="w-full">Criar Diretor</Button>
+                <Button onClick={handleCriar} className="w-full gradient-primary text-primary-foreground shadow-glow">Criar Diretor</Button>
               </div>
             </DialogContent>
           </Dialog>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead className="hidden sm:table-cell">Email</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {diretores.map((d) => (
-                <TableRow key={d.id}>
-                  <TableCell className="font-medium">{d.nome}</TableCell>
-                  <TableCell className="hidden sm:table-cell">{d.email}</TableCell>
-                  <TableCell className="text-right">
-                    {d.id !== currentUserId ? (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Tem certeza que deseja remover o diretor "{d.nome}"?
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeletar(d.id)}>
-                              Remover
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Você</span>
-                    )}
-                  </TableCell>
+        }
+      />
+
+      <PageCard padded={false}>
+        {diretores.length === 0 ? (
+          <EmptyState icon={ShieldCheck} title="Nenhum diretor cadastrado" description="Crie o primeiro diretor para gerenciar o sistema." />
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/5 hover:bg-transparent">
+                  <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Nome</TableHead>
+                  <TableHead className="hidden sm:table-cell text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Email</TableHead>
+                  <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+              </TableHeader>
+              <TableBody>
+                {diretores.map((d) => (
+                  <TableRow key={d.id} className="border-white/5 hover:bg-white/[0.03] transition-colors">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                          <ShieldCheck className="h-4 w-4 text-primary" />
+                        </div>
+                        <span>{d.nome}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-muted-foreground">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Mail className="h-3.5 w-3.5" />
+                        {d.email}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {d.id !== currentUserId ? (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="sm" className="hover:bg-destructive/10">
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar remoção</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja remover o diretor "{d.nome}"?
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeletar(d.id)}>Remover</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      ) : (
+                        <span className="text-xs text-primary/80 font-medium px-2 py-1 rounded-full bg-primary/10 border border-primary/20">Você</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </PageCard>
+    </div>
   );
 }

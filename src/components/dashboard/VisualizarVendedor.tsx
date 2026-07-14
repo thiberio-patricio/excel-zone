@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { TrendingUp, Target, User, Calendar } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
+import { PageHeader } from "@/components/layout/PageHeader";
 
 interface VisualizarVendedorProps {
   vendedorId: string;
@@ -97,15 +98,14 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
   if (!vendedor) return null;
 
   return (
-    <div className="space-y-4">
-      <Card className="bg-gradient-to-r from-primary/10 to-secondary/10">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
-            {vendedor.nome}
-          </CardTitle>
-        </CardHeader>
-      </Card>
+    <div>
+      <PageHeader
+        icon={User}
+        eyebrow="Vendedor"
+        title={vendedor.nome}
+        description="Acompanhamento individual de metas, vendas e calendário."
+      />
+      <div className="space-y-4">
 
       {/* Seletor de Mês/Ano */}
       <Card>
@@ -205,7 +205,9 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
           carregarDados();
           onDataChange?.();
         }}
-      />
+        />
+      </div>
     </div>
   );
 }
+
