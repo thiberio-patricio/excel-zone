@@ -404,7 +404,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     });
 
     return items;
-  }, [vendedores, stats, derived]);
+  }, [vendedores, stats, derived, scopeLabel]);
 
   const kpis: any[] = [
     {
