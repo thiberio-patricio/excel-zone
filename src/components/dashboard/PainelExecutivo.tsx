@@ -77,6 +77,13 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mes, ano, filialId]);
 
+  useEffect(() => {
+    if (!filialId) { setFilialNome(null); return; }
+    supabase.from("filiais").select("nome").eq("id", filialId).maybeSingle()
+      .then(({ data }) => setFilialNome((data as any)?.nome ?? null));
+  }, [filialId]);
+
+
   const carregar = async () => {
     setLoading(true);
     try {
