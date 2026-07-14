@@ -201,13 +201,15 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
         </Card>
       </div>
 
-      <CalendarioVendas
-        vendedorId={profile.id}
-        isReadOnly={true}
-        mes={mesSelecionado}
-        ano={anoSelecionado}
+        <CalendarioVendas
+          vendedorId={profile.id}
+          isReadOnly={true}
+          mes={mesSelecionado}
+          ano={anoSelecionado}
+        />
       </div>
     </div>
   );
 }
+
 
