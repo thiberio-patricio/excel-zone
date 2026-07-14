@@ -392,7 +392,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     items.push({
       tipo: "analise",
       titulo: "Ritmo necessário",
-      texto: `Para atingir a meta, a operação precisa vender ${shortBRL(
+      texto: `Para atingir a meta, ${scopeLabel === "empresa" ? "a empresa" : scopeLabel} precisa vender ${formatBRL(
         derived.metaDoDia
       )} por dia útil nos próximos ${derived.restantes} dias. ${
         derived.trend >= 0
