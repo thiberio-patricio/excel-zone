@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CalendarDays, Palmtree, Plus, Trash2 } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageCard } from "@/components/layout/PageCard";
+import { EmptyState } from "@/components/layout/EmptyState";
 
 interface Vendedor {
   id: string;
@@ -211,21 +213,22 @@ export default function GerenciarFeriadosFerias() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarDays className="w-5 h-5 text-primary" />
-          Gerenciar Feriados e Férias
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="feriados" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="feriados" className="flex items-center gap-2">
+    <div>
+      <PageHeader
+        icon={CalendarDays}
+        eyebrow="Gestão"
+        title="Férias / Feriados"
+        description="Controle feriados corporativos e agende períodos de férias da equipe."
+      />
+
+      <PageCard>
+        <Tabs defaultValue="feriados" className="space-y-5">
+          <TabsList className="grid w-full grid-cols-2 bg-surface-1/60 border border-white/5 p-1 rounded-btn">
+            <TabsTrigger value="feriados" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow rounded-md">
               <CalendarDays className="w-4 h-4" />
               Feriados
             </TabsTrigger>
-            <TabsTrigger value="ferias" className="flex items-center gap-2">
+            <TabsTrigger value="ferias" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow rounded-md">
               <Palmtree className="w-4 h-4" />
               Férias
             </TabsTrigger>
@@ -234,7 +237,7 @@ export default function GerenciarFeriadosFerias() {
           <TabsContent value="feriados" className="space-y-4">
             <Dialog open={feriadoDialogOpen} onOpenChange={setFeriadoDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full">
+                <Button className="w-full gradient-primary text-primary-foreground shadow-glow">
                   <Plus className="w-4 h-4 mr-2" />
                   Adicionar Feriado
                 </Button>
@@ -246,23 +249,13 @@ export default function GerenciarFeriadosFerias() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="feriadoData">Data</Label>
-                    <Input
-                      id="feriadoData"
-                      type="date"
-                      value={feriadoData}
-                      onChange={(e) => setFeriadoData(e.target.value)}
-                    />
+                    <Input id="feriadoData" type="date" value={feriadoData} onChange={(e) => setFeriadoData(e.target.value)} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="feriadoDescricao">Descrição</Label>
-                    <Input
-                      id="feriadoDescricao"
-                      placeholder="Ex: Natal, Ano Novo..."
-                      value={feriadoDescricao}
-                      onChange={(e) => setFeriadoDescricao(e.target.value)}
-                    />
+                    <Input id="feriadoDescricao" placeholder="Ex: Natal, Ano Novo..." value={feriadoDescricao} onChange={(e) => setFeriadoDescricao(e.target.value)} />
                   </div>
-                  <Button onClick={handleSalvarFeriado} className="w-full">
+                  <Button onClick={handleSalvarFeriado} className="w-full gradient-primary text-primary-foreground shadow-glow">
                     Salvar Feriado
                   </Button>
                 </div>
@@ -270,27 +263,26 @@ export default function GerenciarFeriadosFerias() {
             </Dialog>
 
             {feriados.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                Nenhum feriado cadastrado
-              </p>
+              <EmptyState icon={CalendarDays} title="Nenhum feriado cadastrado" description="Adicione feriados para excluí-los do cálculo de meta diária." />
             ) : (
               <div className="space-y-2">
                 {feriados.map((feriado) => (
                   <div
                     key={feriado.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    className="flex items-center justify-between p-4 rounded-btn border border-white/5 bg-surface-1/40 hover:bg-white/[0.03] transition-colors group"
                   >
-                    <div>
-                      <p className="font-medium">{feriado.descricao}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(feriado.data + 'T00:00:00').toLocaleDateString('pt-BR')}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                        <CalendarDays className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{feriado.descricao}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(feriado.data + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleExcluirFeriado(feriado.id)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleExcluirFeriado(feriado.id)} className="hover:bg-destructive/10 opacity-60 group-hover:opacity-100">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -302,7 +294,7 @@ export default function GerenciarFeriadosFerias() {
           <TabsContent value="ferias" className="space-y-4">
             <Dialog open={feriasDialogOpen} onOpenChange={setFeriasDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full">
+                <Button className="w-full gradient-primary text-primary-foreground shadow-glow">
                   <Plus className="w-4 h-4 mr-2" />
                   Adicionar Férias
                 </Button>
@@ -314,18 +306,13 @@ export default function GerenciarFeriadosFerias() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label>Vendedor</Label>
-                    <Select
-                      value={feriasVendedorId}
-                      onValueChange={setFeriasVendedorId}
-                    >
+                    <Select value={feriasVendedorId} onValueChange={setFeriasVendedorId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione o vendedor" />
                       </SelectTrigger>
                       <SelectContent>
                         {vendedores.map((vendedor) => (
-                          <SelectItem key={vendedor.id} value={vendedor.id}>
-                            {vendedor.nome}
-                          </SelectItem>
+                          <SelectItem key={vendedor.id} value={vendedor.id}>{vendedor.nome}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -333,34 +320,18 @@ export default function GerenciarFeriadosFerias() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="feriasDataInicio">Data Início</Label>
-                      <Input
-                        id="feriasDataInicio"
-                        type="date"
-                        value={feriasDataInicio}
-                        onChange={(e) => setFeriasDataInicio(e.target.value)}
-                      />
+                      <Input id="feriasDataInicio" type="date" value={feriasDataInicio} onChange={(e) => setFeriasDataInicio(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="feriasDataFim">Data Fim</Label>
-                      <Input
-                        id="feriasDataFim"
-                        type="date"
-                        value={feriasDataFim}
-                        onChange={(e) => setFeriasDataFim(e.target.value)}
-                      />
+                      <Input id="feriasDataFim" type="date" value={feriasDataFim} onChange={(e) => setFeriasDataFim(e.target.value)} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="feriasObservacoes">Observações</Label>
-                    <Textarea
-                      id="feriasObservacoes"
-                      placeholder="Observações..."
-                      value={feriasObservacoes}
-                      onChange={(e) => setFeriasObservacoes(e.target.value)}
-                      rows={3}
-                    />
+                    <Textarea id="feriasObservacoes" placeholder="Observações..." value={feriasObservacoes} onChange={(e) => setFeriasObservacoes(e.target.value)} rows={3} />
                   </div>
-                  <Button onClick={handleSalvarFerias} className="w-full">
+                  <Button onClick={handleSalvarFerias} className="w-full gradient-primary text-primary-foreground shadow-glow">
                     Salvar Férias
                   </Button>
                 </div>
@@ -368,31 +339,30 @@ export default function GerenciarFeriadosFerias() {
             </Dialog>
 
             {ferias.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                Nenhuma férias cadastrada
-              </p>
+              <EmptyState icon={Palmtree} title="Nenhuma férias cadastrada" description="Registre períodos de férias para que apareçam no calendário do vendedor." />
             ) : (
               <div className="space-y-2">
                 {ferias.map((f) => (
                   <div
                     key={f.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                    className="flex items-center justify-between p-4 rounded-btn border border-white/5 bg-surface-1/40 hover:bg-white/[0.03] transition-colors group"
                   >
-                    <div>
-                      <p className="font-medium">{f.vendedor?.nome || "Vendedor"}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(f.data_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} até{' '}
-                        {new Date(f.data_fim + 'T00:00:00').toLocaleDateString('pt-BR')}
-                      </p>
-                      {f.observacoes && (
-                        <p className="text-xs text-muted-foreground mt-1">{f.observacoes}</p>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                        <Palmtree className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{f.vendedor?.nome || "Vendedor"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(f.data_inicio + 'T00:00:00').toLocaleDateString('pt-BR')} até{' '}
+                          {new Date(f.data_fim + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </p>
+                        {f.observacoes && (
+                          <p className="text-xs text-muted-foreground mt-1">{f.observacoes}</p>
+                        )}
+                      </div>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleExcluirFerias(f.id)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleExcluirFerias(f.id)} className="hover:bg-destructive/10 opacity-60 group-hover:opacity-100">
                       <Trash2 className="w-4 h-4 text-destructive" />
                     </Button>
                   </div>
@@ -401,7 +371,8 @@ export default function GerenciarFeriadosFerias() {
             )}
           </TabsContent>
         </Tabs>
-      </CardContent>
-    </Card>
+      </PageCard>
+    </div>
   );
 }
+
