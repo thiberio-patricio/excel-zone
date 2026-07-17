@@ -8,6 +8,7 @@ import {
   UserSquare2,
   Sparkles,
   Settings,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       label: "Performance",
       items: [
         { id: "visao-geral", title: "Dashboard", icon: LayoutDashboard },
+        { id: "relatorios", title: "Relatórios", icon: FileText },
       ],
     },
     {
@@ -61,6 +63,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       label: "Performance",
       items: [
         { id: "visao-geral", title: "Dashboard", icon: LayoutDashboard },
+        { id: "relatorios", title: "Relatórios", icon: FileText },
       ],
     },
     {

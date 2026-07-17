@@ -7,6 +7,7 @@ import GerenciarGerentes from "./GerenciarGerentes";
 import GerenciarDiretores from "./GerenciarDiretores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import VisaoGeral from "./VisaoGeral";
+import Relatorios from "./Relatorios";
 
 interface DiretorDashboardProps {
   profile: {
@@ -18,7 +19,7 @@ interface DiretorDashboardProps {
 }
 
 export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
-  const validTabs = ["visao-geral", "filiais", "gerentes", "diretores", "vendedor"];
+  const validTabs = ["visao-geral", "relatorios", "filiais", "gerentes", "diretores", "vendedor"];
   const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialHash) ? initialHash : "visao-geral"
@@ -51,6 +52,10 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
 
         <TabsContent value="visao-geral" className="mt-6">
           <VisaoGeral onVendedorSelecionado={handleVendedorSelecionado} />
+        </TabsContent>
+
+        <TabsContent value="relatorios" className="mt-6">
+          <Relatorios />
         </TabsContent>
 
         <TabsContent value="filiais" className="mt-6">
