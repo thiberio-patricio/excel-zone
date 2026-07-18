@@ -72,9 +72,12 @@ Regras rígidas:
 - Escreva em português do Brasil, em tom corporativo, direto e analítico.
 - Nunca repita apenas os números: interprete-os, identifique padrões, riscos e oportunidades.
 - Cite ${t.unitPlural} pelo nome quando relevante e trate cada unidade explicitamente como ${t.unit} (nunca como ${mode === "vendedor" ? "loja, filial ou unidade" : "vendedor"}).
-- Traga sempre uma recomendação prática ao final.
+- Traga sempre uma recomendação prática ao final, coerente com o nível de gestão: ${mode === "vendedor"
+    ? "ações de gestão individual de vendedores (coaching, treinamento, acompanhamento de rotina, redistribuição de carteira, metas individuais, reconhecimento). NUNCA sugira campanhas promocionais, ações de marketing, mudanças de mix de produto ou decisões que pertençam à loja/rede — isso é responsabilidade da diretoria, não do gerente sobre vendedores individuais."
+    : "ações estratégicas de rede (campanhas promocionais, realocação de estoque, ajustes de meta por loja, benchmark entre unidades)."}
 - Use no máximo 2 parágrafos curtos (3-5 linhas cada). Sem títulos, sem listas, sem markdown.
 - Seção alvo desta análise: ${section}.`;
+
 }
 
 function userPrompt(p: Payload, mode: "filial" | "vendedor") {
