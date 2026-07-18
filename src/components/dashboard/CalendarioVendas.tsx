@@ -63,15 +63,16 @@ export default function CalendarioVendas({
 
   const carregarDados = async () => {
     try {
-      const primeiroDia = new Date(ano, mes - 1, 1);
-      const ultimoDia = new Date(ano, mes, 0);
+      const primeiroDia = `${ano}-${String(mes).padStart(2, "0")}-01`;
+      const ultimoDiaDate = new Date(ano, mes, 0);
+      const ultimoDia = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
 
       const { data: vendasData } = await supabase
         .from("vendas")
         .select("*")
         .eq("vendedor_id", vendedorId)
-        .gte("data", primeiroDia.toISOString().split('T')[0])
-        .lte("data", ultimoDia.toISOString().split('T')[0])
+        .gte("data", primeiroDia)
+        .lte("data", ultimoDia)
         .order("data", { ascending: true });
 
       setVendas(vendasData || []);
@@ -92,8 +93,8 @@ export default function CalendarioVendas({
       let feriadosQuery = supabase
         .from("feriados")
         .select("id, data, descricao, filial_id")
-        .gte("data", primeiroDia.toISOString().split('T')[0])
-        .lte("data", ultimoDia.toISOString().split('T')[0]);
+        .gte("data", primeiroDia)
+        .lte("data", ultimoDia);
 
       if (vendedorFilialId) {
         feriadosQuery = feriadosQuery.or(`filial_id.is.null,filial_id.eq.${vendedorFilialId}`);
@@ -110,8 +111,8 @@ export default function CalendarioVendas({
         .from("ferias")
         .select("id, vendedor_id, data_inicio, data_fim")
         .eq("vendedor_id", vendedorId)
-        .lte("data_inicio", ultimoDia.toISOString().split('T')[0])
-        .gte("data_fim", primeiroDia.toISOString().split('T')[0]);
+        .lte("data_inicio", ultimoDia)
+        .gte("data_fim", primeiroDia);
 
       setFerias(feriasData || []);
     } catch (error) {
