@@ -144,6 +144,32 @@ function monthRange(from: Date, to: Date): { mes: number; ano: number; key: stri
   return out;
 }
 
+async function fetchVendasRange(vendedorIds: string[], inicio: string, fim: string) {
+  if (vendedorIds.length === 0) return [];
+
+  const pageSize = 1000;
+  const vendas: { valor: number; devolucao: number | null; data: string; vendedor_id: string }[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from("vendas")
+      .select("valor, devolucao, data, vendedor_id")
+      .in("vendedor_id", vendedorIds)
+      .gte("data", inicio)
+      .lte("data", fim)
+      .order("data", { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+
+    if (error) throw error;
+    const pagina = (data ?? []) as typeof vendas;
+    vendas.push(...pagina);
+    if (pagina.length < pageSize) break;
+  }
+
+  return vendas;
+}
+
 /* --------------------------------- Presets --------------------------------- */
 
 type PeriodPreset = "mes" | "3m" | "6m" | "12m" | "custom";
@@ -302,23 +328,9 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
 
       // Vendas do período atual + período anterior + TODAS as metas históricas dos vendedores
-      const [vendasAtualRes, vendasAnteriorRes, metasRes] = await Promise.all([
-        vendedorIds.length
-          ? supabase
-              .from("vendas")
-              .select("valor, devolucao, data, vendedor_id")
-              .in("vendedor_id", vendedorIds)
-              .gte("data", toISO(from))
-              .lte("data", toISO(to))
-          : Promise.resolve({ data: [] as any[] }),
-        vendedorIds.length
-          ? supabase
-              .from("vendas")
-              .select("valor, vendedor_id, data, devolucao")
-              .in("vendedor_id", vendedorIds)
-              .gte("data", toISO(prevFrom))
-              .lte("data", toISO(prevTo))
-          : Promise.resolve({ data: [] as any[] }),
+      const [vendasAtual, vendasAnterior, metasRes] = await Promise.all([
+        fetchVendasRange(vendedorIds, toISO(from), toISO(to)),
+        fetchVendasRange(vendedorIds, toISO(prevFrom), toISO(prevTo)),
         vendedorIds.length
           ? supabase
               .from("metas")
@@ -327,8 +339,6 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
-      const vendasAtual = (vendasAtualRes.data ?? []) as any[];
-      const vendasAnterior = (vendasAnteriorRes.data ?? []) as any[];
       const metas = (metasRes.data ?? []) as any[];
 
       // Aggregate per filial
