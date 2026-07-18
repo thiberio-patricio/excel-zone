@@ -187,7 +187,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
     try {
       const mes = mesSelecionado;
       const ano = anoSelecionado;
-      const primeiroDia = new Date(ano, mes - 1, 1).toISOString().split("T")[0];
+      const primeiroDia = `${ano}-${String(mes).padStart(2, "0")}-01`;
       const ultimoDiaDate = new Date(ano, mes, 0);
       const ultimoDia = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
 
