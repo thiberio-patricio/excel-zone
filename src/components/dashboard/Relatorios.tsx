@@ -282,9 +282,12 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       prevFrom.setDate(prevFrom.getDate() - periodDays + 1);
 
       // Vendedores das unidades selecionadas.
-      // - mode "filial": vendedores das filiais selecionadas.
-      // - mode "vendedor": os próprios ids selecionados são vendedores; cada vendedor
-      //   é sua própria unidade (vendedorToFilial mapeia id -> id).
+      // IMPORTANTE: alinhado com VisaoGeral — usamos TODOS os profiles com filial_id
+      // vinculada à unidade, SEM filtrar por role='vendedor'. Filtrar por role atual
+      // exclui vendas históricas de usuários que mudaram de papel/foram desativados,
+      // gerando divergência entre relatório e dashboard.
+      // - mode "filial": todos os profiles com filial_id nas filiais selecionadas.
+      // - mode "vendedor": cada id selecionado é sua própria unidade.
       let vendedores: { id: string; filial_id: string }[] = [];
       if (mode === "vendedor") {
         vendedores = filialIds.map((id) => ({ id, filial_id: id }));
@@ -298,43 +301,29 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const vendedorIds = vendedores.map((v) => v.id);
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
 
-
-      // Filter to role = vendedor
-      let vendedorOnly = new Set<string>();
-      if (vendedorIds.length > 0) {
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "vendedor")
-          .in("user_id", vendedorIds);
-        vendedorOnly = new Set((roles ?? []).map((r: any) => r.user_id));
-      }
-
-      const validVendedorIds = vendedorIds.filter((id) => vendedorOnly.has(id));
-
-      // Vendas do período atual + período anterior (uma consulta cada)
+      // Vendas do período atual + período anterior + TODAS as metas históricas dos vendedores
       const [vendasAtualRes, vendasAnteriorRes, metasRes] = await Promise.all([
-        validVendedorIds.length
+        vendedorIds.length
           ? supabase
               .from("vendas")
               .select("valor, devolucao, data, vendedor_id")
-              .in("vendedor_id", validVendedorIds)
+              .in("vendedor_id", vendedorIds)
               .gte("data", toISO(from))
               .lte("data", toISO(to))
           : Promise.resolve({ data: [] as any[] }),
-        validVendedorIds.length
+        vendedorIds.length
           ? supabase
               .from("vendas")
               .select("valor, vendedor_id, data, devolucao")
-              .in("vendedor_id", validVendedorIds)
+              .in("vendedor_id", vendedorIds)
               .gte("data", toISO(prevFrom))
               .lte("data", toISO(prevTo))
           : Promise.resolve({ data: [] as any[] }),
-        validVendedorIds.length
+        vendedorIds.length
           ? supabase
               .from("metas")
               .select("vendedor_id, valor_meta, mes, ano")
-              .in("vendedor_id", validVendedorIds)
+              .in("vendedor_id", vendedorIds)
           : Promise.resolve({ data: [] as any[] }),
       ]);
 
@@ -375,28 +364,30 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         agg.vendaAnterior += Number(v.valor) - Number(v.devolucao ?? 0);
       });
 
-      // Meta = soma da meta mais recente (<= to) de cada vendedor, multiplicada pelo nº de meses do período
+      // Meta do período: para CADA mês do período, somamos a meta mais recente
+      // (<= aquele mês) de cada vendedor. Isso respeita alterações históricas de meta
+      // e alinha com o comportamento mensal usado no dashboard.
       const meses = monthRange(from, to);
-      const nMeses = meses.length;
-      const metaMaisRecente = new Map<string, number>();
-      const rankMaisRecente = new Map<string, number>();
-      const rankLimite = to.getFullYear() * 12 + (to.getMonth() + 1);
-      metas.forEach((m) => {
-        const rank = Number(m.ano) * 12 + Number(m.mes);
-        if (rank > rankLimite) return;
-        const rankAtual = rankMaisRecente.get(m.vendedor_id) ?? -Infinity;
-        if (rank > rankAtual) {
-          metaMaisRecente.set(m.vendedor_id, Number(m.valor_meta));
-          rankMaisRecente.set(m.vendedor_id, rank);
-        }
-      });
+      // Ordena metas por (ano, mes) asc para facilitar seleção "mais recente até X"
+      const metasSorted = [...metas].sort(
+        (a, b) => Number(a.ano) * 12 + Number(a.mes) - (Number(b.ano) * 12 + Number(b.mes))
+      );
 
-      metaMaisRecente.forEach((val, vid) => {
-        const fid = vendedorToFilial.get(vid);
-        if (!fid) return;
-        const agg = lojaMap.get(fid);
-        if (!agg) return;
-        agg.meta += val * nMeses;
+      meses.forEach((mesInfo) => {
+        const rankLimite = mesInfo.ano * 12 + mesInfo.mes;
+        const metaMaisRecenteDoMes = new Map<string, number>();
+        metasSorted.forEach((m) => {
+          const rank = Number(m.ano) * 12 + Number(m.mes);
+          if (rank > rankLimite) return;
+          metaMaisRecenteDoMes.set(m.vendedor_id, Number(m.valor_meta));
+        });
+        metaMaisRecenteDoMes.forEach((val, vid) => {
+          const fid = vendedorToFilial.get(vid);
+          if (!fid) return;
+          const agg = lojaMap.get(fid);
+          if (!agg) return;
+          agg.meta += val;
+        });
       });
 
       // Compute derived per loja
@@ -423,21 +414,28 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       });
       lojasArr.sort((a, b) => b.venda - a.venda);
 
-      // Evolução mensal (por mês x soma)
+      // Evolução mensal — para cada mês, meta = soma das metas mais recentes até aquele mês
       const evoMap = new Map<string, MesAgg>();
-      meses.forEach((m) =>
-        evoMap.set(m.key, { key: m.key, label: m.label, meta: 0, venda: 0 })
-      );
+      meses.forEach((m) => {
+        const rankLimite = m.ano * 12 + m.mes;
+        const metaDoMes = new Map<string, number>();
+        metasSorted.forEach((mm) => {
+          const rank = Number(mm.ano) * 12 + Number(mm.mes);
+          if (rank > rankLimite) return;
+          metaDoMes.set(mm.vendedor_id, Number(mm.valor_meta));
+        });
+        let somaMeta = 0;
+        metaDoMes.forEach((val, vid) => {
+          if (vendedorToFilial.has(vid)) somaMeta += val;
+        });
+        evoMap.set(m.key, { key: m.key, label: m.label, meta: somaMeta, venda: 0 });
+      });
       vendasAtual.forEach((v) => {
         const d = new Date(v.data + "T00:00:00");
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         const bucket = evoMap.get(key);
         if (bucket) bucket.venda += Number(v.valor) - Number(v.devolucao ?? 0);
       });
-      // Meta mensal aproximada = soma das metas de vendedores válidos
-      let metaMensal = 0;
-      metaMaisRecente.forEach((val) => (metaMensal += val));
-      evoMap.forEach((v) => (v.meta = metaMensal));
       const evoArr = Array.from(evoMap.values());
 
       // Insights engine
