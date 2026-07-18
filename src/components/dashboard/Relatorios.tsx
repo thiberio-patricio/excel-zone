@@ -467,16 +467,32 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       });
       if (melhorLoja || lojasArr[0]) {
         const best = [...lojasArr].sort((a, b) => b.percentual - a.percentual)[0];
-        if (best) _insights.recomendacoes.push(`Replicar práticas comerciais da ${best.nome} nas demais lojas.`);
+        if (best) {
+          _insights.recomendacoes.push(
+            mode === "vendedor"
+              ? `Compartilhar práticas de venda de ${best.nome} com os demais vendedores da equipe.`
+              : `Replicar práticas comerciais da ${best.nome} nas demais lojas.`
+          );
+        }
       }
       const piorCresc = [...lojasArr].sort((a, b) => a.crescimento - b.crescimento)[0];
       if (piorCresc && piorCresc.crescimento < 0) {
-        _insights.recomendacoes.push(`Revisar mix de produtos e campanhas da ${piorCresc.nome}.`);
+        _insights.recomendacoes.push(
+          mode === "vendedor"
+            ? `Realizar coaching individual e acompanhamento de rotina com ${piorCresc.nome}.`
+            : `Revisar mix de produtos e campanhas da ${piorCresc.nome}.`
+        );
       }
       const abaixoMeta = lojasArr.filter((l) => l.percentual < 100);
       if (abaixoMeta.length > 0) {
-        _insights.recomendacoes.push(`Aumentar campanhas promocionais em ${abaixoMeta.map((x) => x.nome).slice(0, 3).join(", ")}.`);
+        const nomes = abaixoMeta.map((x) => x.nome).slice(0, 3).join(", ");
+        _insights.recomendacoes.push(
+          mode === "vendedor"
+            ? `Reforçar treinamento e definir plano de ação individual para ${nomes}.`
+            : `Aumentar campanhas promocionais em ${nomes}.`
+        );
       }
+
 
       setLojas(lojasArr);
       setEvolucao(evoArr);
