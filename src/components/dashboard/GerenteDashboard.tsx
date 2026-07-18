@@ -84,74 +84,50 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
     carregarDadosDashboard();
   };
 
+  // Busca apenas vendedores da filial do gerente logado
+  const getVendedorIdsDaFilial = async (): Promise<string[]> => {
+    if (!profile?.filial_id) return [];
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("filial_id", profile.filial_id);
+    const filialIds = (profs || []).map((p) => p.id);
+    if (filialIds.length === 0) return [];
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "vendedor")
+      .in("user_id", filialIds);
+    return (roles || []).map((r: any) => r.user_id);
+  };
+
   const carregarVendedores = async () => {
-    console.log("=== INICIANDO carregarVendedores (Dashboard) ===");
     try {
-      // Buscar todos os user_ids de vendedores
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor");
-
-      console.log("Dashboard - Roles data:", rolesData?.length, "roles encontrados");
-
-      if (rolesError) {
-        console.error("Dashboard - Erro ao buscar roles:", rolesError);
-        throw rolesError;
-      }
-
-      const vendedorIds = rolesData?.map(r => r.user_id) || [];
-      console.log("Dashboard - IDs de vendedores:", vendedorIds);
-
-      if (vendedorIds.length > 0) {
-        // Buscar perfis dos vendedores
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .in("id", vendedorIds)
-          .order("nome");
-
-        console.log("Dashboard - Profiles data:", data?.length, "perfis encontrados");
-
-        if (error) {
-          console.error("Dashboard - Erro ao buscar perfis:", error);
-          throw error;
-        }
-        
-        if (data && data.length > 0) {
-          console.log("Dashboard - Atualizando estado com", data.length, "vendedores");
-          setVendedores(data);
-        } else {
-          console.log("Dashboard - Nenhum perfil encontrado");
-          setVendedores([]);
-        }
-      } else {
-        console.log("Dashboard - Nenhum role de vendedor encontrado");
+      const vendedorIds = await getVendedorIdsDaFilial();
+      if (vendedorIds.length === 0) {
         setVendedores([]);
+        return;
       }
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", vendedorIds)
+        .order("nome");
+      if (error) throw error;
+      setVendedores(data || []);
     } catch (error: any) {
       toast.error("Erro ao carregar vendedores");
-      console.error("Dashboard - Erro detalhado:", error);
+      console.error(error);
     }
-    console.log("=== FIM carregarVendedores (Dashboard) ===");
   };
 
   const carregarTotalVendas = async () => {
     try {
-      // Primeiro dia do mês selecionado
       const primeiroDia = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-01`;
-      
-      // Último dia do mês selecionado
       const ultimoDia = new Date(anoSelecionado, mesSelecionado, 0);
       const ultimoDiaFormatado = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
-      // Buscar vendedores da filial
-      const { data: rolesData } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor");
-
-      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+      const vendedorIds = await getVendedorIdsDaFilial();
 
       if (vendedorIds.length === 0) {
         setTotalVendas(0);
@@ -159,7 +135,6 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         return;
       }
 
-      // Buscar todas as vendas dos vendedores da filial
       const { data: vendasData, error: vendasError } = await supabase
         .from("vendas")
         .select("valor, devolucao")
@@ -169,60 +144,47 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
       if (vendasError) throw vendasError;
 
-      if (vendasData) {
-        const total = vendasData.reduce((acc, v) => acc + (Number(v.valor) - Number(v.devolucao)), 0);
-        setTotalVendas(total);
-      }
-
-      // Buscar todas as metas dos vendedores (com fallback)
-      const metasResults = await Promise.all(
-        vendedorIds.map(id => fetchMetaWithFallback(id, mesSelecionado, anoSelecionado))
+      const total = (vendasData || []).reduce(
+        (acc, v) => acc + (Number(v.valor) - Number(v.devolucao)),
+        0
       );
+      setTotalVendas(total);
 
-      const totalMetasValue = metasResults.reduce((acc, m) => acc + (m ? Number(m.valor_meta) : 0), 0);
+      const metasResults = await Promise.all(
+        vendedorIds.map((id) => fetchMetaWithFallback(id, mesSelecionado, anoSelecionado))
+      );
+      const totalMetasValue = metasResults.reduce(
+        (acc, m) => acc + (m ? Number(m.valor_meta) : 0),
+        0
+      );
       setTotalMetas(totalMetasValue);
     } catch (error: any) {
       toast.error("Erro ao carregar totais");
-      console.error("Erro detalhado:", error);
+      console.error(error);
     }
   };
 
   const carregarDadosDashboard = async () => {
     try {
-      // Primeiro dia do mês selecionado
       const primeiroDia = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-01`;
-      
-      // Último dia do mês selecionado
       const ultimoDia = new Date(anoSelecionado, mesSelecionado, 0);
       const ultimoDiaFormatado = `${anoSelecionado}-${String(mesSelecionado).padStart(2, '0')}-${String(ultimoDia.getDate()).padStart(2, '0')}`;
 
-      // Buscar vendedores
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "vendedor");
-
-      console.log("Dashboard - Roles:", rolesData?.length, rolesError);
-
-      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+      const vendedorIds = await getVendedorIdsDaFilial();
 
       if (vendedorIds.length === 0) {
         setDashboardData([]);
         return;
       }
 
-      // Buscar perfis
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome")
         .in("id", vendedorIds);
 
-      console.log("Dashboard - Profiles:", profiles?.length, profilesError);
-
-      // Buscar vendas e metas
       const chartData = await Promise.all(
         (profiles || []).map(async (vendedor) => {
-          const { data: vendas, error: vendasError } = await supabase
+          const { data: vendas } = await supabase
             .from("vendas")
             .select("valor, devolucao")
             .eq("vendedor_id", vendedor.id)
@@ -236,8 +198,6 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             0
           );
 
-          console.log(`Dashboard - ${vendedor.nome}: vendas=${totalVendido}, meta=${meta?.valor_meta}, erros:`, vendasError);
-
           return {
             nome: vendedor.nome,
             vendido: totalVendido,
@@ -249,11 +209,10 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         })
       );
 
-      console.log("Dashboard - ChartData final:", chartData);
       setDashboardData(chartData);
     } catch (error: any) {
       toast.error("Erro ao carregar dados do dashboard");
-      console.error("Erro detalhado:", error);
+      console.error(error);
     }
   };
 
