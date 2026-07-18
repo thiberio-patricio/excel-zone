@@ -27,6 +27,7 @@ interface Payload {
   melhorLoja?: LojaResumo;
   maiorCrescimento?: LojaResumo;
   lojas: LojaResumo[];
+  mode?: "filial" | "vendedor";
   section?:
     | "executivo"
     | "comparativo"
@@ -40,19 +41,44 @@ interface Payload {
 const fmt = (v: number) =>
   `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-function systemPrompt(section: string) {
-  return `Você é um Diretor Comercial e Consultor Estratégico Executivo, escrevendo para o board de uma empresa de varejo com múltiplas lojas.
+function terms(mode: "filial" | "vendedor") {
+  if (mode === "vendedor") {
+    return {
+      role: "Gerente Comercial e Consultor Estratégico",
+      audience: "para o gerente de uma filial de varejo, analisando a equipe de vendedores sob sua gestão",
+      unit: "vendedor",
+      unitPlural: "vendedores",
+      unitArticle: "o",
+      unitPossessive: "do vendedor",
+      best: "melhor vendedor",
+    };
+  }
+  return {
+    role: "Diretor Comercial e Consultor Estratégico Executivo",
+    audience: "para o board de uma empresa de varejo com múltiplas lojas",
+    unit: "loja",
+    unitPlural: "lojas",
+    unitArticle: "a",
+    unitPossessive: "da loja",
+    best: "melhor loja",
+  };
+}
+
+function systemPrompt(section: string, mode: "filial" | "vendedor") {
+  const t = terms(mode);
+  return `Você é um ${t.role}, escrevendo ${t.audience}.
 
 Regras rígidas:
 - Escreva em português do Brasil, em tom corporativo, direto e analítico.
 - Nunca repita apenas os números: interprete-os, identifique padrões, riscos e oportunidades.
-- Cite lojas por nome quando relevante.
+- Cite ${t.unitPlural} pelo nome quando relevante e trate cada unidade explicitamente como ${t.unit} (nunca como ${mode === "vendedor" ? "loja, filial ou unidade" : "vendedor"}).
 - Traga sempre uma recomendação prática ao final.
 - Use no máximo 2 parágrafos curtos (3-5 linhas cada). Sem títulos, sem listas, sem markdown.
 - Seção alvo desta análise: ${section}.`;
 }
 
-function userPrompt(p: Payload) {
+function userPrompt(p: Payload, mode: "filial" | "vendedor") {
+  const t = terms(mode);
   const linhas = p.lojas
     .slice(0, 20)
     .map(
@@ -68,13 +94,13 @@ Total vendido consolidado: ${fmt(p.totalVendido)}
 Meta consolidada: ${fmt(p.metaTotal)}
 Atingimento consolidado: ${p.percentualAtingido.toFixed(1)}%
 Crescimento vs período anterior: ${p.crescimento.toFixed(1)}%
-${p.melhorLoja ? `Melhor loja: ${p.melhorLoja.nome} (${p.melhorLoja.percentual.toFixed(1)}% da meta)` : ""}
-${p.maiorCrescimento ? `Maior crescimento: ${p.maiorCrescimento.nome} (+${p.maiorCrescimento.crescimento?.toFixed(1)}%)` : ""}
+${p.melhorLoja ? `${t.best.charAt(0).toUpperCase() + t.best.slice(1)}: ${p.melhorLoja.nome} (${p.melhorLoja.percentual.toFixed(1)}% da meta)` : ""}
+${p.maiorCrescimento ? `Maior crescimento entre ${t.unitPlural}: ${p.maiorCrescimento.nome} (+${p.maiorCrescimento.crescimento?.toFixed(1)}%)` : ""}
 
-Detalhamento por loja:
+Detalhamento por ${t.unit}:
 ${linhas}
 
-Gere a análise executiva conforme as regras.`;
+Gere a análise conforme as regras, tratando cada item como ${t.unit}.`;
 }
 
 Deno.serve(async (req) => {
