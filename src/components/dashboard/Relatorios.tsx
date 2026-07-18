@@ -338,19 +338,18 @@ export default function Relatorios() {
       const meses = monthRange(from, to);
       const nMeses = meses.length;
       const metaMaisRecente = new Map<string, number>();
+      const rankMaisRecente = new Map<string, number>();
       const rankLimite = to.getFullYear() * 12 + (to.getMonth() + 1);
       metas.forEach((m) => {
         const rank = Number(m.ano) * 12 + Number(m.mes);
         if (rank > rankLimite) return;
-        const atual = metaMaisRecente.get(m.vendedor_id);
-        const rankAtual = metaMaisRecente.has(m.vendedor_id)
-          ? Number((m as any)._rank ?? 0)
-          : -Infinity;
-        if (!atual || rank > rankAtual) {
+        const rankAtual = rankMaisRecente.get(m.vendedor_id) ?? -Infinity;
+        if (rank > rankAtual) {
           metaMaisRecente.set(m.vendedor_id, Number(m.valor_meta));
-          (m as any)._rank = rank;
+          rankMaisRecente.set(m.vendedor_id, rank);
         }
       });
+
       metaMaisRecente.forEach((val, vid) => {
         const fid = vendedorToFilial.get(vid);
         if (!fid) return;
