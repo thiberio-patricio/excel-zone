@@ -16,6 +16,8 @@ import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { ProfilePhoto } from "@/components/ui/profile-photo";
 import PainelExecutivo from "./PainelExecutivo";
+import Relatorios from "./Relatorios";
+
 
 interface GerenteDashboardProps {
   profile: {
