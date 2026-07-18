@@ -164,7 +164,15 @@ function computePeriod(preset: PeriodPreset, customFrom?: string, customTo?: str
 
 /* --------------------------------- Component --------------------------------- */
 
-export default function Relatorios() {
+interface RelatoriosProps {
+  scope?: { filialId: string; filialNome?: string };
+}
+
+export default function Relatorios({ scope }: RelatoriosProps = {}) {
+  const mode: "filial" | "vendedor" = scope ? "vendedor" : "filial";
+  const unitLabel = mode === "vendedor" ? "Vendedor" : "Loja";
+  const unitLabelPlural = mode === "vendedor" ? "Vendedores" : "Lojas";
+
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [selectedFiliais, setSelectedFiliais] = useState<Set<string>>(new Set());
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("mes");
@@ -197,15 +205,39 @@ export default function Relatorios() {
 
   const dashRef = useRef<HTMLDivElement>(null);
 
-  /* Load branches once */
+  /* Load units (branches OR sellers of the manager's branch) */
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("filiais").select("id, nome").order("nome");
-      const arr = (data as Filial[]) ?? [];
-      setFiliais(arr);
-      setSelectedFiliais(new Set(arr.map((f) => f.id)));
+      if (mode === "vendedor" && scope) {
+        // Load sellers of this branch (role = vendedor) as the reporting units
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "vendedor");
+        const vendedorIds = (roles ?? []).map((r: any) => r.user_id);
+        if (vendedorIds.length === 0) {
+          setFiliais([]);
+          setSelectedFiliais(new Set());
+          return;
+        }
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, nome, filial_id")
+          .in("id", vendedorIds)
+          .eq("filial_id", scope.filialId)
+          .order("nome");
+        const arr = ((profs ?? []) as any[]).map((p) => ({ id: p.id, nome: p.nome }));
+        setFiliais(arr);
+        setSelectedFiliais(new Set(arr.map((f) => f.id)));
+      } else {
+        const { data } = await supabase.from("filiais").select("id, nome").order("nome");
+        const arr = (data as Filial[]) ?? [];
+        setFiliais(arr);
+        setSelectedFiliais(new Set(arr.map((f) => f.id)));
+      }
     })();
-  }, []);
+  }, [mode, scope?.filialId]);
+
 
   const { from, to } = useMemo(
     () => computePeriod(periodPreset, customFrom, customTo),
