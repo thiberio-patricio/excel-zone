@@ -858,7 +858,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Seleção de Lojas
+                Seleção de {unitLabelPlural}
               </Label>
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 text-xs">
@@ -973,7 +973,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             />
             <KpiCard
               icon={Trophy}
-              label="Melhor Loja"
+              label="Melhor {unitLabel}"
               value={melhorLoja?.nome ?? "-"}
               hint={melhorLoja ? `${formatPct(melhorLoja.percentual)} da meta` : ""}
               tone="positive"
@@ -999,7 +999,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           {/* Sub-tabs */}
           <Tabs defaultValue="comparativo" className="w-full">
             <TabsList className="w-full flex-wrap h-auto bg-black/30 border border-white/5">
-              <TabsTrigger value="comparativo">Comparativo de Lojas</TabsTrigger>
+              <TabsTrigger value="comparativo">Comparativo de {unitLabelPlural}</TabsTrigger>
               <TabsTrigger value="evolucao">Evolução de Metas</TabsTrigger>
               <TabsTrigger value="participacao">Participação</TabsTrigger>
               <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
@@ -1163,7 +1163,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
                     <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3 text-left">Pos.</th>
-                        <th className="px-4 py-3 text-left">Loja</th>
+                        <th className="px-4 py-3 text-left">{unitLabel}</th>
                         <th className="px-4 py-3 text-right">Venda</th>
                         <th className="px-4 py-3 text-right">Meta</th>
                         <th className="px-4 py-3 text-right">Diferença</th>
