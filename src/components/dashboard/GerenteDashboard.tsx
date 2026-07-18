@@ -34,7 +34,7 @@ interface Vendedor {
 }
 
 export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
-  const validTabs = ["dashboard", "vendedores", "vendas", "feriados"];
+  const validTabs = ["dashboard", "relatorios", "vendedores", "vendas", "feriados"];
   const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialHash) ? initialHash : "dashboard"
