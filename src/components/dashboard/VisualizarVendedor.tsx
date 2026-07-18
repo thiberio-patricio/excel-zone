@@ -70,15 +70,16 @@ export default function VisualizarVendedor({ vendedorId, onDataChange }: Visuali
       const metaData = await fetchMetaWithFallback(vendedorId, mesSelecionado, anoSelecionado);
       setMeta(metaData);
 
-      const primeiroDia = new Date(anoSelecionado, mesSelecionado - 1, 1);
-      const ultimoDia = new Date(anoSelecionado, mesSelecionado, 0);
+      const primeiroDia = `${anoSelecionado}-${String(mesSelecionado).padStart(2, "0")}-01`;
+      const ultimoDiaDate = new Date(anoSelecionado, mesSelecionado, 0);
+      const ultimoDia = `${anoSelecionado}-${String(mesSelecionado).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
 
       const { data: vendasData, error } = await supabase
         .from("vendas")
         .select("*")
         .eq("vendedor_id", vendedorId)
-        .gte("data", primeiroDia.toISOString().split('T')[0])
-        .lte("data", ultimoDia.toISOString().split('T')[0])
+        .gte("data", primeiroDia)
+        .lte("data", ultimoDia)
         .order("data", { ascending: true });
 
       if (error) throw error;
