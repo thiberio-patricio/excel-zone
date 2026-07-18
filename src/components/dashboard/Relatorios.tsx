@@ -498,6 +498,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         melhorLoja: bestLoja,
         maiorCrescimento: bestCresc,
         lojas: lojasArr,
+        mode,
       });
     } catch (e: any) {
       console.error(e);
