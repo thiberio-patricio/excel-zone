@@ -164,7 +164,15 @@ function computePeriod(preset: PeriodPreset, customFrom?: string, customTo?: str
 
 /* --------------------------------- Component --------------------------------- */
 
-export default function Relatorios() {
+interface RelatoriosProps {
+  scope?: { filialId: string; filialNome?: string };
+}
+
+export default function Relatorios({ scope }: RelatoriosProps = {}) {
+  const mode: "filial" | "vendedor" = scope ? "vendedor" : "filial";
+  const unitLabel = mode === "vendedor" ? "Vendedor" : "Loja";
+  const unitLabelPlural = mode === "vendedor" ? "Vendedores" : "Lojas";
+
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [selectedFiliais, setSelectedFiliais] = useState<Set<string>>(new Set());
   const [periodPreset, setPeriodPreset] = useState<PeriodPreset>("mes");
@@ -197,15 +205,39 @@ export default function Relatorios() {
 
   const dashRef = useRef<HTMLDivElement>(null);
 
-  /* Load branches once */
+  /* Load units (branches OR sellers of the manager's branch) */
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from("filiais").select("id, nome").order("nome");
-      const arr = (data as Filial[]) ?? [];
-      setFiliais(arr);
-      setSelectedFiliais(new Set(arr.map((f) => f.id)));
+      if (mode === "vendedor" && scope) {
+        // Load sellers of this branch (role = vendedor) as the reporting units
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "vendedor");
+        const vendedorIds = (roles ?? []).map((r: any) => r.user_id);
+        if (vendedorIds.length === 0) {
+          setFiliais([]);
+          setSelectedFiliais(new Set());
+          return;
+        }
+        const { data: profs } = await supabase
+          .from("profiles")
+          .select("id, nome, filial_id")
+          .in("id", vendedorIds)
+          .eq("filial_id", scope.filialId)
+          .order("nome");
+        const arr = ((profs ?? []) as any[]).map((p) => ({ id: p.id, nome: p.nome }));
+        setFiliais(arr);
+        setSelectedFiliais(new Set(arr.map((f) => f.id)));
+      } else {
+        const { data } = await supabase.from("filiais").select("id, nome").order("nome");
+        const arr = (data as Filial[]) ?? [];
+        setFiliais(arr);
+        setSelectedFiliais(new Set(arr.map((f) => f.id)));
+      }
     })();
-  }, []);
+  }, [mode, scope?.filialId]);
+
 
   const { from, to } = useMemo(
     () => computePeriod(periodPreset, customFrom, customTo),
@@ -235,7 +267,7 @@ export default function Relatorios() {
 
   const gerarRelatorio = useCallback(async () => {
     if (selectedFiliais.size === 0) {
-      toast.error("Selecione ao menos uma loja");
+      toast.error(mode === "vendedor" ? "Selecione ao menos um vendedor" : "Selecione ao menos uma loja");
       return;
     }
     setLoading(true);
@@ -249,14 +281,23 @@ export default function Relatorios() {
       const prevFrom = new Date(prevTo);
       prevFrom.setDate(prevFrom.getDate() - periodDays + 1);
 
-      // Vendedores das filiais selecionadas
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, filial_id")
-        .in("filial_id", filialIds);
-      const vendedores = (profiles ?? []) as { id: string; filial_id: string }[];
+      // Vendedores das unidades selecionadas.
+      // - mode "filial": vendedores das filiais selecionadas.
+      // - mode "vendedor": os próprios ids selecionados são vendedores; cada vendedor
+      //   é sua própria unidade (vendedorToFilial mapeia id -> id).
+      let vendedores: { id: string; filial_id: string }[] = [];
+      if (mode === "vendedor") {
+        vendedores = filialIds.map((id) => ({ id, filial_id: id }));
+      } else {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, filial_id")
+          .in("filial_id", filialIds);
+        vendedores = (profiles ?? []) as { id: string; filial_id: string }[];
+      }
       const vendedorIds = vendedores.map((v) => v.id);
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
+
 
       // Filter to role = vendedor
       let vendedorOnly = new Set<string>();
@@ -817,7 +858,7 @@ export default function Relatorios() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                Seleção de Lojas
+                Seleção de {unitLabelPlural}
               </Label>
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={selectAll} className="h-7 text-xs">
@@ -932,7 +973,7 @@ export default function Relatorios() {
             />
             <KpiCard
               icon={Trophy}
-              label="Melhor Loja"
+              label={`Melhor ${unitLabel}`}
               value={melhorLoja?.nome ?? "-"}
               hint={melhorLoja ? `${formatPct(melhorLoja.percentual)} da meta` : ""}
               tone="positive"
@@ -958,7 +999,7 @@ export default function Relatorios() {
           {/* Sub-tabs */}
           <Tabs defaultValue="comparativo" className="w-full">
             <TabsList className="w-full flex-wrap h-auto bg-black/30 border border-white/5">
-              <TabsTrigger value="comparativo">Comparativo de Lojas</TabsTrigger>
+              <TabsTrigger value="comparativo">Comparativo de {unitLabelPlural}</TabsTrigger>
               <TabsTrigger value="evolucao">Evolução de Metas</TabsTrigger>
               <TabsTrigger value="participacao">Participação</TabsTrigger>
               <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
@@ -1122,7 +1163,7 @@ export default function Relatorios() {
                     <thead className="bg-black/30 text-xs uppercase tracking-wider text-muted-foreground">
                       <tr>
                         <th className="px-4 py-3 text-left">Pos.</th>
-                        <th className="px-4 py-3 text-left">Loja</th>
+                        <th className="px-4 py-3 text-left">{unitLabel}</th>
                         <th className="px-4 py-3 text-right">Venda</th>
                         <th className="px-4 py-3 text-right">Meta</th>
                         <th className="px-4 py-3 text-right">Diferença</th>

@@ -16,6 +16,8 @@ import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { ProfilePhoto } from "@/components/ui/profile-photo";
 import PainelExecutivo from "./PainelExecutivo";
+import Relatorios from "./Relatorios";
+
 
 interface GerenteDashboardProps {
   profile: {
@@ -34,7 +36,7 @@ interface Vendedor {
 }
 
 export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
-  const validTabs = ["dashboard", "vendedores", "vendas", "feriados"];
+  const validTabs = ["dashboard", "relatorios", "vendedores", "vendas", "feriados"];
   const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialHash) ? initialHash : "dashboard"
@@ -432,6 +434,22 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="relatorios" className="space-y-4">
+          {profile.filial_id ? (
+            <Relatorios scope={{ filialId: profile.filial_id }} />
+          ) : (
+            <PageCard>
+              <EmptyState
+                icon={Users}
+                title="Filial não vinculada"
+                description="Vincule este gerente a uma filial para gerar relatórios da equipe."
+              />
+            </PageCard>
+          )}
+        </TabsContent>
+
+
 
         <TabsContent value="vendedores" className="space-y-4">
           <GerenciarVendedores onUpdate={recarregarTudo} />

@@ -80,8 +80,10 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       label: "Performance",
       items: [
         { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
+        { id: "relatorios", title: "Relatórios", icon: FileText },
       ],
     },
+
     {
       label: "Gestão",
       items: [
