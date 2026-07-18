@@ -87,9 +87,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const carregar = async () => {
     setLoading(true);
     try {
-      const primeiroDia = new Date(ano, mes - 1, 1);
       const ultimoDiaDate = new Date(ano, mes, 0);
-      const primeiroStr = primeiroDia.toISOString().split("T")[0];
+      const primeiroStr = `${ano}-${String(mes).padStart(2, "0")}-01`;
       const ultimoStr = `${ano}-${String(mes).padStart(2, "0")}-${String(
         ultimoDiaDate.getDate()
       ).padStart(2, "0")}`;
