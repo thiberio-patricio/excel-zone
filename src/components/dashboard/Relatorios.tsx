@@ -414,21 +414,28 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       });
       lojasArr.sort((a, b) => b.venda - a.venda);
 
-      // Evolução mensal (por mês x soma)
+      // Evolução mensal — para cada mês, meta = soma das metas mais recentes até aquele mês
       const evoMap = new Map<string, MesAgg>();
-      meses.forEach((m) =>
-        evoMap.set(m.key, { key: m.key, label: m.label, meta: 0, venda: 0 })
-      );
+      meses.forEach((m) => {
+        const rankLimite = m.ano * 12 + m.mes;
+        const metaDoMes = new Map<string, number>();
+        metasSorted.forEach((mm) => {
+          const rank = Number(mm.ano) * 12 + Number(mm.mes);
+          if (rank > rankLimite) return;
+          metaDoMes.set(mm.vendedor_id, Number(mm.valor_meta));
+        });
+        let somaMeta = 0;
+        metaDoMes.forEach((val, vid) => {
+          if (vendedorToFilial.has(vid)) somaMeta += val;
+        });
+        evoMap.set(m.key, { key: m.key, label: m.label, meta: somaMeta, venda: 0 });
+      });
       vendasAtual.forEach((v) => {
         const d = new Date(v.data + "T00:00:00");
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         const bucket = evoMap.get(key);
         if (bucket) bucket.venda += Number(v.valor) - Number(v.devolucao ?? 0);
       });
-      // Meta mensal aproximada = soma das metas de vendedores válidos
-      let metaMensal = 0;
-      metaMaisRecente.forEach((val) => (metaMensal += val));
-      evoMap.forEach((v) => (v.meta = metaMensal));
       const evoArr = Array.from(evoMap.values());
 
       // Insights engine
