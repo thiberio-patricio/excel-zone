@@ -267,7 +267,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
 
   const gerarRelatorio = useCallback(async () => {
     if (selectedFiliais.size === 0) {
-      toast.error("Selecione ao menos uma loja");
+      toast.error(mode === "vendedor" ? "Selecione ao menos um vendedor" : "Selecione ao menos uma loja");
       return;
     }
     setLoading(true);
@@ -281,14 +281,23 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const prevFrom = new Date(prevTo);
       prevFrom.setDate(prevFrom.getDate() - periodDays + 1);
 
-      // Vendedores das filiais selecionadas
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, filial_id")
-        .in("filial_id", filialIds);
-      const vendedores = (profiles ?? []) as { id: string; filial_id: string }[];
+      // Vendedores das unidades selecionadas.
+      // - mode "filial": vendedores das filiais selecionadas.
+      // - mode "vendedor": os próprios ids selecionados são vendedores; cada vendedor
+      //   é sua própria unidade (vendedorToFilial mapeia id -> id).
+      let vendedores: { id: string; filial_id: string }[] = [];
+      if (mode === "vendedor") {
+        vendedores = filialIds.map((id) => ({ id, filial_id: id }));
+      } else {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("id, filial_id")
+          .in("filial_id", filialIds);
+        vendedores = (profiles ?? []) as { id: string; filial_id: string }[];
+      }
       const vendedorIds = vendedores.map((v) => v.id);
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
+
 
       // Filter to role = vendedor
       let vendedorOnly = new Set<string>();
