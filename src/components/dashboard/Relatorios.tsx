@@ -973,7 +973,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             />
             <KpiCard
               icon={Trophy}
-              label="Melhor {unitLabel}"
+              label={`Melhor ${unitLabel}`}
               value={melhorLoja?.nome ?? "-"}
               hint={melhorLoja ? `${formatPct(melhorLoja.percentual)} da meta` : ""}
               tone="positive"
