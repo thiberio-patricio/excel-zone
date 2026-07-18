@@ -435,6 +435,20 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
           </Card>
         </TabsContent>
 
+        <TabsContent value="relatorios" className="space-y-4">
+          {profile.filial_id ? (
+            <Relatorios scope={{ filialId: profile.filial_id }} />
+          ) : (
+            <PageCard>
+              <EmptyState
+                icon={Users}
+                title="Filial não vinculada"
+                description="Vincule este gerente a uma filial para gerar relatórios da equipe."
+              />
+            </PageCard>
+          )}
+
+
         <TabsContent value="vendedores" className="space-y-4">
           <GerenciarVendedores onUpdate={recarregarTudo} />
         </TabsContent>
