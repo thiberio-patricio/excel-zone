@@ -447,6 +447,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
               />
             </PageCard>
           )}
+        </TabsContent>
+
 
 
         <TabsContent value="vendedores" className="space-y-4">
