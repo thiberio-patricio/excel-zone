@@ -126,8 +126,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         messages: [
-          { role: "system", content: systemPrompt(section) },
-          { role: "user", content: userPrompt(payload) },
+          { role: "system", content: systemPrompt(section, payload.mode ?? "filial") },
+          { role: "user", content: userPrompt(payload, payload.mode ?? "filial") },
         ],
       }),
     });
