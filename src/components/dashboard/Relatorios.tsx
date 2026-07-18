@@ -498,6 +498,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         melhorLoja: bestLoja,
         maiorCrescimento: bestCresc,
         lojas: lojasArr,
+        mode,
       });
     } catch (e: any) {
       console.error(e);
@@ -1005,7 +1006,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
               <Sparkles className="h-4 w-4 text-primary" />
               <h2 className="font-display font-semibold">Análise Executiva</h2>
             </div>
-            <AiPanel title="Diretor Comercial · IA" text={aiExec} />
+            <AiPanel title={`${mode === "vendedor" ? "Gerente Comercial" : "Diretor Comercial"} · IA`} text={aiExec} />
           </PageCard>
 
           {/* Sub-tabs */}
