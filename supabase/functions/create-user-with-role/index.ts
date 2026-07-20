@@ -195,6 +195,54 @@ Deno.serve(async (req) => {
 
       userId = existingUser.id
 
+      // Fetch target user's existing roles and profile to prevent account takeover.
+      const { data: targetRoles, error: targetRolesErr } = await supabaseAdmin
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+
+      if (targetRolesErr) throw targetRolesErr
+
+      const targetRoleList = (targetRoles || []).map((r: any) => r.role)
+      const targetHasElevated = targetRoleList.some((r: string) => r === 'diretor' || r === 'gerente' || r === 'admin')
+
+      // Only diretores can touch accounts that already have any role assigned.
+      // Gerentes may only update accounts that are (a) plain vendedores with no elevated role
+      // and (b) already belong to their own filial. Role changes are never allowed for gerentes.
+      if (!isCallerDiretor) {
+        if (targetHasElevated) {
+          console.error('Gerente attempted to modify elevated account', { caller: caller.id, target: userId })
+          return new Response(
+            JSON.stringify({ error: 'Não é permitido modificar este usuário.' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        if (assignedRole !== 'vendedor' || (targetRoleList.length > 0 && !targetRoleList.includes('vendedor'))) {
+          return new Response(
+            JSON.stringify({ error: 'Não é permitido alterar o papel deste usuário.' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        // Verify the target already belongs to the caller's filial.
+        const { data: targetProfile, error: targetProfileErr } = await supabaseAdmin
+          .from('profiles')
+          .select('filial_id')
+          .eq('id', userId)
+          .maybeSingle()
+
+        if (targetProfileErr) throw targetProfileErr
+
+        if (!targetProfile || targetProfile.filial_id !== effectiveFilialId) {
+          console.error('Gerente attempted cross-filial modification', { caller: caller.id, target: userId })
+          return new Response(
+            JSON.stringify({ error: 'Não é permitido modificar usuários de outra filial.' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
+
       // Update user metadata to keep requested info (non-critical if it fails)
       await supabaseAdmin.auth.admin.updateUserById(userId, {
         user_metadata: {
