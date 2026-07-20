@@ -218,63 +218,61 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
 
   return (
     <div>
-      <PageHeader
-        icon={LayoutDashboard}
-        eyebrow="Performance"
-        title="Dashboard"
-        description={`Visão consolidada da equipe de ${profile.nome.split(" ")[0]}.`}
-      />
       <div className="space-y-6">
-        {/* Seletor de Mês/Ano */}
-        <Card>
-          <CardContent className="flex flex-wrap items-center gap-3 p-4">
-            <Calendar className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">Período:</span>
-            <Select
-              value={mesSelecionado.toString()}
-              onValueChange={(value) => setMesSelecionado(parseInt(value))}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {meses.map((mes, index) => (
-                  <SelectItem key={index + 1} value={(index + 1).toString()}>
-                    {mes}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select
-              value={anoSelecionado.toString()}
-              onValueChange={(value) => setAnoSelecionado(parseInt(value))}
-            >
-              <SelectTrigger className="w-[110px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {anos.map((ano) => (
-                  <SelectItem key={ano} value={ano.toString()}>
-                    {ano}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        {/* Painel Executivo — KPIs premium, mapa de calor e central de IA (escopo: sua filial) */}
-        <PainelExecutivo
-          mes={mesSelecionado}
-          ano={anoSelecionado}
-          filialId={profile.filial_id ?? null}
-        />
-
-
-
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
 
-        <TabsContent value="dashboard" className="space-y-4">
+        <TabsContent value="dashboard" className="space-y-6">
+          <PageHeader
+            icon={LayoutDashboard}
+            eyebrow="Performance"
+            title="Dashboard"
+            description={`Visão consolidada da equipe de ${profile.nome.split(" ")[0]}.`}
+          />
+          {/* Seletor de Mês/Ano */}
+          <Card>
+            <CardContent className="flex flex-wrap items-center gap-3 p-4">
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">Período:</span>
+              <Select
+                value={mesSelecionado.toString()}
+                onValueChange={(value) => setMesSelecionado(parseInt(value))}
+              >
+                <SelectTrigger className="w-[160px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {meses.map((mes, index) => (
+                    <SelectItem key={index + 1} value={(index + 1).toString()}>
+                      {mes}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={anoSelecionado.toString()}
+                onValueChange={(value) => setAnoSelecionado(parseInt(value))}
+              >
+                <SelectTrigger className="w-[110px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {anos.map((ano) => (
+                    <SelectItem key={ano} value={ano.toString()}>
+                      {ano}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </CardContent>
+          </Card>
+
+          {/* Painel Executivo — KPIs premium, mapa de calor e central de IA (escopo: sua filial) */}
+          <PainelExecutivo
+            mes={mesSelecionado}
+            ano={anoSelecionado}
+            filialId={profile.filial_id ?? null}
+          />
+
           <Card className="border-none shadow-lg bg-gradient-to-br from-card to-card/50">
             <CardHeader className="pb-8">
               <div className="flex items-start justify-between gap-4">
@@ -393,6 +391,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             </CardContent>
           </Card>
         </TabsContent>
+
 
         <TabsContent value="relatorios" className="space-y-4">
           {profile.filial_id ? (
