@@ -121,7 +121,9 @@ export default function Dashboard() {
           <Topbar
             profile={profile}
             roleLabel={roleLabels[userRole]}
+            role={userRole}
             onLogout={handleLogout}
+            onNavigate={handleSelect}
           />
           <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10 animate-fade-in">
             <div className="mx-auto max-w-[1400px]">
