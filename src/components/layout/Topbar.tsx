@@ -6,7 +6,6 @@ import {
   LogOut,
   Command,
   Check,
-  Trash2,
   LayoutDashboard,
   Building2,
   Users,
