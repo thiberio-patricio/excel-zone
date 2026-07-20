@@ -863,7 +863,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         icon={FileText}
         eyebrow="Performance"
         title="Relatórios Executivos"
-        description="Visão estratégica do desempenho comercial com análises inteligentes geradas por IA."
+        description="Visão estratégica do desempenho comercial com análises inteligentes."
         actions={
           <Button
             onClick={gerarPDF}
