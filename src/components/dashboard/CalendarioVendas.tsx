@@ -260,6 +260,7 @@ export default function CalendarioVendas({
     try {
       const valorNum = parseMoeda(valor);
       const devolucaoNum = parseMoeda(devolucao);
+      const qtdNum = parseInt(quantidadeVendas || "0", 10) || 0;
       const vendaExistente = vendas.find(v => v.data === selectedDate);
 
       if (vendaExistente) {
@@ -268,6 +269,7 @@ export default function CalendarioVendas({
           .update({
             valor: valorNum,
             devolucao: devolucaoNum,
+            quantidade_vendas: qtdNum,
             observacoes: observacoes || null,
           })
           .eq("id", vendaExistente.id);
@@ -281,6 +283,7 @@ export default function CalendarioVendas({
             data: selectedDate,
             valor: valorNum,
             devolucao: devolucaoNum,
+            quantidade_vendas: qtdNum,
             observacoes: observacoes || null,
           });
 
@@ -293,6 +296,7 @@ export default function CalendarioVendas({
       setSelectedDate(null);
       setValor("");
       setDevolucao("");
+      setQuantidadeVendas("");
       setObservacoes("");
     } catch (error: any) {
       toast.error("Erro ao salvar venda");
