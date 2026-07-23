@@ -67,6 +67,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [vendedores, setVendedores] = useState<VendedorInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [filialNome, setFilialNome] = useState<string | null>(null);
+  const [ticketTotal, setTicketTotal] = useState(0);
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
   const [computedStats, setComputedStats] = useState(emptyStats);
   const stats = filialId ? computedStats : (statsProp || emptyStats);
