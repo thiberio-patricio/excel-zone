@@ -98,6 +98,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
           .select(`
             valor, 
             devolucao,
+            quantidade_vendas,
+            vendedor_id,
             vendedor:vendedor_id (
               filial_id,
               filiais:filial_id (
