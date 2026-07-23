@@ -244,6 +244,7 @@ export type Database = {
           editado_por: string | null
           id: string
           observacoes: string | null
+          quantidade_vendas: number
           updated_at: string
           valor: number
           vendedor_id: string
@@ -255,6 +256,7 @@ export type Database = {
           editado_por?: string | null
           id?: string
           observacoes?: string | null
+          quantidade_vendas?: number
           updated_at?: string
           valor?: number
           vendedor_id: string
@@ -266,6 +268,7 @@ export type Database = {
           editado_por?: string | null
           id?: string
           observacoes?: string | null
+          quantidade_vendas?: number
           updated_at?: string
           valor?: number
           vendedor_id?: string

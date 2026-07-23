@@ -41,6 +41,7 @@ export default function CalendarioVendas({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [valor, setValor] = useState("");
   const [devolucao, setDevolucao] = useState("");
+  const [quantidadeVendas, setQuantidadeVendas] = useState("");
   const [observacoes, setObservacoes] = useState("");
   
   // Usa props se fornecidas, senão usa mês/ano atual
@@ -51,6 +52,7 @@ export default function CalendarioVendas({
     data: string;
     valor: number;
     devolucao: number;
+    quantidade_vendas: number;
     observacoes: string | null;
   }>>([]);
   const [meta, setMeta] = useState<number | null>(null);
@@ -239,10 +241,12 @@ export default function CalendarioVendas({
           minimumFractionDigits: 2,
         })
       );
+      setQuantidadeVendas(venda.quantidade_vendas ? String(venda.quantidade_vendas) : "");
       setObservacoes(venda.observacoes || "");
     } else {
       setValor("");
       setDevolucao("");
+      setQuantidadeVendas("");
       setObservacoes("");
     }
   };
@@ -256,6 +260,7 @@ export default function CalendarioVendas({
     try {
       const valorNum = parseMoeda(valor);
       const devolucaoNum = parseMoeda(devolucao);
+      const qtdNum = parseInt(quantidadeVendas || "0", 10) || 0;
       const vendaExistente = vendas.find(v => v.data === selectedDate);
 
       if (vendaExistente) {
@@ -264,6 +269,7 @@ export default function CalendarioVendas({
           .update({
             valor: valorNum,
             devolucao: devolucaoNum,
+            quantidade_vendas: qtdNum,
             observacoes: observacoes || null,
           })
           .eq("id", vendaExistente.id);
@@ -277,6 +283,7 @@ export default function CalendarioVendas({
             data: selectedDate,
             valor: valorNum,
             devolucao: devolucaoNum,
+            quantidade_vendas: qtdNum,
             observacoes: observacoes || null,
           });
 
@@ -289,6 +296,7 @@ export default function CalendarioVendas({
       setSelectedDate(null);
       setValor("");
       setDevolucao("");
+      setQuantidadeVendas("");
       setObservacoes("");
     } catch (error: any) {
       toast.error("Erro ao salvar venda");
@@ -468,6 +476,34 @@ export default function CalendarioVendas({
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="quantidadeVendas">Quantidade de Vendas</Label>
+              <Input
+                id="quantidadeVendas"
+                type="number"
+                min={0}
+                step={1}
+                placeholder="0"
+                value={quantidadeVendas}
+                onChange={(e) => setQuantidadeVendas(e.target.value.replace(/\D/g, ""))}
+                disabled={isReadOnly}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticketMedio">Ticket Médio (R$)</Label>
+              <Input
+                id="ticketMedio"
+                type="text"
+                value={(() => {
+                  const real = parseMoeda(valor) - parseMoeda(devolucao);
+                  const q = parseInt(quantidadeVendas || "0", 10) || 0;
+                  const t = q > 0 ? real / q : 0;
+                  return `R$ ${t.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                })()}
+                disabled
+                className="font-bold"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="observacoes">Observações</Label>
               <Textarea
                 id="observacoes"
@@ -488,7 +524,7 @@ export default function CalendarioVendas({
                   onClick={() => {
                     setSelectedDate(null);
                     setValor("");
-                    setDevolucao("");
+                    setDevolucao(""); setQuantidadeVendas("");
                     setObservacoes("");
                   }}
                 >
@@ -502,7 +538,7 @@ export default function CalendarioVendas({
                 onClick={() => {
                   setSelectedDate(null);
                   setValor("");
-                  setDevolucao("");
+                  setDevolucao(""); setQuantidadeVendas("");
                   setObservacoes("");
                 }}
                 className="w-full"

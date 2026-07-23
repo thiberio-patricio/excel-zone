@@ -15,6 +15,7 @@ interface VendasFilial {
   nome: string;
   total: number;
   meta: number;
+  ticket: number;
   percentual: number;
 }
 
@@ -23,6 +24,7 @@ interface VendasVendedor {
   nome: string;
   total: number;
   meta: number;
+  ticket: number;
   percentual: number;
 }
 
@@ -96,6 +98,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
           .select(`
             valor, 
             devolucao,
+            quantidade_vendas,
+            vendedor_id,
             vendedor:vendedor_id (
               filial_id,
               filiais:filial_id (
@@ -129,18 +133,35 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
         filialNomeMap.set(f.id, f.nome);
       });
 
-      const filialAggMap = new Map<string, { filialId: string; nome: string; total: number; meta: number }>();
-      (filiaisRes.data || []).forEach((f: any) => {
-        filialAggMap.set(f.id, { filialId: f.id, nome: f.nome, total: 0, meta: 0 });
-      });
+      // Aggregate per vendedor (valor real + qtd) to compute ticket per seller
+      type VendedorAgg = { total: number; qtd: number; filialId: string | null };
+      const vendedorAgg = new Map<string, VendedorAgg>();
       vendasRes.data?.forEach((venda: any) => {
-        if (!venda.vendedor?.filial_id) return;
-        const filialId = venda.vendedor?.filial_id || "sem-filial";
-        const nome = venda.vendedor?.filiais?.nome || filialNomeMap.get(filialId) || "Sem Filial";
+        const vid = venda.vendedor_id;
+        if (!vid) return;
         const valor = Number(venda.valor) - Number(venda.devolucao);
-        const cur = filialAggMap.get(filialId) || { filialId, nome, total: 0, meta: 0 };
+        const qtd = Number(venda.quantidade_vendas) || 0;
+        const filialId = venda.vendedor?.filial_id ?? vendedorFilialMap.get(vid) ?? null;
+        const cur = vendedorAgg.get(vid) || { total: 0, qtd: 0, filialId };
         cur.total += valor;
+        cur.qtd += qtd;
+        cur.filialId = filialId;
+        vendedorAgg.set(vid, cur);
+      });
+
+      const filialAggMap = new Map<string, { filialId: string; nome: string; total: number; meta: number; ticket: number }>();
+      (filiaisRes.data || []).forEach((f: any) => {
+        filialAggMap.set(f.id, { filialId: f.id, nome: f.nome, total: 0, meta: 0, ticket: 0 });
+      });
+
+      vendedorAgg.forEach((agg, vid) => {
+        const filialId = agg.filialId;
+        if (!filialId) return;
+        const nome = filialNomeMap.get(filialId) || "Sem Filial";
+        const cur = filialAggMap.get(filialId) || { filialId, nome, total: 0, meta: 0, ticket: 0 };
+        cur.total += agg.total;
         cur.nome = nome;
+        if (agg.qtd > 0) cur.ticket += agg.total / agg.qtd;
         filialAggMap.set(filialId, cur);
       });
 
@@ -156,7 +177,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       metaMaisRecentePorVendedor.forEach((m, vendedorId) => {
         const filialId = vendedorFilialMap.get(vendedorId);
         if (!filialId) return;
-        const cur = filialAggMap.get(filialId) || { filialId, nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0 };
+        const cur = filialAggMap.get(filialId) || { filialId, nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0, ticket: 0 };
         cur.meta += m.valor_meta;
         filialAggMap.set(filialId, cur);
       });
@@ -216,7 +237,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
         vendedoresProfiles.map(async (v) => {
           const { data: vendas } = await supabase
             .from("vendas")
-            .select("valor, devolucao")
+            .select("valor, devolucao, quantidade_vendas")
             .eq("vendedor_id", v.id)
             .gte("data", primeiroDia)
             .lte("data", ultimoDia);
@@ -224,6 +245,11 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
             (acc, x: any) => acc + (Number(x.valor) - Number(x.devolucao)),
             0
           );
+          const totalQtd = (vendas || []).reduce(
+            (acc, x: any) => acc + (Number(x.quantidade_vendas) || 0),
+            0
+          );
+          const ticket = totalQtd > 0 ? total / totalQtd : 0;
           const meta = await fetchMetaWithFallback(v.id, mes, ano);
           const metaValor = Number(meta?.valor_meta) || 0;
           return {
@@ -231,6 +257,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
             nome: v.nome,
             total,
             meta: metaValor,
+            ticket,
             percentual: metaValor > 0 ? Math.round((total / metaValor) * 100) : 0,
           };
         })
@@ -348,12 +375,12 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                         <ChartTooltipContent
                           formatter={(value, name, props) => {
                             if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
-                            return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                            return `${name === 'meta' ? 'Meta' : name === 'ticket' ? 'Ticket Médio' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
                           }}
                         />
                       }
                     />
-                    <Legend formatter={(value) => (value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : "Vendido")} />
+                    <Legend formatter={(value) => value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : value === "ticket" ? "Ticket Médio" : "Vendido"} />
                     <Bar
                       dataKey="meta"
                       fill={chartTheme.meta}
@@ -375,6 +402,12 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                         className="text-xs fill-foreground"
                       />
                     </Bar>
+                    <Bar
+                      dataKey="ticket"
+                      fill={chartTheme.percentual}
+                      radius={[8, 8, 0, 0]}
+                      name="ticket"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -413,12 +446,12 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                         <ChartTooltipContent
                           formatter={(value, name, props) => {
                             if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
-                            return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                            return `${name === 'meta' ? 'Meta' : name === 'ticket' ? 'Ticket Médio' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
                           }}
                         />
                       }
                     />
-                    <Legend formatter={(value) => (value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : "Vendido")} />
+                    <Legend formatter={(value) => value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : value === "ticket" ? "Ticket Médio" : "Vendido"} />
                     <Bar
                       dataKey="meta"
                       fill={chartTheme.meta}
@@ -446,6 +479,16 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                         className="text-xs fill-foreground"
                       />
                     </Bar>
+                    <Bar
+                      dataKey="ticket"
+                      fill={chartTheme.percentual}
+                      radius={[8, 8, 0, 0]}
+                      name="ticket"
+                      cursor="pointer"
+                      onClick={(data: any) =>
+                        carregarVendedoresDaFilial(data.filialId, data.nome)
+                      }
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>

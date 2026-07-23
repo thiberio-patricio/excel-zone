@@ -67,6 +67,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [vendedores, setVendedores] = useState<VendedorInsight[]>([]);
   const [loading, setLoading] = useState(true);
   const [filialNome, setFilialNome] = useState<string | null>(null);
+  const [ticketTotal, setTicketTotal] = useState(0);
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
   const [computedStats, setComputedStats] = useState(emptyStats);
   const stats = filialId ? computedStats : (statsProp || emptyStats);
@@ -96,7 +97,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       const [vendasRes, profilesRes, metasRes, rolesRes] = await Promise.all([
         supabase
           .from("vendas")
-          .select("valor, devolucao, data, vendedor_id")
+          .select("valor, devolucao, data, vendedor_id, quantidade_vendas")
           .gte("data", primeiroStr)
           .lte("data", ultimoStr),
         supabase.from("profiles").select("id, nome, filial_id"),
@@ -158,13 +159,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       });
 
       // Group vendas by vendedor (scoped)
-      const vendasByVendedor = new Map<string, Array<{ dia: number; total: number }>>();
+      const vendasByVendedor = new Map<string, Array<{ dia: number; total: number; qtd: number }>>();
       (vendasRes.data || []).forEach((v: any) => {
         if (!allowedVendedorIds.has(v.vendedor_id)) return;
         const dia = new Date(v.data + "T00:00:00").getDate();
         const val = Number(v.valor) - Number(v.devolucao);
+        const qtd = Number(v.quantidade_vendas) || 0;
         const arr = vendasByVendedor.get(v.vendedor_id) || [];
-        arr.push({ dia, total: val });
+        arr.push({ dia, total: val, qtd });
         vendasByVendedor.set(v.vendedor_id, arr);
       });
 
@@ -231,6 +233,15 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       });
 
       setVendedores(insights);
+
+      // Ticket Médio Total: soma do ticket médio de cada vendedor (venda real ÷ qtd)
+      let ticketSum = 0;
+      vendasByVendedor.forEach((rows) => {
+        const totVal = rows.reduce((a, r) => a + r.total, 0);
+        const totQtd = rows.reduce((a, r) => a + r.qtd, 0);
+        if (totQtd > 0) ticketSum += totVal / totQtd;
+      });
+      setTicketTotal(ticketSum);
 
       // Compute stats internally when scoped to a filial
       if (filialId) {
@@ -483,12 +494,20 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
     },
+    {
+      label: "Ticket Médio Total",
+      value: formatBRL(ticketTotal),
+      hint: filialId ? "Soma dos vendedores da filial" : "Soma dos vendedores da empresa",
+      icon: TrendingUp,
+      gradient: "from-accent/30 via-accent/10 to-transparent",
+      ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
+    },
   ];
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ===== KPI CARDS ===== */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k, i) => {
           const Icon = k.icon;
           return (
