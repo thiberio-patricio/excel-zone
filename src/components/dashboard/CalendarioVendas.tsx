@@ -476,6 +476,34 @@ export default function CalendarioVendas({
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="quantidadeVendas">Quantidade de Vendas</Label>
+              <Input
+                id="quantidadeVendas"
+                type="number"
+                min={0}
+                step={1}
+                placeholder="0"
+                value={quantidadeVendas}
+                onChange={(e) => setQuantidadeVendas(e.target.value.replace(/\D/g, ""))}
+                disabled={isReadOnly}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ticketMedio">Ticket Médio (R$)</Label>
+              <Input
+                id="ticketMedio"
+                type="text"
+                value={(() => {
+                  const real = parseMoeda(valor) - parseMoeda(devolucao);
+                  const q = parseInt(quantidadeVendas || "0", 10) || 0;
+                  const t = q > 0 ? real / q : 0;
+                  return `R$ ${t.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                })()}
+                disabled
+                className="font-bold"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="observacoes">Observações</Label>
               <Textarea
                 id="observacoes"
