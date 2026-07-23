@@ -133,18 +133,35 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
         filialNomeMap.set(f.id, f.nome);
       });
 
-      const filialAggMap = new Map<string, { filialId: string; nome: string; total: number; meta: number }>();
-      (filiaisRes.data || []).forEach((f: any) => {
-        filialAggMap.set(f.id, { filialId: f.id, nome: f.nome, total: 0, meta: 0 });
-      });
+      // Aggregate per vendedor (valor real + qtd) to compute ticket per seller
+      type VendedorAgg = { total: number; qtd: number; filialId: string | null };
+      const vendedorAgg = new Map<string, VendedorAgg>();
       vendasRes.data?.forEach((venda: any) => {
-        if (!venda.vendedor?.filial_id) return;
-        const filialId = venda.vendedor?.filial_id || "sem-filial";
-        const nome = venda.vendedor?.filiais?.nome || filialNomeMap.get(filialId) || "Sem Filial";
+        const vid = venda.vendedor_id;
+        if (!vid) return;
         const valor = Number(venda.valor) - Number(venda.devolucao);
-        const cur = filialAggMap.get(filialId) || { filialId, nome, total: 0, meta: 0 };
+        const qtd = Number(venda.quantidade_vendas) || 0;
+        const filialId = venda.vendedor?.filial_id ?? vendedorFilialMap.get(vid) ?? null;
+        const cur = vendedorAgg.get(vid) || { total: 0, qtd: 0, filialId };
         cur.total += valor;
+        cur.qtd += qtd;
+        cur.filialId = filialId;
+        vendedorAgg.set(vid, cur);
+      });
+
+      const filialAggMap = new Map<string, { filialId: string; nome: string; total: number; meta: number; ticket: number }>();
+      (filiaisRes.data || []).forEach((f: any) => {
+        filialAggMap.set(f.id, { filialId: f.id, nome: f.nome, total: 0, meta: 0, ticket: 0 });
+      });
+
+      vendedorAgg.forEach((agg, vid) => {
+        const filialId = agg.filialId;
+        if (!filialId) return;
+        const nome = filialNomeMap.get(filialId) || "Sem Filial";
+        const cur = filialAggMap.get(filialId) || { filialId, nome, total: 0, meta: 0, ticket: 0 };
+        cur.total += agg.total;
         cur.nome = nome;
+        if (agg.qtd > 0) cur.ticket += agg.total / agg.qtd;
         filialAggMap.set(filialId, cur);
       });
 
@@ -160,7 +177,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       metaMaisRecentePorVendedor.forEach((m, vendedorId) => {
         const filialId = vendedorFilialMap.get(vendedorId);
         if (!filialId) return;
-        const cur = filialAggMap.get(filialId) || { filialId, nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0 };
+        const cur = filialAggMap.get(filialId) || { filialId, nome: filialNomeMap.get(filialId) || "", total: 0, meta: 0, ticket: 0 };
         cur.meta += m.valor_meta;
         filialAggMap.set(filialId, cur);
       });
