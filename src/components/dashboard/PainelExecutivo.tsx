@@ -507,7 +507,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ===== KPI CARDS ===== */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {kpis.map((k, i) => {
           const Icon = k.icon;
           return (
