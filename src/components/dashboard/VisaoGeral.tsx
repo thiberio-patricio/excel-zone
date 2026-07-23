@@ -237,7 +237,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
         vendedoresProfiles.map(async (v) => {
           const { data: vendas } = await supabase
             .from("vendas")
-            .select("valor, devolucao")
+            .select("valor, devolucao, quantidade_vendas")
             .eq("vendedor_id", v.id)
             .gte("data", primeiroDia)
             .lte("data", ultimoDia);
@@ -245,6 +245,11 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
             (acc, x: any) => acc + (Number(x.valor) - Number(x.devolucao)),
             0
           );
+          const totalQtd = (vendas || []).reduce(
+            (acc, x: any) => acc + (Number(x.quantidade_vendas) || 0),
+            0
+          );
+          const ticket = totalQtd > 0 ? total / totalQtd : 0;
           const meta = await fetchMetaWithFallback(v.id, mes, ano);
           const metaValor = Number(meta?.valor_meta) || 0;
           return {
@@ -252,6 +257,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
             nome: v.nome,
             total,
             meta: metaValor,
+            ticket,
             percentual: metaValor > 0 ? Math.round((total / metaValor) * 100) : 0,
           };
         })
