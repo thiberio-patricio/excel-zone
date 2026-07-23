@@ -524,7 +524,7 @@ export default function CalendarioVendas({
                   onClick={() => {
                     setSelectedDate(null);
                     setValor("");
-                    setDevolucao("");
+                    setDevolucao(""); setQuantidadeVendas("");
                     setObservacoes("");
                   }}
                 >
@@ -538,7 +538,7 @@ export default function CalendarioVendas({
                 onClick={() => {
                   setSelectedDate(null);
                   setValor("");
-                  setDevolucao("");
+                  setDevolucao(""); setQuantidadeVendas("");
                   setObservacoes("");
                 }}
                 className="w-full"
