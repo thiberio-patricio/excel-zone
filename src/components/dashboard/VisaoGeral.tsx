@@ -375,7 +375,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                         <ChartTooltipContent
                           formatter={(value, name, props) => {
                             if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
-                            return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                            return `${name === 'meta' ? 'Meta' : name === 'ticket' ? 'Ticket Médio' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
                           }}
                         />
                       }
@@ -446,7 +446,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                         <ChartTooltipContent
                           formatter={(value, name, props) => {
                             if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
-                            return `${name === 'meta' ? 'Meta' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+                            return `${name === 'meta' ? 'Meta' : name === 'ticket' ? 'Ticket Médio' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
                           }}
                         />
                       }
