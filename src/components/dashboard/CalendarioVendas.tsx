@@ -41,6 +41,7 @@ export default function CalendarioVendas({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [valor, setValor] = useState("");
   const [devolucao, setDevolucao] = useState("");
+  const [quantidadeVendas, setQuantidadeVendas] = useState("");
   const [observacoes, setObservacoes] = useState("");
   
   // Usa props se fornecidas, senão usa mês/ano atual
@@ -51,6 +52,7 @@ export default function CalendarioVendas({
     data: string;
     valor: number;
     devolucao: number;
+    quantidade_vendas: number;
     observacoes: string | null;
   }>>([]);
   const [meta, setMeta] = useState<number | null>(null);
