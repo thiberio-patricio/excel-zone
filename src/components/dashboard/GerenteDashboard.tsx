@@ -392,6 +392,13 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     radius={[8, 8, 0, 0]}
                     maxBarSize={60}
                   />
+                  <Bar 
+                    dataKey="ticket" 
+                    fill={chartTheme.percentual}
+                    name="Ticket Médio"
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={60}
+                  />
                 </RechartsBarChart>
               </ResponsiveContainer>
             </CardContent>
