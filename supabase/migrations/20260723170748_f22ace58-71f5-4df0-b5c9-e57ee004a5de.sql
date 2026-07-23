@@ -1,0 +1,1 @@
+ALTER TABLE public.vendas ADD COLUMN IF NOT EXISTS quantidade_vendas INTEGER NOT NULL DEFAULT 0;
