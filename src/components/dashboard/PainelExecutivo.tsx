@@ -234,6 +234,15 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
       setVendedores(insights);
 
+      // Ticket Médio Total: soma do ticket médio de cada vendedor (venda real ÷ qtd)
+      let ticketSum = 0;
+      vendasByVendedor.forEach((rows) => {
+        const totVal = rows.reduce((a, r) => a + r.total, 0);
+        const totQtd = rows.reduce((a, r) => a + r.qtd, 0);
+        if (totQtd > 0) ticketSum += totVal / totQtd;
+      });
+      setTicketTotal(ticketSum);
+
       // Compute stats internally when scoped to a filial
       if (filialId) {
         const vendasMesAtual = Array.from(vendasByVendedor.values()).reduce(
