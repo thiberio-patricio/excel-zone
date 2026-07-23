@@ -97,7 +97,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       const [vendasRes, profilesRes, metasRes, rolesRes] = await Promise.all([
         supabase
           .from("vendas")
-          .select("valor, devolucao, data, vendedor_id")
+          .select("valor, devolucao, data, vendedor_id, quantidade_vendas")
           .gte("data", primeiroStr)
           .lte("data", ultimoStr),
         supabase.from("profiles").select("id, nome, filial_id"),
