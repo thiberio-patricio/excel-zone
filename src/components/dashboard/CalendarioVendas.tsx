@@ -241,10 +241,12 @@ export default function CalendarioVendas({
           minimumFractionDigits: 2,
         })
       );
+      setQuantidadeVendas(venda.quantidade_vendas ? String(venda.quantidade_vendas) : "");
       setObservacoes(venda.observacoes || "");
     } else {
       setValor("");
       setDevolucao("");
+      setQuantidadeVendas("");
       setObservacoes("");
     }
   };
