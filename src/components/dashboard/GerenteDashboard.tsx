@@ -186,7 +186,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         (profiles || []).map(async (vendedor) => {
           const { data: vendas } = await supabase
             .from("vendas")
-            .select("valor, devolucao")
+            .select("valor, devolucao, quantidade_vendas")
             .eq("vendedor_id", vendedor.id)
             .gte("data", primeiroDia)
             .lte("data", ultimoDiaFormatado);
@@ -197,11 +197,17 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             (acc, v) => acc + (Number(v.valor) - Number(v.devolucao)),
             0
           );
+          const totalQtd = (vendas || []).reduce(
+            (acc, v: any) => acc + (Number(v.quantidade_vendas) || 0),
+            0
+          );
+          const ticket = totalQtd > 0 ? totalVendido / totalQtd : 0;
 
           return {
             nome: vendedor.nome,
             vendido: totalVendido,
             meta: Number(meta?.valor_meta) || 0,
+            ticket,
             percentual: meta?.valor_meta
               ? Math.round((totalVendido / Number(meta.valor_meta)) * 100)
               : 0,
