@@ -159,13 +159,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       });
 
       // Group vendas by vendedor (scoped)
-      const vendasByVendedor = new Map<string, Array<{ dia: number; total: number }>>();
+      const vendasByVendedor = new Map<string, Array<{ dia: number; total: number; qtd: number }>>();
       (vendasRes.data || []).forEach((v: any) => {
         if (!allowedVendedorIds.has(v.vendedor_id)) return;
         const dia = new Date(v.data + "T00:00:00").getDate();
         const val = Number(v.valor) - Number(v.devolucao);
+        const qtd = Number(v.quantidade_vendas) || 0;
         const arr = vendasByVendedor.get(v.vendedor_id) || [];
-        arr.push({ dia, total: val });
+        arr.push({ dia, total: val, qtd });
         vendasByVendedor.set(v.vendedor_id, arr);
       });
 
