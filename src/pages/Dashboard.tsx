@@ -10,6 +10,9 @@ import VendedorDashboard from "@/components/dashboard/VendedorDashboard";
 import GerenteDashboard from "@/components/dashboard/GerenteDashboard";
 import DiretorDashboard from "@/components/dashboard/DiretorDashboard";
 import AlterarSenha from "@/components/dashboard/AlterarSenha";
+import ThreeBackground from "@/components/visuals/ThreeBackground";
+import PageTransition from "@/components/visuals/PageTransition";
+import { useLenis } from "@/hooks/useLenis";
 
 interface Profile {
   id: string;
