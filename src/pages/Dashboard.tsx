@@ -46,6 +46,8 @@ export default function Dashboard() {
   const [activeSection, setActiveSection] = useState<string>("visao-geral");
   const navigate = useNavigate();
 
+  useLenis();
+
   useEffect(() => {
     checkUser();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
@@ -114,13 +116,14 @@ export default function Dashboard() {
 
   return (
     <SidebarProvider defaultOpen>
-      <div className="min-h-screen flex w-full gradient-hero">
+      <div className="relative min-h-screen flex w-full gradient-hero">
+        <ThreeBackground className="pointer-events-none fixed inset-0 z-0 opacity-50" intensity={0.6} />
         <AppSidebar
           role={userRole}
           activeSection={activeSection}
           onSelect={handleSelect}
         />
-        <SidebarInset className="bg-transparent">
+        <SidebarInset className="relative z-10 bg-transparent">
           <Topbar
             profile={profile}
             roleLabel={roleLabels[userRole]}
@@ -128,8 +131,8 @@ export default function Dashboard() {
             onLogout={handleLogout}
             onNavigate={handleSelect}
           />
-          <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10 animate-fade-in">
-            <div className="mx-auto max-w-[1400px]">
+          <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10">
+            <PageTransition transitionKey={activeSection} className="mx-auto max-w-[1400px]">
               {(userRole === "diretor" || userRole === "admin") ? (
                 <DiretorDashboard profile={profile} />
               ) : userRole === "gerente" ? (
@@ -137,7 +140,7 @@ export default function Dashboard() {
               ) : (
                 <VendedorDashboard profile={profile} />
               )}
-            </div>
+            </PageTransition>
           </main>
         </SidebarInset>
       </div>
