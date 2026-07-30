@@ -1,5 +1,6 @@
 import { LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
+import { useGsapReveal } from "@/hooks/useGsapReveal";
 
 interface PageHeaderProps {
   icon: LucideIcon;
@@ -10,8 +11,10 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ icon: Icon, title, description, actions, eyebrow }: PageHeaderProps) {
+  const ref = useGsapReveal<HTMLDivElement>({ y: 22, duration: 0.7 });
+
   return (
-    <div className="relative overflow-hidden rounded-card border border-white/5 p-6 sm:p-7 mb-6 animate-fade-in"
+    <div ref={ref} className="relative overflow-hidden rounded-card border border-white/5 p-6 sm:p-7 mb-6"
       style={{
         background:
           "linear-gradient(135deg, hsl(0 42% 11% / 0.9), hsl(0 39% 15% / 0.7))",

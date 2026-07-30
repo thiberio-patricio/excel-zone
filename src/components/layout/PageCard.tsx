@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useGsapReveal } from "@/hooks/useGsapReveal";
 
 interface PageCardProps {
   children: ReactNode;
@@ -12,10 +13,13 @@ interface PageCardProps {
  * Glass surface + subtle depth. Replaces default flat Card look.
  */
 export function PageCard({ children, className, padded = true }: PageCardProps) {
+  const ref = useGsapReveal<HTMLDivElement>({ y: 18, duration: 0.6, scale: 0.99 });
+
   return (
     <div
+      ref={ref}
       className={cn(
-        "relative rounded-card border border-white/5 overflow-hidden animate-fade-in",
+        "relative rounded-card border border-white/5 overflow-hidden transition-shadow duration-300 hover:shadow-lg",
         padded && "p-5 sm:p-6",
         className
       )}
