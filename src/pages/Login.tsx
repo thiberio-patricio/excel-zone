@@ -43,17 +43,25 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-muted/30 p-4">
-      <Card className="w-full max-w-md shadow-xl border-border/50">
+    <div className="relative min-h-screen flex items-center justify-center gradient-hero p-4 overflow-hidden">
+      <ThreeBackground className="pointer-events-none absolute inset-0 z-0" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 z-0 gradient-glow opacity-60"
+      />
+      <Card
+        ref={cardRef}
+        className="relative z-10 w-full max-w-md border-white/10 backdrop-blur-xl bg-card/70 shadow-glow rounded-card"
+      >
         <CardHeader className="space-y-1 text-center pb-2">
           <div className="flex justify-center mb-4">
             <img 
               src={logoUnidos} 
               alt="Unidos Importados" 
-              className="h-16 md:h-20 w-auto object-contain"
+              className="h-16 md:h-20 w-auto object-contain hover-scale"
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-foreground">
+          <CardTitle className="font-display text-2xl font-bold text-foreground">
             Bem-vindo
           </CardTitle>
           <CardDescription className="text-base text-muted-foreground">
@@ -61,7 +69,7 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-4">
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form ref={formRef} onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-foreground font-medium">Email</Label>
               <Input
