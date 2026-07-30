@@ -8,12 +8,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import logoUnidos from "@/assets/logo-unidos.png";
+import ThreeBackground from "@/components/visuals/ThreeBackground";
+import { useGsapReveal } from "@/hooks/useGsapReveal";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const cardRef = useGsapReveal<HTMLDivElement>({ y: 32, duration: 0.9, scale: 0.96 });
+  const formRef = useGsapReveal<HTMLFormElement>({ y: 14, duration: 0.6, delay: 0.25, stagger: 0.08 });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
