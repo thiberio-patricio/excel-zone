@@ -205,6 +205,8 @@ export default function CalendarioVendas({
     if (diasSemVenda === 0) return null;
 
     const metaRestante = meta - vendaRealTotal;
+    // Meta total já alcançada: dias restantes ficam com R$ 0,00 (nunca negativo)
+    if (metaRestante <= 0) return 0;
     return metaRestante / diasSemVenda;
   };
 
