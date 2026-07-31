@@ -13,6 +13,7 @@ import { Trophy, Crown } from "lucide-react";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 import { getMensagemAleatoria, MENSAGENS_INCENTIVO } from "@/data/mensagensIncentivo";
 import { getSuperMensagem, SUPER_MENSAGENS, SuperMensagem } from "@/data/mensagensMetaMensal";
+import CelebracaoEpica from "@/components/visuals/CelebracaoEpica";
 
 interface Props {
   vendedorId: string;
