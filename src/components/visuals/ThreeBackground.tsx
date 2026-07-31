@@ -56,18 +56,6 @@ export function ThreeBackground({ className, intensity = 1 }: ThreeBackgroundPro
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
-    // Wireframe core object
-    const core = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(4.4, 1),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color("#ff5a5a"),
-        wireframe: true,
-        transparent: true,
-        opacity: 0.12 * intensity,
-      })
-    );
-    scene.add(core);
-
     const pointer = { x: 0, y: 0 };
     const target = { x: 0, y: 0 };
     const onPointerMove = (e: PointerEvent) => {
@@ -89,8 +77,6 @@ export function ThreeBackground({ className, intensity = 1 }: ThreeBackgroundPro
       if (!prefersReduced) {
         points.rotation.y = t * 0.035 + pointer.x * 0.25;
         points.rotation.x = pointer.y * 0.15;
-        core.rotation.y = t * 0.08 + pointer.x * 0.3;
-        core.rotation.x = t * 0.05 + pointer.y * 0.2;
       }
 
       renderer.render(scene, camera);
@@ -112,8 +98,6 @@ export function ThreeBackground({ className, intensity = 1 }: ThreeBackgroundPro
       window.removeEventListener("pointermove", onPointerMove);
       geometry.dispose();
       material.dispose();
-      core.geometry.dispose();
-      (core.material as THREE.Material).dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === container) {
         container.removeChild(renderer.domElement);
