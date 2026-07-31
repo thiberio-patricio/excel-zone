@@ -88,7 +88,7 @@ export const SUPER_MENSAGENS: SuperMensagem[] = [
   },
   {
     id: 11,
-    titulo: "�volcano 🌋 ERUPÇÃO DE RESULTADO",
+    titulo: "🌋 ERUPÇÃO DE RESULTADO",
     texto:
       "Pressão acumulada dia após dia até que nada pudesse conter: seu resultado explodiu e cobriu o mês inteiro. Meta mensal atingida com força de natureza.",
     assinatura: "Força assim não se ensina. Se admira. Parabéns!",
