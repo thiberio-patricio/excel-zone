@@ -98,8 +98,6 @@ export function ThreeBackground({ className, intensity = 1 }: ThreeBackgroundPro
       window.removeEventListener("pointermove", onPointerMove);
       geometry.dispose();
       material.dispose();
-      core.geometry.dispose();
-      (core.material as THREE.Material).dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === container) {
         container.removeChild(renderer.domElement);
