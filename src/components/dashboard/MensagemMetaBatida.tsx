@@ -254,48 +254,57 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
 
       if (!diaBatido) return;
 
-      // Selecionar mensagem evitando repetição
-      const histKey = `meta-msg-history-${vendedorId}`;
-      let historico: number[] = [];
-      try {
-        historico = JSON.parse(localStorage.getItem(histKey) || "[]");
-      } catch {
-        historico = [];
-      }
-      const escolhida = getMensagemAleatoria(historico);
-      const novoHist = [...historico, escolhida.id];
-      const limpo = novoHist.length >= MENSAGENS_INCENTIVO.length ? [escolhida.id] : novoHist;
-      localStorage.setItem(histKey, JSON.stringify(limpo));
-
-      // Marca o dia como notificado
-      diasMostrados.push(diaBatido);
-      localStorage.setItem(shownKey, JSON.stringify(diasMostrados));
-
-      setMensagem(escolhida.texto);
-      setOpen(true);
+      marcarEExibir(diaBatido);
     } catch (err) {
       console.error("Erro ao verificar meta diária:", err);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-lg">
-            <Trophy className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <DialogTitle className="text-center text-2xl">Meta Diária Batida! 🎉</DialogTitle>
-          <DialogDescription className="text-center text-base pt-2">
-            {mensagem}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button onClick={() => setOpen(false)} className="w-full">
-            Bora pra mais um dia vencedor!
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={!!superMsg} onOpenChange={(v) => !v && setSuperMsg(null)}>
+        <DialogContent className="max-w-lg overflow-hidden border-primary/30">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" />
+          <DialogHeader className="relative">
+            <div className="mx-auto mb-3 flex h-20 w-20 animate-pulse items-center justify-center rounded-full bg-gradient-to-br from-primary via-primary/80 to-accent shadow-2xl">
+              <Crown className="h-10 w-10 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-center text-3xl font-black tracking-tight">
+              {superMsg?.titulo}
+            </DialogTitle>
+            <DialogDescription className="text-center text-base leading-relaxed pt-3">
+              {superMsg?.texto}
+            </DialogDescription>
+            <p className="pt-4 text-center text-sm font-semibold text-primary">
+              {superMsg?.assinatura}
+            </p>
+          </DialogHeader>
+          <DialogFooter className="relative">
+            <Button onClick={() => setSuperMsg(null)} className="w-full" size="lg">
+              Obrigado! Rumo ao próximo recorde 🚀
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-lg">
+              <Trophy className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-center text-2xl">Meta Batida! 🎉</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              {mensagem}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setOpen(false)} className="w-full">
+              Bora pra mais um dia vencedor!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
