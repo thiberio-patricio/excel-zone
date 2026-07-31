@@ -56,18 +56,6 @@ export function ThreeBackground({ className, intensity = 1 }: ThreeBackgroundPro
     const points = new THREE.Points(geometry, material);
     scene.add(points);
 
-    // Wireframe core object
-    const core = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(4.4, 1),
-      new THREE.MeshBasicMaterial({
-        color: new THREE.Color("#ff5a5a"),
-        wireframe: true,
-        transparent: true,
-        opacity: 0.12 * intensity,
-      })
-    );
-    scene.add(core);
-
     const pointer = { x: 0, y: 0 };
     const target = { x: 0, y: 0 };
     const onPointerMove = (e: PointerEvent) => {
