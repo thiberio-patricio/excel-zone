@@ -77,8 +77,6 @@ export function ThreeBackground({ className, intensity = 1 }: ThreeBackgroundPro
       if (!prefersReduced) {
         points.rotation.y = t * 0.035 + pointer.x * 0.25;
         points.rotation.x = pointer.y * 0.15;
-        core.rotation.y = t * 0.08 + pointer.x * 0.3;
-        core.rotation.x = t * 0.05 + pointer.y * 0.2;
       }
 
       renderer.render(scene, camera);
