@@ -9,9 +9,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trophy } from "lucide-react";
+import { Trophy, Crown } from "lucide-react";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 import { getMensagemAleatoria, MENSAGENS_INCENTIVO } from "@/data/mensagensIncentivo";
+import { getSuperMensagem, SUPER_MENSAGENS, SuperMensagem } from "@/data/mensagensMetaMensal";
 
 interface Props {
   vendedorId: string;
@@ -27,11 +28,69 @@ const formatarDataLocal = (d: Date): string => {
 export default function MensagemMetaBatida({ vendedorId }: Props) {
   const [open, setOpen] = useState(false);
   const [mensagem, setMensagem] = useState<string>("");
+  const [superMsg, setSuperMsg] = useState<SuperMensagem | null>(null);
 
   useEffect(() => {
+    verificarMetaMensal();
     verificarMetaDiaria();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendedorId]);
+
+  // Super mensagem: a partir do dia 01 de cada mês, parabeniza quem
+  // concluiu a meta do mês anterior. Aparece apenas uma vez por mês.
+  const verificarMetaMensal = async () => {
+    try {
+      const hoje = new Date();
+      const mesAnteriorDate = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      const mesAnt = mesAnteriorDate.getMonth() + 1;
+      const anoAnt = mesAnteriorDate.getFullYear();
+
+      const shownKey = `super-meta-shown-${vendedorId}`;
+      const token = `${anoAnt}-${String(mesAnt).padStart(2, "0")}`;
+      if (localStorage.getItem(shownKey) === token) return;
+
+      const primeiroDia = formatarDataLocal(new Date(anoAnt, mesAnt - 1, 1));
+      const ultimoDia = formatarDataLocal(new Date(anoAnt, mesAnt, 0));
+
+      const [metaData, { data: vendasData }] = await Promise.all([
+        fetchMetaWithFallback(vendedorId, mesAnt, anoAnt),
+        supabase
+          .from("vendas")
+          .select("valor, devolucao")
+          .eq("vendedor_id", vendedorId)
+          .gte("data", primeiroDia)
+          .lte("data", ultimoDia),
+      ]);
+
+      const meta = metaData?.valor_meta;
+      if (!meta || meta <= 0) return;
+
+      const total = (vendasData || []).reduce(
+        (acc: number, v: any) => acc + (Number(v.valor) - Number(v.devolucao)),
+        0
+      );
+      if (total < meta) return;
+
+      const histKey = `super-meta-history-${vendedorId}`;
+      let historico: number[] = [];
+      try {
+        historico = JSON.parse(localStorage.getItem(histKey) || "[]");
+      } catch {
+        historico = [];
+      }
+      const escolhida = getSuperMensagem(historico);
+      const novoHist = [...historico, escolhida.id];
+      localStorage.setItem(
+        histKey,
+        JSON.stringify(novoHist.length >= SUPER_MENSAGENS.length ? [escolhida.id] : novoHist)
+      );
+      localStorage.setItem(shownKey, token);
+
+      setSuperMsg(escolhida);
+    } catch (err) {
+      console.error("Erro ao verificar meta mensal:", err);
+    }
+  };
 
   const verificarMetaDiaria = async () => {
     try {
@@ -114,6 +173,38 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
       }
       const mostradosSet = new Set(diasMostrados);
 
+      const marcarEExibir = (token: string) => {
+        const histKey = `meta-msg-history-${vendedorId}`;
+        let historico: number[] = [];
+        try {
+          historico = JSON.parse(localStorage.getItem(histKey) || "[]");
+        } catch {
+          historico = [];
+        }
+        const escolhida = getMensagemAleatoria(historico);
+        const novoHist = [...historico, escolhida.id];
+        const limpo = novoHist.length >= MENSAGENS_INCENTIVO.length ? [escolhida.id] : novoHist;
+        localStorage.setItem(histKey, JSON.stringify(limpo));
+
+        diasMostrados.push(token);
+        localStorage.setItem(shownKey, JSON.stringify(diasMostrados));
+
+        setMensagem(escolhida.texto);
+        setOpen(true);
+      };
+
+      // Meta TOTAL do mês já atingida: meta diária dos próximos dias é R$ 0,00,
+      // então exibe a mensagem de meta batida ao acessar o sistema (1x por dia).
+      const totalMes = vendas.reduce(
+        (acc: number, v: any) => acc + (Number(v.valor) - Number(v.devolucao)),
+        0
+      );
+      const tokenTotal = `total-${hojeStr}`;
+      if (totalMes >= meta && !mostradosSet.has(tokenTotal)) {
+        marcarEExibir(tokenTotal);
+        return;
+      }
+
       // Procurar o primeiro dia (em ordem cronológica) onde:
       // - há venda preenchida
       // - é dia útil
@@ -163,48 +254,57 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
 
       if (!diaBatido) return;
 
-      // Selecionar mensagem evitando repetição
-      const histKey = `meta-msg-history-${vendedorId}`;
-      let historico: number[] = [];
-      try {
-        historico = JSON.parse(localStorage.getItem(histKey) || "[]");
-      } catch {
-        historico = [];
-      }
-      const escolhida = getMensagemAleatoria(historico);
-      const novoHist = [...historico, escolhida.id];
-      const limpo = novoHist.length >= MENSAGENS_INCENTIVO.length ? [escolhida.id] : novoHist;
-      localStorage.setItem(histKey, JSON.stringify(limpo));
-
-      // Marca o dia como notificado
-      diasMostrados.push(diaBatido);
-      localStorage.setItem(shownKey, JSON.stringify(diasMostrados));
-
-      setMensagem(escolhida.texto);
-      setOpen(true);
+      marcarEExibir(diaBatido);
     } catch (err) {
       console.error("Erro ao verificar meta diária:", err);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-lg">
-            <Trophy className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <DialogTitle className="text-center text-2xl">Meta Diária Batida! 🎉</DialogTitle>
-          <DialogDescription className="text-center text-base pt-2">
-            {mensagem}
-          </DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button onClick={() => setOpen(false)} className="w-full">
-            Bora pra mais um dia vencedor!
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <>
+      <Dialog open={!!superMsg} onOpenChange={(v) => !v && setSuperMsg(null)}>
+        <DialogContent className="max-w-lg overflow-hidden border-primary/30">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" />
+          <DialogHeader className="relative">
+            <div className="mx-auto mb-3 flex h-20 w-20 animate-pulse items-center justify-center rounded-full bg-gradient-to-br from-primary via-primary/80 to-accent shadow-2xl">
+              <Crown className="h-10 w-10 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-center text-3xl font-black tracking-tight">
+              {superMsg?.titulo}
+            </DialogTitle>
+            <DialogDescription className="text-center text-base leading-relaxed pt-3">
+              {superMsg?.texto}
+            </DialogDescription>
+            <p className="pt-4 text-center text-sm font-semibold text-primary">
+              {superMsg?.assinatura}
+            </p>
+          </DialogHeader>
+          <DialogFooter className="relative">
+            <Button onClick={() => setSuperMsg(null)} className="w-full" size="lg">
+              Obrigado! Rumo ao próximo recorde 🚀
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <div className="mx-auto mb-2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 shadow-lg">
+              <Trophy className="h-8 w-8 text-primary-foreground" />
+            </div>
+            <DialogTitle className="text-center text-2xl">Meta Batida! 🎉</DialogTitle>
+            <DialogDescription className="text-center text-base pt-2">
+              {mensagem}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setOpen(false)} className="w-full">
+              Bora pra mais um dia vencedor!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
