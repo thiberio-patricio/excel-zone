@@ -173,6 +173,38 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
       }
       const mostradosSet = new Set(diasMostrados);
 
+      const marcarEExibir = (token: string) => {
+        const histKey = `meta-msg-history-${vendedorId}`;
+        let historico: number[] = [];
+        try {
+          historico = JSON.parse(localStorage.getItem(histKey) || "[]");
+        } catch {
+          historico = [];
+        }
+        const escolhida = getMensagemAleatoria(historico);
+        const novoHist = [...historico, escolhida.id];
+        const limpo = novoHist.length >= MENSAGENS_INCENTIVO.length ? [escolhida.id] : novoHist;
+        localStorage.setItem(histKey, JSON.stringify(limpo));
+
+        diasMostrados.push(token);
+        localStorage.setItem(shownKey, JSON.stringify(diasMostrados));
+
+        setMensagem(escolhida.texto);
+        setOpen(true);
+      };
+
+      // Meta TOTAL do mês já atingida: meta diária dos próximos dias é R$ 0,00,
+      // então exibe a mensagem de meta batida ao acessar o sistema (1x por dia).
+      const totalMes = vendas.reduce(
+        (acc: number, v: any) => acc + (Number(v.valor) - Number(v.devolucao)),
+        0
+      );
+      const tokenTotal = `total-${hojeStr}`;
+      if (totalMes >= meta && !mostradosSet.has(tokenTotal)) {
+        marcarEExibir(tokenTotal);
+        return;
+      }
+
       // Procurar o primeiro dia (em ordem cronológica) onde:
       // - há venda preenchida
       // - é dia útil
