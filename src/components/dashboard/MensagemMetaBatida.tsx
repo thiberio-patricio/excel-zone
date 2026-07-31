@@ -262,30 +262,8 @@ export default function MensagemMetaBatida({ vendedorId }: Props) {
 
   return (
     <>
-      <Dialog open={!!superMsg} onOpenChange={(v) => !v && setSuperMsg(null)}>
-        <DialogContent className="max-w-lg overflow-hidden border-primary/30">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20" />
-          <DialogHeader className="relative">
-            <div className="mx-auto mb-3 flex h-20 w-20 animate-pulse items-center justify-center rounded-full bg-gradient-to-br from-primary via-primary/80 to-accent shadow-2xl">
-              <Crown className="h-10 w-10 text-primary-foreground" />
-            </div>
-            <DialogTitle className="text-center text-3xl font-black tracking-tight">
-              {superMsg?.titulo}
-            </DialogTitle>
-            <DialogDescription className="text-center text-base leading-relaxed pt-3">
-              {superMsg?.texto}
-            </DialogDescription>
-            <p className="pt-4 text-center text-sm font-semibold text-primary">
-              {superMsg?.assinatura}
-            </p>
-          </DialogHeader>
-          <DialogFooter className="relative">
-            <Button onClick={() => setSuperMsg(null)} className="w-full" size="lg">
-              Obrigado! Rumo ao próximo recorde 🚀
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CelebracaoEpica mensagem={superMsg} onClose={() => setSuperMsg(null)} />
+
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
