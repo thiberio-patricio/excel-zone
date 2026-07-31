@@ -9,9 +9,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trophy } from "lucide-react";
+import { Trophy, Crown } from "lucide-react";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 import { getMensagemAleatoria, MENSAGENS_INCENTIVO } from "@/data/mensagensIncentivo";
+import { getSuperMensagem, SUPER_MENSAGENS, SuperMensagem } from "@/data/mensagensMetaMensal";
 
 interface Props {
   vendedorId: string;
@@ -27,11 +28,69 @@ const formatarDataLocal = (d: Date): string => {
 export default function MensagemMetaBatida({ vendedorId }: Props) {
   const [open, setOpen] = useState(false);
   const [mensagem, setMensagem] = useState<string>("");
+  const [superMsg, setSuperMsg] = useState<SuperMensagem | null>(null);
 
   useEffect(() => {
+    verificarMetaMensal();
     verificarMetaDiaria();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vendedorId]);
+
+  // Super mensagem: a partir do dia 01 de cada mês, parabeniza quem
+  // concluiu a meta do mês anterior. Aparece apenas uma vez por mês.
+  const verificarMetaMensal = async () => {
+    try {
+      const hoje = new Date();
+      const mesAnteriorDate = new Date(hoje.getFullYear(), hoje.getMonth() - 1, 1);
+      const mesAnt = mesAnteriorDate.getMonth() + 1;
+      const anoAnt = mesAnteriorDate.getFullYear();
+
+      const shownKey = `super-meta-shown-${vendedorId}`;
+      const token = `${anoAnt}-${String(mesAnt).padStart(2, "0")}`;
+      if (localStorage.getItem(shownKey) === token) return;
+
+      const primeiroDia = formatarDataLocal(new Date(anoAnt, mesAnt - 1, 1));
+      const ultimoDia = formatarDataLocal(new Date(anoAnt, mesAnt, 0));
+
+      const [metaData, { data: vendasData }] = await Promise.all([
+        fetchMetaWithFallback(vendedorId, mesAnt, anoAnt),
+        supabase
+          .from("vendas")
+          .select("valor, devolucao")
+          .eq("vendedor_id", vendedorId)
+          .gte("data", primeiroDia)
+          .lte("data", ultimoDia),
+      ]);
+
+      const meta = metaData?.valor_meta;
+      if (!meta || meta <= 0) return;
+
+      const total = (vendasData || []).reduce(
+        (acc: number, v: any) => acc + (Number(v.valor) - Number(v.devolucao)),
+        0
+      );
+      if (total < meta) return;
+
+      const histKey = `super-meta-history-${vendedorId}`;
+      let historico: number[] = [];
+      try {
+        historico = JSON.parse(localStorage.getItem(histKey) || "[]");
+      } catch {
+        historico = [];
+      }
+      const escolhida = getSuperMensagem(historico);
+      const novoHist = [...historico, escolhida.id];
+      localStorage.setItem(
+        histKey,
+        JSON.stringify(novoHist.length >= SUPER_MENSAGENS.length ? [escolhida.id] : novoHist)
+      );
+      localStorage.setItem(shownKey, token);
+
+      setSuperMsg(escolhida);
+    } catch (err) {
+      console.error("Erro ao verificar meta mensal:", err);
+    }
+  };
 
   const verificarMetaDiaria = async () => {
     try {
