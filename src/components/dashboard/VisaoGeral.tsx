@@ -399,14 +399,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       fill={chartTheme.meta}
                       radius={[8, 8, 0, 0]}
                       name="meta"
-                    >
-                      <LabelList
-                        dataKey="percentual"
-                        position="top"
-                        formatter={() => `100%`}
-                        className="text-xs fill-foreground"
-                      />
-                    </Bar>
+                    />
                     <Bar
                       dataKey="total"
                       fill={chartTheme.vendido}
@@ -492,14 +485,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       onClick={(data: any) =>
                         carregarVendedoresDaFilial(data.filialId, data.nome)
                       }
-                    >
-                      <LabelList
-                        dataKey="percentual"
-                        position="top"
-                        formatter={() => `100%`}
-                        className="text-xs fill-foreground"
-                      />
-                    </Bar>
+                    />
                     <Bar
                       dataKey="total"
                       fill={chartTheme.vendido}
