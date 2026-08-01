@@ -536,20 +536,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
     },
-
-    ...(filialId
-      ? []
-      : [
-          {
-            label: "Ticket Médio Total",
-            value: formatBRL(ticketTotal),
-            hint: "Soma dos vendedores da empresa",
-            icon: TrendingUp,
-            gradient: "from-accent/30 via-accent/10 to-transparent",
-            ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
-          },
-        ]),
   ];
+
 
   // ===== KPIs de Ticket Médio (escopo gerente) =====
   const META_TICKET = 500;
