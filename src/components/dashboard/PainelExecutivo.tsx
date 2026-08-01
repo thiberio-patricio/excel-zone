@@ -459,7 +459,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
   const kpis: any[] = [
     {
-      label: "Total Equipe",
+      label: "👥 Total Equipe",
       customValue: filialId ? (
         <div className="flex items-baseline gap-1.5 min-w-0">
           <span className="font-display text-2xl xl:text-3xl font-bold text-foreground leading-none">
