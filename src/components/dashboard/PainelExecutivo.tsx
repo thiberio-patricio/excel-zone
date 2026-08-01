@@ -521,15 +521,85 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
     },
-    {
-      label: "Ticket Médio Total",
-      value: formatBRL(ticketTotal),
-      hint: filialId ? "Soma dos vendedores da filial" : "Soma dos vendedores da empresa",
-      icon: TrendingUp,
-      gradient: "from-accent/30 via-accent/10 to-transparent",
-      ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
-    },
+    ...(filialId
+      ? []
+      : [
+          {
+            label: "Ticket Médio Total",
+            value: formatBRL(ticketTotal),
+            hint: "Soma dos vendedores da empresa",
+            icon: TrendingUp,
+            gradient: "from-accent/30 via-accent/10 to-transparent",
+            ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
+          },
+        ]),
   ];
+
+  // ===== KPIs de Ticket Médio (escopo gerente) =====
+  const META_TICKET = 500;
+  const progressoTicket = (ticketMes / META_TICKET) * 100;
+  const metaDiaTicket = Math.max(
+    0,
+    derived.restantes > 0
+      ? META_TICKET + ((META_TICKET - ticketMes) * derived.diaHoje) / derived.restantes
+      : META_TICKET
+  );
+  const evolucaoTicket =
+    ticketAnterior > 0
+      ? ((ticketMes - ticketAnterior) / ticketAnterior) * 100
+      : ticketMes > 0
+      ? 100
+      : 0;
+
+  const ticketKpis: any[] = filialId
+    ? [
+        {
+          label: "🎯 Meta Ticket",
+          value: formatBRL(META_TICKET),
+          hint: "Meta de ticket médio por vendedor",
+          icon: Target,
+          gradient: "from-premium/30 via-premium/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
+        },
+        {
+          label: "💰 Ticket do Mês",
+          value: formatBRL(ticketMes),
+          hint: "Vendas líquidas ÷ quantidade de vendas",
+          icon: TrendingUp,
+          gradient: "from-success/30 via-success/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(168_100%_42%/0.25)]",
+        },
+        {
+          label: "📈 Progresso Ticket",
+          value: `${progressoTicket.toFixed(0)}%`,
+          hint:
+            progressoTicket >= 100
+              ? "Meta de ticket batida"
+              : `${(100 - progressoTicket).toFixed(0)}% restante`,
+          icon: Gauge,
+          gradient: "from-accent/30 via-accent/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
+          progress: Math.min(100, Math.max(0, progressoTicket)),
+        },
+        {
+          label: "📅 Meta do Dia Ticket",
+          value: formatBRL(metaDiaTicket),
+          hint: `Ticket necessário nos ${derived.restantes} dias úteis`,
+          icon: CalendarClock,
+          gradient: "from-secondary/30 via-secondary/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
+        },
+        {
+          label: "🚀 Evolução do Ticket",
+          value: `${evolucaoTicket >= 0 ? "+" : ""}${evolucaoTicket.toFixed(0)}%`,
+          hint: `Mês anterior: ${formatBRL(ticketAnterior)}`,
+          trendUp: evolucaoTicket >= 0,
+          icon: Radar,
+          gradient: "from-primary/30 via-primary/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-6 animate-fade-in">
