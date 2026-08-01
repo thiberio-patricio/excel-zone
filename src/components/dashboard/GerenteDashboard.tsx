@@ -398,7 +398,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     <LabelList
                       dataKey="percentual"
                       position="top"
-                      formatter={(value: number) => `${value}%`}
+                      formatter={() => `100%`}
                       style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }}
                     />
                   </Bar>

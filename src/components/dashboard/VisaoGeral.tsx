@@ -400,7 +400,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       <LabelList
                         dataKey="percentual"
                         position="top"
-                        formatter={(value: number) => `${value}%`}
+                        formatter={() => `100%`}
                         className="text-xs fill-foreground"
                       />
                     </Bar>
@@ -490,7 +490,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       <LabelList
                         dataKey="percentual"
                         position="top"
-                        formatter={(value: number) => `${value}%`}
+                        formatter={() => `100%`}
                         className="text-xs fill-foreground"
                       />
                     </Bar>
