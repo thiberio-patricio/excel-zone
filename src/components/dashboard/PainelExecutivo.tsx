@@ -661,7 +661,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
               k.customValue
             ) : (
               <p
-                className={`font-display ${valueSizeClass(k.value)} font-bold text-foreground leading-tight whitespace-nowrap overflow-hidden`}
+                className={`font-display ${valueSizeClass(k.value)} font-bold text-foreground leading-tight whitespace-nowrap overflow-hidden text-ellipsis tracking-tight`}
+                title={k.value}
               >
                 {k.value}
               </p>
