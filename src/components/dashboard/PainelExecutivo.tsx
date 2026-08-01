@@ -72,6 +72,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [ticketAnterior, setTicketAnterior] = useState(0);
   /** Ticket médio do mês por loja (usado no escopo Diretor para somar as lojas) */
   const [ticketsPorLoja, setTicketsPorLoja] = useState<number[]>([]);
+  /** Dias do mês que são feriados (excluídos dos dias de venda) */
+  const [feriadoDias, setFeriadoDias] = useState<number[]>([]);
+
 
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
   const [computedStats, setComputedStats] = useState(emptyStats);
@@ -88,6 +91,24 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     supabase.from("filiais").select("nome").eq("id", filialId).maybeSingle()
       .then(({ data }) => setFilialNome((data as any)?.nome ?? null));
   }, [filialId]);
+
+  // Feriados do mês (nacionais + da filial no escopo gerente)
+  useEffect(() => {
+    const primeiro = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const ultimoDiaDate = new Date(ano, mes, 0);
+    const ultimo = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
+
+    let q = supabase.from("feriados").select("data, filial_id").gte("data", primeiro).lte("data", ultimo);
+    q = filialId ? q.or(`filial_id.is.null,filial_id.eq.${filialId}`) : q.is("filial_id", null);
+
+    q.then(({ data }) => {
+      const dias = Array.from(
+        new Set(((data as any[]) || []).map((f) => parseInt(String(f.data).slice(8, 10), 10)))
+      );
+      setFeriadoDias(dias);
+    });
+  }, [mes, ano, filialId]);
+
 
 
   const carregar = async () => {
@@ -352,21 +373,23 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     const ultimoDiaDate = new Date(ano, mes, 0).getDate();
     const diaHoje = mesmoPeriodo ? today.getDate() : ultimoDiaDate;
 
-    // Working days remaining (exclude Sundays)
+    const feriadoSet = new Set(feriadoDias);
+    // Working days remaining (exclude Sundays and holidays)
     let restantes = 0;
     for (let d = diaHoje; d <= ultimoDiaDate; d++) {
       const wd = new Date(ano, mes - 1, d).getDay();
-      if (wd !== 0) restantes++;
+      if (wd !== 0 && !feriadoSet.has(d)) restantes++;
     }
-    // Total working days in month and already elapsed (exclude Sundays)
+    // Total working days in month and already elapsed (exclude Sundays and holidays)
     let uteisTotal = 0;
     let uteisDecorridos = 0;
     for (let d = 1; d <= ultimoDiaDate; d++) {
       const wd = new Date(ano, mes - 1, d).getDay();
-      if (wd === 0) continue;
+      if (wd === 0 || feriadoSet.has(d)) continue;
       uteisTotal++;
       if (d < diaHoje) uteisDecorridos++;
     }
+
     const faltante = Math.max(0, stats.metaGeral - stats.vendasMesAtual);
     const metaDoDia = restantes > 0 ? faltante / restantes : 0;
 
@@ -403,7 +426,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       sparkline,
       trend,
     };
-  }, [dailySales, stats, mes, ano]);
+  }, [dailySales, stats, mes, ano, feriadoDias]);
 
   // AI insights (rule-based, natural language)
   const aiCards = useMemo(() => {
