@@ -70,6 +70,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [ticketTotal, setTicketTotal] = useState(0);
   const [ticketMes, setTicketMes] = useState(0);
   const [ticketAnterior, setTicketAnterior] = useState(0);
+  /** Ticket médio do mês por loja (usado no escopo Diretor para somar as lojas) */
+  const [ticketsPorLoja, setTicketsPorLoja] = useState<number[]>([]);
+
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
   const [computedStats, setComputedStats] = useState(emptyStats);
   const stats = filialId ? computedStats : (statsProp || emptyStats);
