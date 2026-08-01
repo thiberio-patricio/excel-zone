@@ -646,7 +646,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       value: formatBRL(metaDiaTicket),
       hint: filialId
         ? `R$ 500 ÷ ${derived.uteisTotal} dias de venda`
-        : `R$ ${(METAdummy => 0)(0) === 0 ? "500" : "500"} ÷ ${derived.uteisTotal} dias × ${numLojasTicket} loja(s)`,
+        : `R$ 500 ÷ ${derived.uteisTotal} dias × ${numLojasTicket} loja(s)`,
 
       icon: CalendarClock,
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
