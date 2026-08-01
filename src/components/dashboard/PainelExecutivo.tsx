@@ -601,93 +601,102 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       ]
     : [];
 
+  const renderKpi = (k: any, i: number, prefix = "k") => {
+    const Icon = k.icon;
+    return (
+      <div
+        key={`${prefix}-${k.label}`}
+        className={[
+          "group relative overflow-hidden rounded-card p-5",
+          "bg-gradient-to-br",
+          k.gradient,
+          k.ring,
+          "backdrop-blur-xl border border-white/5",
+          "transition-all duration-300 hover:-translate-y-1 hover:shadow-glow",
+        ].join(" ")}
+        style={{
+          background:
+            "linear-gradient(135deg, hsl(0 39% 15% / 0.85), hsl(0 42% 11% / 0.7))",
+        }}
+      >
+        {/* internal glow */}
+        <div
+          className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br ${k.gradient} blur-3xl opacity-60`}
+        />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
+              {k.label}
+            </p>
+            {k.customValue ? (
+              k.customValue
+            ) : (
+              <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight whitespace-nowrap">
+                {k.value}
+              </p>
+            )}
+          </div>
+          <div className="rounded-xl bg-white/5 p-2 border border-white/10">
+            <Icon className="h-4 w-4 text-primary" />
+          </div>
+        </div>
+
+        {k.showSpark && derived.sparkline.length > 1 && (
+          <div className="relative mt-2 h-10 -mx-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={derived.sparkline}>
+                <defs>
+                  <linearGradient id={`spark-${prefix}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(168 100% 42%)" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="hsl(168 100% 42%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  stroke="hsl(168 100% 42%)"
+                  strokeWidth={2}
+                  fill={`url(#spark-${prefix}-${i})`}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {typeof k.progress === "number" && (
+          <div className="relative mt-3">
+            <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary via-primary-glow to-premium rounded-full transition-all duration-700"
+                style={{ width: `${k.progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="relative mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          {k.trendUp === true && <ArrowUpRight className="h-3 w-3 text-success" />}
+          {k.trendUp === false && <ArrowDownRight className="h-3 w-3 text-warning" />}
+          <span className="truncate">{k.hint}</span>
+          <span className="ml-auto inline-flex h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_8px_hsl(168_100%_42%)] animate-pulse" />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ===== KPI CARDS ===== */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((k, i) => {
-          const Icon = k.icon;
-          return (
-            <div
-              key={k.label}
-              className={[
-                "group relative overflow-hidden rounded-card p-5",
-                "bg-gradient-to-br",
-                k.gradient,
-                k.ring,
-                "backdrop-blur-xl border border-white/5",
-                "transition-all duration-300 hover:-translate-y-1 hover:shadow-glow",
-              ].join(" ")}
-              style={{
-                background:
-                  "linear-gradient(135deg, hsl(0 39% 15% / 0.85), hsl(0 42% 11% / 0.7))",
-              }}
-            >
-              {/* internal glow */}
-              <div
-                className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br ${k.gradient} blur-3xl opacity-60`}
-              />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="space-y-1 min-w-0 flex-1">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
-                    {k.label}
-                  </p>
-                  {k.customValue ? (
-                    k.customValue
-                  ) : (
-                    <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight whitespace-nowrap">
-                      {k.value}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-xl bg-white/5 p-2 border border-white/10">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
-              </div>
-
-              {k.showSpark && derived.sparkline.length > 1 && (
-                <div className="relative mt-2 h-10 -mx-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={derived.sparkline}>
-                      <defs>
-                        <linearGradient id={`spark-${i}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(168 100% 42%)" stopOpacity={0.7} />
-                          <stop offset="100%" stopColor="hsl(168 100% 42%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="total"
-                        stroke="hsl(168 100% 42%)"
-                        strokeWidth={2}
-                        fill={`url(#spark-${i})`}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {typeof k.progress === "number" && (
-                <div className="relative mt-3">
-                  <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-primary via-primary-glow to-premium rounded-full transition-all duration-700"
-                      style={{ width: `${k.progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="relative mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                {k.trendUp === true && <ArrowUpRight className="h-3 w-3 text-success" />}
-                {k.trendUp === false && <ArrowDownRight className="h-3 w-3 text-warning" />}
-                <span className="truncate">{k.hint}</span>
-                <span className="ml-auto inline-flex h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_8px_hsl(168_100%_42%)] animate-pulse" />
-              </div>
-            </div>
-          );
-        })}
+        {kpis.map((k, i) => renderKpi(k, i))}
       </div>
+
+      {/* ===== KPI CARDS · TICKET MÉDIO ===== */}
+      {ticketKpis.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {ticketKpis.map((k, i) => renderKpi(k, i, "t"))}
+        </div>
+      )}
 
       {/* ===== CENTRAL: HEATMAP + AI ===== */}
       <div className="grid gap-6 lg:grid-cols-5">
