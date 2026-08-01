@@ -373,21 +373,23 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     const ultimoDiaDate = new Date(ano, mes, 0).getDate();
     const diaHoje = mesmoPeriodo ? today.getDate() : ultimoDiaDate;
 
-    // Working days remaining (exclude Sundays)
+    const feriadoSet = new Set(feriadoDias);
+    // Working days remaining (exclude Sundays and holidays)
     let restantes = 0;
     for (let d = diaHoje; d <= ultimoDiaDate; d++) {
       const wd = new Date(ano, mes - 1, d).getDay();
-      if (wd !== 0) restantes++;
+      if (wd !== 0 && !feriadoSet.has(d)) restantes++;
     }
-    // Total working days in month and already elapsed (exclude Sundays)
+    // Total working days in month and already elapsed (exclude Sundays and holidays)
     let uteisTotal = 0;
     let uteisDecorridos = 0;
     for (let d = 1; d <= ultimoDiaDate; d++) {
       const wd = new Date(ano, mes - 1, d).getDay();
-      if (wd === 0) continue;
+      if (wd === 0 || feriadoSet.has(d)) continue;
       uteisTotal++;
       if (d < diaHoje) uteisDecorridos++;
     }
+
     const faltante = Math.max(0, stats.metaGeral - stats.vendasMesAtual);
     const metaDoDia = restantes > 0 ? faltante / restantes : 0;
 
