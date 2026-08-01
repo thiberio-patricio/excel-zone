@@ -617,10 +617,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const numLojasTicket = filialId ? 1 : Math.max(1, ticketsPorLoja.length);
   const META_TICKET = META_TICKET_LOJA * numLojasTicket;
   const progressoTicket = META_TICKET > 0 ? (ticketMes / META_TICKET) * 100 : 0;
-  // Meta do dia de ticket: meta de ticket da loja ÷ dias de venda do mês (calendário, exclui domingos).
-  const metaDiaTicketLoja =
-    derived.uteisTotal > 0 ? META_TICKET_LOJA / derived.uteisTotal : 0;
-  const metaDiaTicket = metaDiaTicketLoja * numLojasTicket;
+  // Meta do dia de ticket: recalculada diariamente => (Meta Ticket - Ticket do Mês) ÷ dias de venda restantes
+  const faltanteTicket = Math.max(0, META_TICKET - ticketMes);
+  const metaDiaTicket = derived.restantes > 0 ? faltanteTicket / derived.restantes : 0;
 
 
   const evolucaoTicket =
