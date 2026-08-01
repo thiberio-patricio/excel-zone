@@ -211,6 +211,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             percentual: meta?.valor_meta
               ? Math.round((totalVendido / Number(meta.valor_meta)) * 100)
               : 0,
+            percentualTicket: Math.round((ticket / 500) * 100),
           };
         })
       );
@@ -358,8 +359,10 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                       fontSize: '13px',
                       padding: '4px 0'
                     }}
-                    formatter={(value: number) => 
-                      `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    formatter={(value: number, name: string) =>
+                      name === "Ticket Médio"
+                        ? `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${Math.round((value / 500) * 100)}% da meta de R$ 500,00)`
+                        : `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                     }
                   />
                   <Legend 
@@ -391,14 +394,28 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     name="Meta"
                     radius={[8, 8, 0, 0]}
                     maxBarSize={60}
-                  />
+                  >
+                    <LabelList
+                      dataKey="percentual"
+                      position="top"
+                      formatter={(value: number) => `${value}%`}
+                      style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }}
+                    />
+                  </Bar>
                   <Bar 
                     dataKey="ticket" 
                     fill={chartTheme.percentual}
                     name="Ticket Médio"
                     radius={[8, 8, 0, 0]}
                     maxBarSize={60}
-                  />
+                  >
+                    <LabelList
+                      dataKey="percentualTicket"
+                      position="top"
+                      formatter={(value: number) => `${value}%`}
+                      style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }}
+                    />
+                  </Bar>
                 </RechartsBarChart>
               </ResponsiveContainer>
             </CardContent>
