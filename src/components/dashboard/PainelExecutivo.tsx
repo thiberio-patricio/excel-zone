@@ -517,7 +517,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     },
 
     {
-      label: "Progresso",
+      label: "📈 Progresso",
       value: `${derived.progresso.toFixed(0)}%`,
       hint:
         derived.progresso >= 100
@@ -529,13 +529,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       progress: Math.min(100, derived.progresso),
     },
     {
-      label: "Meta do Dia",
+      label: "📅 Meta do Dia",
       value: formatBRL(derived.metaDoDia),
       hint: `${derived.restantes} dias úteis restantes`,
       icon: CalendarClock,
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
     },
+
     ...(filialId
       ? []
       : [
