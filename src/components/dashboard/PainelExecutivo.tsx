@@ -243,15 +243,42 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       let ticketSum = 0;
       let totalValorGeral = 0;
       let totalQtdGeral = 0;
-      vendasByVendedor.forEach((rows) => {
+      // Agregação por loja (filial) para o escopo Diretor
+      const lojaAtual = new Map<string, { val: number; qtd: number }>();
+      vendasByVendedor.forEach((rows, vid) => {
         const totVal = rows.reduce((a, r) => a + r.total, 0);
         const totQtd = rows.reduce((a, r) => a + r.qtd, 0);
         totalValorGeral += totVal;
         totalQtdGeral += totQtd;
         if (totQtd > 0) ticketSum += totVal / totQtd;
+        const fid = profilesById.get(vid)?.filial_id;
+        if (fid) {
+          const cur = lojaAtual.get(fid) || { val: 0, qtd: 0 };
+          cur.val += totVal;
+          cur.qtd += totQtd;
+          lojaAtual.set(fid, cur);
+        }
       });
       setTicketTotal(ticketSum);
-      setTicketMes(totalQtdGeral > 0 ? totalValorGeral / totalQtdGeral : 0);
+
+      // Lojas em escopo: todas as filiais que possuem vendedores
+      const lojasEscopo = new Set<string>();
+      allowedVendedorIds.forEach((vid) => {
+        const fid = profilesById.get(vid)?.filial_id;
+        if (fid) lojasEscopo.add(fid);
+      });
+
+      const ticketLojas = Array.from(lojasEscopo).map((fid) => {
+        const a = lojaAtual.get(fid);
+        return a && a.qtd > 0 ? a.val / a.qtd : 0;
+      });
+      setTicketsPorLoja(ticketLojas);
+
+      const ticketMesGlobal = totalQtdGeral > 0 ? totalValorGeral / totalQtdGeral : 0;
+      // Diretor: soma do ticket de todas as lojas. Gerente/filial: ticket da própria loja.
+      setTicketMes(
+        filialId ? ticketMesGlobal : ticketLojas.reduce((a, b) => a + b, 0)
+      );
 
       // Ticket do mês anterior (mesmo escopo) para a evolução
       const mesAnt = mes === 1 ? 12 : mes - 1;
@@ -264,12 +291,31 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
         .lte("data", `${anoAnt}-${String(mesAnt).padStart(2, "0")}-${String(ultimoDiaAnt).padStart(2, "0")}`);
       let valAnt = 0;
       let qtdAnt = 0;
+      const lojaAnt = new Map<string, { val: number; qtd: number }>();
       (vendasAnt || []).forEach((v: any) => {
         if (!allowedVendedorIds.has(v.vendedor_id)) return;
-        valAnt += Number(v.valor) - Number(v.devolucao);
-        qtdAnt += Number(v.quantidade_vendas) || 0;
+        const val = Number(v.valor) - Number(v.devolucao);
+        const qtd = Number(v.quantidade_vendas) || 0;
+        valAnt += val;
+        qtdAnt += qtd;
+        const fid = profilesById.get(v.vendedor_id)?.filial_id;
+        if (fid) {
+          const cur = lojaAnt.get(fid) || { val: 0, qtd: 0 };
+          cur.val += val;
+          cur.qtd += qtd;
+          lojaAnt.set(fid, cur);
+        }
       });
-      setTicketAnterior(qtdAnt > 0 ? valAnt / qtdAnt : 0);
+      if (filialId) {
+        setTicketAnterior(qtdAnt > 0 ? valAnt / qtdAnt : 0);
+      } else {
+        const somaAnt = Array.from(lojasEscopo).reduce((acc, fid) => {
+          const a = lojaAnt.get(fid);
+          return acc + (a && a.qtd > 0 ? a.val / a.qtd : 0);
+        }, 0);
+        setTicketAnterior(somaAnt);
+      }
+
 
 
 
