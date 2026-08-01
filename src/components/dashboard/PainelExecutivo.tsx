@@ -345,6 +345,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       restantes,
       uteisTotal,
       uteisDecorridos,
+      faltante,
+      metaDoDia,
+
 
       progresso,
       vendasHoje,
