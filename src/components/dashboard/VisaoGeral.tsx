@@ -10,6 +10,8 @@ import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 import PainelExecutivo from "./PainelExecutivo";
 
+const META_TICKET = 500;
+
 interface VendasFilial {
   filialId: string;
   nome: string;
@@ -17,6 +19,7 @@ interface VendasFilial {
   meta: number;
   ticket: number;
   percentual: number;
+  percentualTicket: number;
 }
 
 interface VendasVendedor {
@@ -26,6 +29,7 @@ interface VendasVendedor {
   meta: number;
   ticket: number;
   percentual: number;
+  percentualTicket: number;
 }
 
 const MESES = [
@@ -183,7 +187,11 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       });
 
       const vendasFilialArray = Array.from(filialAggMap.values())
-        .map((f) => ({ ...f, percentual: f.meta > 0 ? Math.round((f.total / f.meta) * 100) : 0 }))
+        .map((f) => ({
+          ...f,
+          percentual: f.meta > 0 ? Math.round((f.total / f.meta) * 100) : 0,
+          percentualTicket: Math.round((f.ticket / META_TICKET) * 100),
+        }))
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
       const metaGeralTotal = Array.from(filialAggMap.values()).reduce((acc, f) => acc + f.meta, 0);
@@ -259,6 +267,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
             meta: metaValor,
             ticket,
             percentual: metaValor > 0 ? Math.round((total / metaValor) * 100) : 0,
+            percentualTicket: Math.round((ticket / META_TICKET) * 100),
           };
         })
       );
@@ -374,7 +383,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       content={
                         <ChartTooltipContent
                           formatter={(value, name, props) => {
-                            if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
+                            if (props?.dataKey === 'percentual' || props?.dataKey === 'percentualTicket') return `Percentual: ${Number(value).toFixed(0)}%`;
+                            if (props?.dataKey === 'ticket') return `Ticket Médio: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${Math.round((Number(value) / META_TICKET) * 100)}% da meta de R$ 500,00)`;
                             return `${name === 'meta' ? 'Meta' : name === 'ticket' ? 'Ticket Médio' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
                           }}
                         />
@@ -386,7 +396,14 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       fill={chartTheme.meta}
                       radius={[8, 8, 0, 0]}
                       name="meta"
-                    />
+                    >
+                      <LabelList
+                        dataKey="percentual"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                     <Bar
                       dataKey="total"
                       fill={chartTheme.vendido}
@@ -407,7 +424,14 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       fill={chartTheme.percentual}
                       radius={[8, 8, 0, 0]}
                       name="ticket"
-                    />
+                    >
+                      <LabelList
+                        dataKey="percentualTicket"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -445,7 +469,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       content={
                         <ChartTooltipContent
                           formatter={(value, name, props) => {
-                            if (props?.dataKey === 'percentual') return `Percentual: ${Number(value).toFixed(0)}%`;
+                            if (props?.dataKey === 'percentual' || props?.dataKey === 'percentualTicket') return `Percentual: ${Number(value).toFixed(0)}%`;
+                            if (props?.dataKey === 'ticket') return `Ticket Médio: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${Math.round((Number(value) / META_TICKET) * 100)}% da meta de R$ 500,00)`;
                             return `${name === 'meta' ? 'Meta' : name === 'ticket' ? 'Ticket Médio' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
                           }}
                         />
@@ -461,7 +486,14 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       onClick={(data: any) =>
                         carregarVendedoresDaFilial(data.filialId, data.nome)
                       }
-                    />
+                    >
+                      <LabelList
+                        dataKey="percentual"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                     <Bar
                       dataKey="total"
                       fill={chartTheme.vendido}
@@ -488,7 +520,14 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       onClick={(data: any) =>
                         carregarVendedoresDaFilial(data.filialId, data.nome)
                       }
-                    />
+                    >
+                      <LabelList
+                        dataKey="percentualTicket"
+                        position="top"
+                        formatter={(value: number) => `${value}%`}
+                        className="text-xs fill-foreground"
+                      />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
