@@ -426,7 +426,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       sparkline,
       trend,
     };
-  }, [dailySales, stats, mes, ano]);
+  }, [dailySales, stats, mes, ano, feriadoDias]);
 
   // AI insights (rule-based, natural language)
   const aiCards = useMemo(() => {
