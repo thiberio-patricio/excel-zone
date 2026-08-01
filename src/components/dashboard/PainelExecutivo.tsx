@@ -635,7 +635,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       <div
         key={`${prefix}-${k.label}`}
         className={[
-          "group relative overflow-hidden rounded-card p-5 h-full flex flex-col",
+          "group relative overflow-hidden rounded-card p-5 h-full min-h-[170px] flex flex-col",
           "bg-gradient-to-br",
           k.gradient,
           k.ring,
