@@ -706,7 +706,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
           </div>
         )}
 
-        <div className="relative mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+        <div className="relative mt-auto pt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
           {k.trendUp === true && <ArrowUpRight className="h-3 w-3 shrink-0 mt-0.5 text-success" />}
           {k.trendUp === false && <ArrowDownRight className="h-3 w-3 shrink-0 mt-0.5 text-warning" />}
           <span className="min-w-0 flex-1 break-words leading-snug">{k.hint}</span>
