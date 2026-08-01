@@ -309,8 +309,18 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       const wd = new Date(ano, mes - 1, d).getDay();
       if (wd !== 0) restantes++;
     }
+    // Total working days in month and already elapsed (exclude Sundays)
+    let uteisTotal = 0;
+    let uteisDecorridos = 0;
+    for (let d = 1; d <= ultimoDiaDate; d++) {
+      const wd = new Date(ano, mes - 1, d).getDay();
+      if (wd === 0) continue;
+      uteisTotal++;
+      if (d < diaHoje) uteisDecorridos++;
+    }
     const faltante = Math.max(0, stats.metaGeral - stats.vendasMesAtual);
     const metaDoDia = restantes > 0 ? faltante / restantes : 0;
+
 
     const progresso =
       stats.metaGeral > 0 ? (stats.vendasMesAtual / stats.metaGeral) * 100 : 0;
@@ -333,8 +343,12 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       diaHoje,
       totalDias: ultimoDiaDate,
       restantes,
+      uteisTotal,
+      uteisDecorridos,
       faltante,
       metaDoDia,
+
+
       progresso,
       vendasHoje,
       sparkline,
@@ -445,7 +459,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
   const kpis: any[] = [
     {
-      label: "Total Equipe",
+      label: "👥 Total Equipe",
       customValue: filialId ? (
         <div className="flex items-baseline gap-1.5 min-w-0">
           <span className="font-display text-2xl xl:text-3xl font-bold text-foreground leading-none">
@@ -481,7 +495,15 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",
     },
     {
-      label: "Vendas do Mês",
+      label: "🎯 Meta Geral",
+      value: formatBRL(stats.metaGeral),
+      hint: `Faltam ${formatBRL(derived.faltante)}`,
+      icon: Target,
+      gradient: "from-premium/30 via-premium/10 to-transparent",
+      ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
+    },
+    {
+      label: "💰 Vendas do Mês",
       value: formatBRL(stats.vendasMesAtual),
       hint:
         derived.trend >= 0
@@ -493,16 +515,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       ring: "shadow-[inset_0_0_0_1px_hsl(168_100%_42%/0.25)]",
       showSpark: true,
     },
+
     {
-      label: "Meta Geral",
-      value: formatBRL(stats.metaGeral),
-      hint: `Faltam ${formatBRL(derived.faltante)}`,
-      icon: Target,
-      gradient: "from-premium/30 via-premium/10 to-transparent",
-      ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
-    },
-    {
-      label: "Progresso",
+      label: "📈 Progresso",
       value: `${derived.progresso.toFixed(0)}%`,
       hint:
         derived.progresso >= 100
@@ -514,13 +529,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       progress: Math.min(100, derived.progresso),
     },
     {
-      label: "Meta do Dia",
+      label: "📅 Meta do Dia",
       value: formatBRL(derived.metaDoDia),
       hint: `${derived.restantes} dias úteis restantes`,
       icon: CalendarClock,
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
     },
+
     ...(filialId
       ? []
       : [
@@ -538,10 +554,13 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   // ===== KPIs de Ticket Médio (escopo gerente) =====
   const META_TICKET = 500;
   const progressoTicket = (ticketMes / META_TICKET) * 100;
+  // Meta do dia de ticket: recalcula pelos dias de venda do calendário (exclui domingos).
+  // O que não foi atingido nos dias decorridos é redistribuído nos dias restantes.
   const metaDiaTicket = Math.max(
     0,
     derived.restantes > 0
-      ? META_TICKET + ((META_TICKET - ticketMes) * derived.diaHoje) / derived.restantes
+      ? (META_TICKET * derived.uteisTotal - ticketMes * derived.uteisDecorridos) /
+        derived.restantes
       : META_TICKET
   );
   const evolucaoTicket =
@@ -556,7 +575,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
         {
           label: "🎯 Meta Ticket",
           value: formatBRL(META_TICKET),
-          hint: "Meta de ticket médio por vendedor",
+          hint: "Meta de ticket médio da loja",
           icon: Target,
           gradient: "from-premium/30 via-premium/10 to-transparent",
           ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
@@ -601,13 +620,22 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       ]
     : [];
 
+  const valueSizeClass = (v: string) => {
+    const len = String(v ?? "").length;
+    if (len <= 8) return "text-xl xl:text-2xl";
+    if (len <= 11) return "text-lg xl:text-xl";
+    if (len <= 14) return "text-base xl:text-lg";
+    if (len <= 17) return "text-sm xl:text-base";
+    return "text-xs xl:text-sm";
+  };
+
   const renderKpi = (k: any, i: number, prefix = "k") => {
     const Icon = k.icon;
     return (
       <div
         key={`${prefix}-${k.label}`}
         className={[
-          "group relative overflow-hidden rounded-card p-5",
+          "group relative overflow-hidden rounded-card p-5 h-full min-h-[170px] flex flex-col",
           "bg-gradient-to-br",
           k.gradient,
           k.ring,
@@ -632,11 +660,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
             {k.customValue ? (
               k.customValue
             ) : (
-              <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight break-words">
+              <p
+                className={`font-display ${valueSizeClass(k.value)} font-bold text-foreground leading-tight whitespace-nowrap overflow-hidden`}
+              >
                 {k.value}
               </p>
             )}
           </div>
+
           <div className="rounded-xl bg-white/5 p-2 border border-white/10">
             <Icon className="h-4 w-4 text-primary" />
           </div>
@@ -675,7 +706,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
           </div>
         )}
 
-        <div className="relative mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+        <div className="relative mt-auto pt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
           {k.trendUp === true && <ArrowUpRight className="h-3 w-3 shrink-0 mt-0.5 text-success" />}
           {k.trendUp === false && <ArrowDownRight className="h-3 w-3 shrink-0 mt-0.5 text-warning" />}
           <span className="min-w-0 flex-1 break-words leading-snug">{k.hint}</span>
