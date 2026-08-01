@@ -238,12 +238,37 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
       // Ticket Médio Total: soma do ticket médio de cada vendedor (venda real ÷ qtd)
       let ticketSum = 0;
+      let totalValorGeral = 0;
+      let totalQtdGeral = 0;
       vendasByVendedor.forEach((rows) => {
         const totVal = rows.reduce((a, r) => a + r.total, 0);
         const totQtd = rows.reduce((a, r) => a + r.qtd, 0);
+        totalValorGeral += totVal;
+        totalQtdGeral += totQtd;
         if (totQtd > 0) ticketSum += totVal / totQtd;
       });
       setTicketTotal(ticketSum);
+      setTicketMes(totalQtdGeral > 0 ? totalValorGeral / totalQtdGeral : 0);
+
+      // Ticket do mês anterior (mesmo escopo) para a evolução
+      const mesAnt = mes === 1 ? 12 : mes - 1;
+      const anoAnt = mes === 1 ? ano - 1 : ano;
+      const ultimoDiaAnt = new Date(anoAnt, mesAnt, 0).getDate();
+      const { data: vendasAnt } = await supabase
+        .from("vendas")
+        .select("valor, devolucao, vendedor_id, quantidade_vendas")
+        .gte("data", `${anoAnt}-${String(mesAnt).padStart(2, "0")}-01`)
+        .lte("data", `${anoAnt}-${String(mesAnt).padStart(2, "0")}-${String(ultimoDiaAnt).padStart(2, "0")}`);
+      let valAnt = 0;
+      let qtdAnt = 0;
+      (vendasAnt || []).forEach((v: any) => {
+        if (!allowedVendedorIds.has(v.vendedor_id)) return;
+        valAnt += Number(v.valor) - Number(v.devolucao);
+        qtdAnt += Number(v.quantidade_vendas) || 0;
+      });
+      setTicketAnterior(qtdAnt > 0 ? valAnt / qtdAnt : 0);
+
+
 
       // Compute stats internally when scoped to a filial
       if (filialId) {
