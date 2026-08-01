@@ -666,9 +666,11 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     {
       label: "📅 Meta do Dia Ticket",
       value: formatBRL(metaDiaTicket),
-      hint: filialId
-        ? `R$ 500 ÷ ${derived.uteisTotal} dias de venda`
-        : `R$ 500 ÷ ${derived.uteisTotal} dias × ${numLojasTicket} loja(s)`,
+      hint:
+        faltanteTicket <= 0
+          ? "Meta de ticket já alcançada"
+          : `${formatBRL(faltanteTicket)} ÷ ${derived.restantes} dias restantes`,
+
 
       icon: CalendarClock,
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
