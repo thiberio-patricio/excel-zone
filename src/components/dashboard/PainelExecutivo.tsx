@@ -622,11 +622,11 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
   const valueSizeClass = (v: string) => {
     const len = String(v ?? "").length;
-    if (len <= 8) return "text-lg xl:text-xl";
-    if (len <= 11) return "text-base xl:text-lg";
-    if (len <= 14) return "text-sm xl:text-base";
-    if (len <= 17) return "text-xs xl:text-sm";
-    return "text-xs";
+    if (len <= 8) return "text-base xl:text-lg";
+    if (len <= 11) return "text-sm xl:text-base";
+    if (len <= 14) return "text-xs xl:text-sm";
+    if (len <= 17) return "text-[10px] xl:text-xs";
+    return "text-[10px]";
   };
 
   const renderKpi = (k: any, i: number, prefix = "k") => {
