@@ -554,10 +554,13 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   // ===== KPIs de Ticket Médio (escopo gerente) =====
   const META_TICKET = 500;
   const progressoTicket = (ticketMes / META_TICKET) * 100;
+  // Meta do dia de ticket: recalcula pelos dias de venda do calendário (exclui domingos).
+  // O que não foi atingido nos dias decorridos é redistribuído nos dias restantes.
   const metaDiaTicket = Math.max(
     0,
     derived.restantes > 0
-      ? META_TICKET + ((META_TICKET - ticketMes) * derived.diaHoje) / derived.restantes
+      ? (META_TICKET * derived.uteisTotal - ticketMes * derived.uteisDecorridos) /
+        derived.restantes
       : META_TICKET
   );
   const evolucaoTicket =
