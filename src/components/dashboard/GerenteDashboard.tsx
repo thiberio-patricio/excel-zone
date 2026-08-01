@@ -299,9 +299,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
               <ResponsiveContainer width="100%" height={450}>
                 <RechartsBarChart 
                   data={dashboardData}
-                  margin={{ top: 28, right: 30, left: 20, bottom: 60 }}
-                  barGap={16}
-                  barCategoryGap="30%"
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                  barGap={8}
                 >
                   <defs>
                     <linearGradient id="colorVendido" x1="0" y1="0" x2="0" y2="1">
@@ -396,14 +395,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     name="Meta"
                     radius={[8, 8, 0, 0]}
                     maxBarSize={60}
-                  >
-                    <LabelList
-                      dataKey="percentual"
-                      position="top"
-                      formatter={() => `100%`}
-                      style={{ fill: 'hsl(var(--foreground))', fontSize: 12, fontWeight: 600 }}
-                    />
-                  </Bar>
+                  />
                   <Bar 
                     dataKey="ticket" 
                     fill={chartTheme.percentual}
