@@ -70,6 +70,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [ticketTotal, setTicketTotal] = useState(0);
   const [ticketMes, setTicketMes] = useState(0);
   const [ticketAnterior, setTicketAnterior] = useState(0);
+  /** Ticket médio do mês por loja (usado no escopo Diretor para somar as lojas) */
+  const [ticketsPorLoja, setTicketsPorLoja] = useState<number[]>([]);
+
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
   const [computedStats, setComputedStats] = useState(emptyStats);
   const stats = filialId ? computedStats : (statsProp || emptyStats);
@@ -240,15 +243,42 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       let ticketSum = 0;
       let totalValorGeral = 0;
       let totalQtdGeral = 0;
-      vendasByVendedor.forEach((rows) => {
+      // Agregação por loja (filial) para o escopo Diretor
+      const lojaAtual = new Map<string, { val: number; qtd: number }>();
+      vendasByVendedor.forEach((rows, vid) => {
         const totVal = rows.reduce((a, r) => a + r.total, 0);
         const totQtd = rows.reduce((a, r) => a + r.qtd, 0);
         totalValorGeral += totVal;
         totalQtdGeral += totQtd;
         if (totQtd > 0) ticketSum += totVal / totQtd;
+        const fid = profilesById.get(vid)?.filial_id;
+        if (fid) {
+          const cur = lojaAtual.get(fid) || { val: 0, qtd: 0 };
+          cur.val += totVal;
+          cur.qtd += totQtd;
+          lojaAtual.set(fid, cur);
+        }
       });
       setTicketTotal(ticketSum);
-      setTicketMes(totalQtdGeral > 0 ? totalValorGeral / totalQtdGeral : 0);
+
+      // Lojas em escopo: todas as filiais que possuem vendedores
+      const lojasEscopo = new Set<string>();
+      allowedVendedorIds.forEach((vid) => {
+        const fid = profilesById.get(vid)?.filial_id;
+        if (fid) lojasEscopo.add(fid);
+      });
+
+      const ticketLojas = Array.from(lojasEscopo).map((fid) => {
+        const a = lojaAtual.get(fid);
+        return a && a.qtd > 0 ? a.val / a.qtd : 0;
+      });
+      setTicketsPorLoja(ticketLojas);
+
+      const ticketMesGlobal = totalQtdGeral > 0 ? totalValorGeral / totalQtdGeral : 0;
+      // Diretor: soma do ticket de todas as lojas. Gerente/filial: ticket da própria loja.
+      setTicketMes(
+        filialId ? ticketMesGlobal : ticketLojas.reduce((a, b) => a + b, 0)
+      );
 
       // Ticket do mês anterior (mesmo escopo) para a evolução
       const mesAnt = mes === 1 ? 12 : mes - 1;
@@ -261,12 +291,31 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
         .lte("data", `${anoAnt}-${String(mesAnt).padStart(2, "0")}-${String(ultimoDiaAnt).padStart(2, "0")}`);
       let valAnt = 0;
       let qtdAnt = 0;
+      const lojaAnt = new Map<string, { val: number; qtd: number }>();
       (vendasAnt || []).forEach((v: any) => {
         if (!allowedVendedorIds.has(v.vendedor_id)) return;
-        valAnt += Number(v.valor) - Number(v.devolucao);
-        qtdAnt += Number(v.quantidade_vendas) || 0;
+        const val = Number(v.valor) - Number(v.devolucao);
+        const qtd = Number(v.quantidade_vendas) || 0;
+        valAnt += val;
+        qtdAnt += qtd;
+        const fid = profilesById.get(v.vendedor_id)?.filial_id;
+        if (fid) {
+          const cur = lojaAnt.get(fid) || { val: 0, qtd: 0 };
+          cur.val += val;
+          cur.qtd += qtd;
+          lojaAnt.set(fid, cur);
+        }
       });
-      setTicketAnterior(qtdAnt > 0 ? valAnt / qtdAnt : 0);
+      if (filialId) {
+        setTicketAnterior(qtdAnt > 0 ? valAnt / qtdAnt : 0);
+      } else {
+        const somaAnt = Array.from(lojasEscopo).reduce((acc, fid) => {
+          const a = lojaAnt.get(fid);
+          return acc + (a && a.qtd > 0 ? a.val / a.qtd : 0);
+        }, 0);
+        setTicketAnterior(somaAnt);
+      }
+
 
 
 
@@ -540,17 +589,27 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
 
   // ===== KPIs de Ticket Médio (escopo gerente) =====
-  const META_TICKET = 500;
-  const progressoTicket = (ticketMes / META_TICKET) * 100;
+  const META_TICKET_LOJA = 500;
+  // Diretor: meta = soma da meta de ticket de todas as lojas. Gerente: meta da própria loja.
+  const numLojasTicket = filialId ? 1 : Math.max(1, ticketsPorLoja.length);
+  const META_TICKET = META_TICKET_LOJA * numLojasTicket;
+  const progressoTicket = META_TICKET > 0 ? (ticketMes / META_TICKET) * 100 : 0;
   // Meta do dia de ticket: recalcula pelos dias de venda do calendário (exclui domingos).
   // O que não foi atingido nos dias decorridos é redistribuído nos dias restantes.
-  const metaDiaTicket = Math.max(
-    0,
-    derived.restantes > 0
-      ? (META_TICKET * derived.uteisTotal - ticketMes * derived.uteisDecorridos) /
-        derived.restantes
-      : META_TICKET
-  );
+  const metaDiaTicketLoja = (ticketLoja: number) =>
+    Math.max(
+      0,
+      derived.restantes > 0
+        ? (META_TICKET_LOJA * derived.uteisTotal - ticketLoja * derived.uteisDecorridos) /
+          derived.restantes
+        : META_TICKET_LOJA
+    );
+  const metaDiaTicket = filialId
+    ? metaDiaTicketLoja(ticketMes)
+    : ticketsPorLoja.length > 0
+    ? ticketsPorLoja.reduce((acc, t) => acc + metaDiaTicketLoja(t), 0)
+    : metaDiaTicketLoja(0);
+
   const evolucaoTicket =
     ticketAnterior > 0
       ? ((ticketMes - ticketAnterior) / ticketAnterior) * 100
@@ -562,7 +621,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     {
       label: "🎯 Meta Ticket",
       value: formatBRL(META_TICKET),
-      hint: filialId ? "Meta de ticket médio da loja" : "Meta de ticket médio das lojas",
+      hint: filialId
+        ? "Meta de ticket médio da loja"
+        : `Soma de R$ 500 × ${numLojasTicket} loja(s)`,
       icon: Target,
       gradient: "from-premium/30 via-premium/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
@@ -570,7 +631,10 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     {
       label: "💰 Ticket do Mês",
       value: formatBRL(ticketMes),
-      hint: "Vendas líquidas ÷ quantidade de vendas",
+      hint: filialId
+        ? "Vendas líquidas ÷ quantidade de vendas"
+        : "Soma do ticket médio de todas as lojas",
+
       icon: TrendingUp,
       gradient: "from-success/30 via-success/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(168_100%_42%/0.25)]",

@@ -364,7 +364,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
             ) : (
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={vendasPorVendedor}>
+                  <BarChart data={vendasPorVendedor} margin={{ top: 28, right: 12, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis
                       dataKey="nome"
@@ -377,8 +377,11 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     <YAxis
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--foreground))' }}
+                      domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.15) / 1000) * 1000]}
+                      allowDataOverflow={false}
                       tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
                     />
+
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
@@ -453,7 +456,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={vendasPorFilial}>
+                  <BarChart data={vendasPorFilial} margin={{ top: 28, right: 12, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                     <XAxis
                       dataKey="nome"
@@ -463,8 +466,11 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     <YAxis
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--foreground))' }}
+                      domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.15) / 1000) * 1000]}
+                      allowDataOverflow={false}
                       tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
                     />
+
                     <ChartTooltip
                       content={
                         <ChartTooltipContent
