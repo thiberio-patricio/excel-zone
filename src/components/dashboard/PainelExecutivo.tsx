@@ -620,13 +620,22 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       ]
     : [];
 
+  const valueSizeClass = (v: string) => {
+    const len = String(v ?? "").length;
+    if (len <= 8) return "text-xl xl:text-2xl";
+    if (len <= 11) return "text-lg xl:text-xl";
+    if (len <= 14) return "text-base xl:text-lg";
+    if (len <= 17) return "text-sm xl:text-base";
+    return "text-xs xl:text-sm";
+  };
+
   const renderKpi = (k: any, i: number, prefix = "k") => {
     const Icon = k.icon;
     return (
       <div
         key={`${prefix}-${k.label}`}
         className={[
-          "group relative overflow-hidden rounded-card p-5",
+          "group relative overflow-hidden rounded-card p-5 h-full flex flex-col",
           "bg-gradient-to-br",
           k.gradient,
           k.ring,
@@ -651,11 +660,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
             {k.customValue ? (
               k.customValue
             ) : (
-              <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight break-words">
+              <p
+                className={`font-display ${valueSizeClass(k.value)} font-bold text-foreground leading-tight whitespace-nowrap overflow-hidden`}
+              >
                 {k.value}
               </p>
             )}
           </div>
+
           <div className="rounded-xl bg-white/5 p-2 border border-white/10">
             <Icon className="h-4 w-4 text-primary" />
           </div>
