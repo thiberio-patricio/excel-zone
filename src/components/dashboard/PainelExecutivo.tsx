@@ -621,7 +621,9 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     {
       label: "🎯 Meta Ticket",
       value: formatBRL(META_TICKET),
-      hint: filialId ? "Meta de ticket médio da loja" : "Meta de ticket médio das lojas",
+      hint: filialId
+        ? "Meta de ticket médio da loja"
+        : `Soma de R$ 500 × ${numLojasTicket} loja(s)`,
       icon: Target,
       gradient: "from-premium/30 via-premium/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
@@ -629,7 +631,10 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     {
       label: "💰 Ticket do Mês",
       value: formatBRL(ticketMes),
-      hint: "Vendas líquidas ÷ quantidade de vendas",
+      hint: filialId
+        ? "Vendas líquidas ÷ quantidade de vendas"
+        : "Soma do ticket médio de todas as lojas",
+
       icon: TrendingUp,
       gradient: "from-success/30 via-success/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(168_100%_42%/0.25)]",
