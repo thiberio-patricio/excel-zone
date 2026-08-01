@@ -575,7 +575,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
         {
           label: "🎯 Meta Ticket",
           value: formatBRL(META_TICKET),
-          hint: "Meta de ticket médio por vendedor",
+          hint: "Meta de ticket médio da loja",
           icon: Target,
           gradient: "from-premium/30 via-premium/10 to-transparent",
           ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
