@@ -625,13 +625,14 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
         />
         <div className="relative flex items-start justify-between gap-3">
           <div className="space-y-1 min-w-0 flex-1">
-            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold break-words leading-snug">
               {k.label}
             </p>
+
             {k.customValue ? (
               k.customValue
             ) : (
-              <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight whitespace-nowrap">
+              <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight break-words">
                 {k.value}
               </p>
             )}
@@ -674,12 +675,13 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
           </div>
         )}
 
-        <div className="relative mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-          {k.trendUp === true && <ArrowUpRight className="h-3 w-3 text-success" />}
-          {k.trendUp === false && <ArrowDownRight className="h-3 w-3 text-warning" />}
-          <span className="truncate">{k.hint}</span>
-          <span className="ml-auto inline-flex h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_8px_hsl(168_100%_42%)] animate-pulse" />
+        <div className="relative mt-3 flex items-start gap-1.5 text-[11px] text-muted-foreground">
+          {k.trendUp === true && <ArrowUpRight className="h-3 w-3 shrink-0 mt-0.5 text-success" />}
+          {k.trendUp === false && <ArrowDownRight className="h-3 w-3 shrink-0 mt-0.5 text-warning" />}
+          <span className="min-w-0 flex-1 break-words leading-snug">{k.hint}</span>
+          <span className="mt-1 inline-flex h-1.5 w-1.5 shrink-0 rounded-full bg-success shadow-[0_0_8px_hsl(168_100%_42%)] animate-pulse" />
         </div>
+
       </div>
     );
   };
@@ -687,16 +689,21 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ===== KPI CARDS ===== */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div
+        className={`grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-stretch ${
+          ticketKpis.length > 0 ? "xl:grid-cols-5" : "xl:grid-cols-6"
+        }`}
+      >
         {kpis.map((k, i) => renderKpi(k, i))}
       </div>
 
       {/* ===== KPI CARDS · TICKET MÉDIO ===== */}
       {ticketKpis.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-stretch">
           {ticketKpis.map((k, i) => renderKpi(k, i, "t"))}
         </div>
       )}
+
 
       {/* ===== CENTRAL: HEATMAP + AI ===== */}
       <div className="grid gap-6 lg:grid-cols-5">
