@@ -68,6 +68,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [loading, setLoading] = useState(true);
   const [filialNome, setFilialNome] = useState<string | null>(null);
   const [ticketTotal, setTicketTotal] = useState(0);
+  const [ticketMes, setTicketMes] = useState(0);
+  const [ticketAnterior, setTicketAnterior] = useState(0);
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
   const [computedStats, setComputedStats] = useState(emptyStats);
   const stats = filialId ? computedStats : (statsProp || emptyStats);
@@ -236,12 +238,37 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
       // Ticket Médio Total: soma do ticket médio de cada vendedor (venda real ÷ qtd)
       let ticketSum = 0;
+      let totalValorGeral = 0;
+      let totalQtdGeral = 0;
       vendasByVendedor.forEach((rows) => {
         const totVal = rows.reduce((a, r) => a + r.total, 0);
         const totQtd = rows.reduce((a, r) => a + r.qtd, 0);
+        totalValorGeral += totVal;
+        totalQtdGeral += totQtd;
         if (totQtd > 0) ticketSum += totVal / totQtd;
       });
       setTicketTotal(ticketSum);
+      setTicketMes(totalQtdGeral > 0 ? totalValorGeral / totalQtdGeral : 0);
+
+      // Ticket do mês anterior (mesmo escopo) para a evolução
+      const mesAnt = mes === 1 ? 12 : mes - 1;
+      const anoAnt = mes === 1 ? ano - 1 : ano;
+      const ultimoDiaAnt = new Date(anoAnt, mesAnt, 0).getDate();
+      const { data: vendasAnt } = await supabase
+        .from("vendas")
+        .select("valor, devolucao, vendedor_id, quantidade_vendas")
+        .gte("data", `${anoAnt}-${String(mesAnt).padStart(2, "0")}-01`)
+        .lte("data", `${anoAnt}-${String(mesAnt).padStart(2, "0")}-${String(ultimoDiaAnt).padStart(2, "0")}`);
+      let valAnt = 0;
+      let qtdAnt = 0;
+      (vendasAnt || []).forEach((v: any) => {
+        if (!allowedVendedorIds.has(v.vendedor_id)) return;
+        valAnt += Number(v.valor) - Number(v.devolucao);
+        qtdAnt += Number(v.quantidade_vendas) || 0;
+      });
+      setTicketAnterior(qtdAnt > 0 ? valAnt / qtdAnt : 0);
+
+
 
       // Compute stats internally when scoped to a filial
       if (filialId) {
@@ -494,103 +521,182 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       gradient: "from-secondary/30 via-secondary/10 to-transparent",
       ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
     },
-    {
-      label: "Ticket Médio Total",
-      value: formatBRL(ticketTotal),
-      hint: filialId ? "Soma dos vendedores da filial" : "Soma dos vendedores da empresa",
-      icon: TrendingUp,
-      gradient: "from-accent/30 via-accent/10 to-transparent",
-      ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
-    },
+    ...(filialId
+      ? []
+      : [
+          {
+            label: "Ticket Médio Total",
+            value: formatBRL(ticketTotal),
+            hint: "Soma dos vendedores da empresa",
+            icon: TrendingUp,
+            gradient: "from-accent/30 via-accent/10 to-transparent",
+            ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
+          },
+        ]),
   ];
+
+  // ===== KPIs de Ticket Médio (escopo gerente) =====
+  const META_TICKET = 500;
+  const progressoTicket = (ticketMes / META_TICKET) * 100;
+  const metaDiaTicket = Math.max(
+    0,
+    derived.restantes > 0
+      ? META_TICKET + ((META_TICKET - ticketMes) * derived.diaHoje) / derived.restantes
+      : META_TICKET
+  );
+  const evolucaoTicket =
+    ticketAnterior > 0
+      ? ((ticketMes - ticketAnterior) / ticketAnterior) * 100
+      : ticketMes > 0
+      ? 100
+      : 0;
+
+  const ticketKpis: any[] = filialId
+    ? [
+        {
+          label: "🎯 Meta Ticket",
+          value: formatBRL(META_TICKET),
+          hint: "Meta de ticket médio por vendedor",
+          icon: Target,
+          gradient: "from-premium/30 via-premium/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
+        },
+        {
+          label: "💰 Ticket do Mês",
+          value: formatBRL(ticketMes),
+          hint: "Vendas líquidas ÷ quantidade de vendas",
+          icon: TrendingUp,
+          gradient: "from-success/30 via-success/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(168_100%_42%/0.25)]",
+        },
+        {
+          label: "📈 Progresso Ticket",
+          value: `${progressoTicket.toFixed(0)}%`,
+          hint:
+            progressoTicket >= 100
+              ? "Meta de ticket batida"
+              : `${(100 - progressoTicket).toFixed(0)}% restante`,
+          icon: Gauge,
+          gradient: "from-accent/30 via-accent/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_42%/0.25)]",
+          progress: Math.min(100, Math.max(0, progressoTicket)),
+        },
+        {
+          label: "📅 Meta do Dia Ticket",
+          value: formatBRL(metaDiaTicket),
+          hint: `Ticket necessário nos ${derived.restantes} dias úteis`,
+          icon: CalendarClock,
+          gradient: "from-secondary/30 via-secondary/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_74%_58%/0.25)]",
+        },
+        {
+          label: "🚀 Evolução do Ticket",
+          value: `${evolucaoTicket >= 0 ? "+" : ""}${evolucaoTicket.toFixed(0)}%`,
+          hint: `Mês anterior: ${formatBRL(ticketAnterior)}`,
+          trendUp: evolucaoTicket >= 0,
+          icon: Radar,
+          gradient: "from-primary/30 via-primary/10 to-transparent",
+          ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",
+        },
+      ]
+    : [];
+
+  const renderKpi = (k: any, i: number, prefix = "k") => {
+    const Icon = k.icon;
+    return (
+      <div
+        key={`${prefix}-${k.label}`}
+        className={[
+          "group relative overflow-hidden rounded-card p-5",
+          "bg-gradient-to-br",
+          k.gradient,
+          k.ring,
+          "backdrop-blur-xl border border-white/5",
+          "transition-all duration-300 hover:-translate-y-1 hover:shadow-glow",
+        ].join(" ")}
+        style={{
+          background:
+            "linear-gradient(135deg, hsl(0 39% 15% / 0.85), hsl(0 42% 11% / 0.7))",
+        }}
+      >
+        {/* internal glow */}
+        <div
+          className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br ${k.gradient} blur-3xl opacity-60`}
+        />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="space-y-1 min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
+              {k.label}
+            </p>
+            {k.customValue ? (
+              k.customValue
+            ) : (
+              <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight whitespace-nowrap">
+                {k.value}
+              </p>
+            )}
+          </div>
+          <div className="rounded-xl bg-white/5 p-2 border border-white/10">
+            <Icon className="h-4 w-4 text-primary" />
+          </div>
+        </div>
+
+        {k.showSpark && derived.sparkline.length > 1 && (
+          <div className="relative mt-2 h-10 -mx-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={derived.sparkline}>
+                <defs>
+                  <linearGradient id={`spark-${prefix}-${i}`} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(168 100% 42%)" stopOpacity={0.7} />
+                    <stop offset="100%" stopColor="hsl(168 100% 42%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  stroke="hsl(168 100% 42%)"
+                  strokeWidth={2}
+                  fill={`url(#spark-${prefix}-${i})`}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {typeof k.progress === "number" && (
+          <div className="relative mt-3">
+            <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-primary via-primary-glow to-premium rounded-full transition-all duration-700"
+                style={{ width: `${k.progress}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="relative mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+          {k.trendUp === true && <ArrowUpRight className="h-3 w-3 text-success" />}
+          {k.trendUp === false && <ArrowDownRight className="h-3 w-3 text-warning" />}
+          <span className="truncate">{k.hint}</span>
+          <span className="ml-auto inline-flex h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_8px_hsl(168_100%_42%)] animate-pulse" />
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ===== KPI CARDS ===== */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-        {kpis.map((k, i) => {
-          const Icon = k.icon;
-          return (
-            <div
-              key={k.label}
-              className={[
-                "group relative overflow-hidden rounded-card p-5",
-                "bg-gradient-to-br",
-                k.gradient,
-                k.ring,
-                "backdrop-blur-xl border border-white/5",
-                "transition-all duration-300 hover:-translate-y-1 hover:shadow-glow",
-              ].join(" ")}
-              style={{
-                background:
-                  "linear-gradient(135deg, hsl(0 39% 15% / 0.85), hsl(0 42% 11% / 0.7))",
-              }}
-            >
-              {/* internal glow */}
-              <div
-                className={`pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br ${k.gradient} blur-3xl opacity-60`}
-              />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="space-y-1 min-w-0 flex-1">
-                  <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
-                    {k.label}
-                  </p>
-                  {k.customValue ? (
-                    k.customValue
-                  ) : (
-                    <p className="font-display text-base sm:text-lg xl:text-xl 2xl:text-2xl font-bold text-foreground leading-tight whitespace-nowrap">
-                      {k.value}
-                    </p>
-                  )}
-                </div>
-                <div className="rounded-xl bg-white/5 p-2 border border-white/10">
-                  <Icon className="h-4 w-4 text-primary" />
-                </div>
-              </div>
-
-              {k.showSpark && derived.sparkline.length > 1 && (
-                <div className="relative mt-2 h-10 -mx-2">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={derived.sparkline}>
-                      <defs>
-                        <linearGradient id={`spark-${i}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="hsl(168 100% 42%)" stopOpacity={0.7} />
-                          <stop offset="100%" stopColor="hsl(168 100% 42%)" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <Area
-                        type="monotone"
-                        dataKey="total"
-                        stroke="hsl(168 100% 42%)"
-                        strokeWidth={2}
-                        fill={`url(#spark-${i})`}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-
-              {typeof k.progress === "number" && (
-                <div className="relative mt-3">
-                  <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-primary via-primary-glow to-premium rounded-full transition-all duration-700"
-                      style={{ width: `${k.progress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="relative mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                {k.trendUp === true && <ArrowUpRight className="h-3 w-3 text-success" />}
-                {k.trendUp === false && <ArrowDownRight className="h-3 w-3 text-warning" />}
-                <span className="truncate">{k.hint}</span>
-                <span className="ml-auto inline-flex h-1.5 w-1.5 rounded-full bg-success shadow-[0_0_8px_hsl(168_100%_42%)] animate-pulse" />
-              </div>
-            </div>
-          );
-        })}
+        {kpis.map((k, i) => renderKpi(k, i))}
       </div>
+
+      {/* ===== KPI CARDS · TICKET MÉDIO ===== */}
+      {ticketKpis.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          {ticketKpis.map((k, i) => renderKpi(k, i, "t"))}
+        </div>
+      )}
 
       {/* ===== CENTRAL: HEATMAP + AI ===== */}
       <div className="grid gap-6 lg:grid-cols-5">
