@@ -309,8 +309,18 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       const wd = new Date(ano, mes - 1, d).getDay();
       if (wd !== 0) restantes++;
     }
+    // Total working days in month and already elapsed (exclude Sundays)
+    let uteisTotal = 0;
+    let uteisDecorridos = 0;
+    for (let d = 1; d <= ultimoDiaDate; d++) {
+      const wd = new Date(ano, mes - 1, d).getDay();
+      if (wd === 0) continue;
+      uteisTotal++;
+      if (d < diaHoje) uteisDecorridos++;
+    }
     const faltante = Math.max(0, stats.metaGeral - stats.vendasMesAtual);
     const metaDoDia = restantes > 0 ? faltante / restantes : 0;
+
 
     const progresso =
       stats.metaGeral > 0 ? (stats.vendasMesAtual / stats.metaGeral) * 100 : 0;
