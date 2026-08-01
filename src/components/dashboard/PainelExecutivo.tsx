@@ -495,7 +495,15 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       ring: "shadow-[inset_0_0_0_1px_hsl(0_100%_52%/0.25)]",
     },
     {
-      label: "Vendas do Mês",
+      label: "🎯 Meta Geral",
+      value: formatBRL(stats.metaGeral),
+      hint: `Faltam ${formatBRL(derived.faltante)}`,
+      icon: Target,
+      gradient: "from-premium/30 via-premium/10 to-transparent",
+      ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
+    },
+    {
+      label: "💰 Vendas do Mês",
       value: formatBRL(stats.vendasMesAtual),
       hint:
         derived.trend >= 0
@@ -507,14 +515,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       ring: "shadow-[inset_0_0_0_1px_hsl(168_100%_42%/0.25)]",
       showSpark: true,
     },
-    {
-      label: "Meta Geral",
-      value: formatBRL(stats.metaGeral),
-      hint: `Faltam ${formatBRL(derived.faltante)}`,
-      icon: Target,
-      gradient: "from-premium/30 via-premium/10 to-transparent",
-      ring: "shadow-[inset_0_0_0_1px_hsl(0_83%_58%/0.25)]",
-    },
+
     {
       label: "Progresso",
       value: `${derived.progresso.toFixed(0)}%`,
