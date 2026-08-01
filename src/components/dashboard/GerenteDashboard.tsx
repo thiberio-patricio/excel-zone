@@ -337,8 +337,9 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     tickLine={false}
                     axisLine={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
                     tickFormatter={(value) => 
-                      `R$ ${(value / 1000).toFixed(0)}k`
+                      `R$\u00A0${(value / 1000).toFixed(0)}k`
                     }
+                    width={80}
                   />
                   <Tooltip 
                     cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
