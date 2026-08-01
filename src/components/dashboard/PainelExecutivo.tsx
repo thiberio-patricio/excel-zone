@@ -589,17 +589,27 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
 
   // ===== KPIs de Ticket Médio (escopo gerente) =====
-  const META_TICKET = 500;
-  const progressoTicket = (ticketMes / META_TICKET) * 100;
+  const META_TICKET_LOJA = 500;
+  // Diretor: meta = soma da meta de ticket de todas as lojas. Gerente: meta da própria loja.
+  const numLojasTicket = filialId ? 1 : Math.max(1, ticketsPorLoja.length);
+  const META_TICKET = META_TICKET_LOJA * numLojasTicket;
+  const progressoTicket = META_TICKET > 0 ? (ticketMes / META_TICKET) * 100 : 0;
   // Meta do dia de ticket: recalcula pelos dias de venda do calendário (exclui domingos).
   // O que não foi atingido nos dias decorridos é redistribuído nos dias restantes.
-  const metaDiaTicket = Math.max(
-    0,
-    derived.restantes > 0
-      ? (META_TICKET * derived.uteisTotal - ticketMes * derived.uteisDecorridos) /
-        derived.restantes
-      : META_TICKET
-  );
+  const metaDiaTicketLoja = (ticketLoja: number) =>
+    Math.max(
+      0,
+      derived.restantes > 0
+        ? (META_TICKET_LOJA * derived.uteisTotal - ticketLoja * derived.uteisDecorridos) /
+          derived.restantes
+        : META_TICKET_LOJA
+    );
+  const metaDiaTicket = filialId
+    ? metaDiaTicketLoja(ticketMes)
+    : ticketsPorLoja.length > 0
+    ? ticketsPorLoja.reduce((acc, t) => acc + metaDiaTicketLoja(t), 0)
+    : metaDiaTicketLoja(0);
+
   const evolucaoTicket =
     ticketAnterior > 0
       ? ((ticketMes - ticketAnterior) / ticketAnterior) * 100
