@@ -269,6 +269,12 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
   const [totalVendido, setTotalVendido] = useState(0);
   const [metaTotal, setMetaTotal] = useState(0);
   const [totalAnterior, setTotalAnterior] = useState(0);
+  const [ticketGeral, setTicketGeral] = useState(0);
+  const [metaTicketGeral, setMetaTicketGeral] = useState(500);
+  const [feriasList, setFeriasList] = useState<FeriasItem[]>([]);
+  const [folgasList, setFolgasList] = useState<FolgaItem[]>([]);
+  const [feriadosList, setFeriadosList] = useState<FeriadoItem[]>([]);
+
 
   const [aiExec, setAiExec] = useState<string>("");
   const [aiComparativo, setAiComparativo] = useState<string>("");
