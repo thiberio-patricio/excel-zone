@@ -385,18 +385,50 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
 
       // Vendas do período atual + período anterior + TODAS as metas históricas dos vendedores
-      const [vendasAtual, vendasAnterior, metasRes] = await Promise.all([
+      const [vendasAtual, vendasAnterior, metasRes, feriasRes, folgasRes, feriadosRes] = await Promise.all([
         fetchVendasRange(vendedorIds, toISO(from), toISO(to)),
         fetchVendasRange(vendedorIds, toISO(prevFrom), toISO(prevTo)),
         vendedorIds.length
           ? supabase
               .from("metas")
-              .select("vendedor_id, valor_meta, mes, ano")
+              .select("vendedor_id, valor_meta, meta_ticket, mes, ano")
               .in("vendedor_id", vendedorIds)
           : Promise.resolve({ data: [] as any[] }),
+        vendedorIds.length
+          ? supabase
+              .from("ferias")
+              .select("id, vendedor_id, data_inicio, data_fim, observacoes")
+              .in("vendedor_id", vendedorIds)
+              .lte("data_inicio", toISO(to))
+              .gte("data_fim", toISO(from))
+          : Promise.resolve({ data: [] as any[] }),
+        vendedorIds.length
+          ? supabase
+              .from("folgas")
+              .select("id, vendedor_id, data, motivo")
+              .in("vendedor_id", vendedorIds)
+              .gte("data", toISO(from))
+              .lte("data", toISO(to))
+          : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from("feriados")
+          .select("id, data, descricao, filial_id")
+          .gte("data", toISO(from))
+          .lte("data", toISO(to)),
       ]);
 
       const metas = (metasRes.data ?? []) as any[];
+
+      // Nomes dos vendedores para os relatórios de ausências
+      const { data: nomesData } = vendedorIds.length
+        ? await supabase.from("profiles").select("id, nome, filial_id").in("id", vendedorIds)
+        : { data: [] as any[] };
+      const nomePorVendedor = new Map<string, string>(((nomesData ?? []) as any[]).map((p) => [p.id, p.nome]));
+      const nomeUnidade = (vid: string) => {
+        if (mode === "vendedor") return nomePorVendedor.get(vid) ?? "Vendedor";
+        const fid = vendedorToFilial.get(vid);
+        return filiais.find((f) => f.id === fid)?.nome ?? "-";
+      };
 
       // Aggregate per filial
       const lojaMap = new Map<string, LojaAgg>();
@@ -413,6 +445,12 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             crescimento: 0,
             participacao: 0,
             diferenca: 0,
+            quantidade: 0,
+            ticket: 0,
+            metaTicket: 0,
+            ticketPercentual: 0,
+            diasFerias: 0,
+            diasFolgas: 0,
           })
         );
 
@@ -422,6 +460,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         const agg = lojaMap.get(fid);
         if (!agg) return;
         agg.venda += Number(v.valor) - Number(v.devolucao ?? 0);
+        agg.quantidade += Number(v.quantidade_vendas ?? 0);
       });
       vendasAnterior.forEach((v) => {
         const fid = vendedorToFilial.get(v.vendedor_id);
@@ -429,6 +468,43 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         const agg = lojaMap.get(fid);
         if (!agg) return;
         agg.vendaAnterior += Number(v.valor) - Number(v.devolucao ?? 0);
+      });
+
+      // Ausências: férias e folgas dentro do período
+      const feriasArr: FeriasItem[] = ((feriasRes.data ?? []) as any[]).map((f) => ({
+        id: f.id,
+        vendedorNome: nomePorVendedor.get(f.vendedor_id) ?? "Vendedor",
+        unidadeNome: nomeUnidade(f.vendedor_id),
+        data_inicio: f.data_inicio,
+        data_fim: f.data_fim,
+        diasNoPeriodo: diasNoIntervalo(f.data_inicio, f.data_fim, from, to),
+        observacoes: f.observacoes ?? null,
+      }));
+      const folgasArr: FolgaItem[] = ((folgasRes.data ?? []) as any[]).map((f) => ({
+        id: f.id,
+        vendedorNome: nomePorVendedor.get(f.vendedor_id) ?? "Vendedor",
+        unidadeNome: nomeUnidade(f.vendedor_id),
+        data: f.data,
+        motivo: f.motivo ?? null,
+      }));
+      const feriadosArr: FeriadoItem[] = ((feriadosRes.data ?? []) as any[])
+        .filter((f) => !f.filial_id || mode === "vendedor" || selectedFiliais.has(f.filial_id))
+        .map((f) => ({
+          id: f.id,
+          data: f.data,
+          descricao: f.descricao,
+          filialNome: f.filial_id ? filiais.find((x) => x.id === f.filial_id)?.nome ?? "Filial" : "Todas as lojas",
+        }));
+
+      ((feriasRes.data ?? []) as any[]).forEach((f) => {
+        const fid = vendedorToFilial.get(f.vendedor_id);
+        const agg = fid ? lojaMap.get(fid) : undefined;
+        if (agg) agg.diasFerias += diasNoIntervalo(f.data_inicio, f.data_fim, from, to);
+      });
+      ((folgasRes.data ?? []) as any[]).forEach((f) => {
+        const fid = vendedorToFilial.get(f.vendedor_id);
+        const agg = fid ? lojaMap.get(fid) : undefined;
+        if (agg) agg.diasFolgas += 1;
       });
 
       // Meta do período: para CADA mês do período, somamos a meta mais recente
@@ -457,6 +533,26 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         });
       });
 
+      // Meta de ticket médio por unidade: média das metas de ticket dos vendedores
+      // (última meta cadastrada de cada vendedor; padrão R$ 500).
+      const metaTicketPorVendedor = new Map<string, number>();
+      metasSorted.forEach((m) => {
+        metaTicketPorVendedor.set(m.vendedor_id, Number(m.meta_ticket ?? 500));
+      });
+      const ticketAcc = new Map<string, { soma: number; qtd: number }>();
+      vendedorIds.forEach((vid) => {
+        const fid = vendedorToFilial.get(vid);
+        if (!fid || !lojaMap.has(fid)) return;
+        const acc = ticketAcc.get(fid) ?? { soma: 0, qtd: 0 };
+        acc.soma += metaTicketPorVendedor.get(vid) ?? 500;
+        acc.qtd += 1;
+        ticketAcc.set(fid, acc);
+      });
+      ticketAcc.forEach((acc, fid) => {
+        const agg = lojaMap.get(fid);
+        if (agg) agg.metaTicket = acc.qtd > 0 ? acc.soma / acc.qtd : 500;
+      });
+
       // Compute derived per loja
       let totalV = 0;
       let totalM = 0;
@@ -477,12 +573,21 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             : 0;
         l.participacao = totalV > 0 ? (l.venda / totalV) * 100 : 0;
         l.diferenca = l.venda - l.meta;
+        l.ticket = l.quantidade > 0 ? l.venda / l.quantidade : 0;
+        if (!l.metaTicket) l.metaTicket = 500;
+        l.ticketPercentual = l.metaTicket > 0 ? (l.ticket / l.metaTicket) * 100 : 0;
         lojasArr.push(l);
       });
       lojasArr.sort((a, b) => b.venda - a.venda);
 
+      const totalQtd = lojasArr.reduce((acc, l) => acc + l.quantidade, 0);
+      const ticketGeralValor = totalQtd > 0 ? totalV / totalQtd : 0;
+      const metaTicketGeralValor =
+        lojasArr.length > 0 ? lojasArr.reduce((acc, l) => acc + l.metaTicket, 0) / lojasArr.length : 500;
+
       // Evolução mensal — para cada mês, meta = soma das metas mais recentes até aquele mês
       const evoMap = new Map<string, MesAgg>();
+      const evoQtd = new Map<string, number>();
       meses.forEach((m) => {
         const rankLimite = m.ano * 12 + m.mes;
         const metaDoMes = new Map<string, number>();
@@ -495,15 +600,31 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         metaDoMes.forEach((val, vid) => {
           if (vendedorToFilial.has(vid)) somaMeta += val;
         });
-        evoMap.set(m.key, { key: m.key, label: m.label, meta: somaMeta, venda: 0 });
+        evoMap.set(m.key, {
+          key: m.key,
+          label: m.label,
+          meta: somaMeta,
+          venda: 0,
+          ticket: 0,
+          metaTicket: metaTicketGeralValor,
+        });
+        evoQtd.set(m.key, 0);
       });
       vendasAtual.forEach((v) => {
         const d = new Date(v.data + "T00:00:00");
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         const bucket = evoMap.get(key);
-        if (bucket) bucket.venda += Number(v.valor) - Number(v.devolucao ?? 0);
+        if (bucket) {
+          bucket.venda += Number(v.valor) - Number(v.devolucao ?? 0);
+          evoQtd.set(key, (evoQtd.get(key) ?? 0) + Number(v.quantidade_vendas ?? 0));
+        }
+      });
+      evoMap.forEach((bucket, key) => {
+        const q = evoQtd.get(key) ?? 0;
+        bucket.ticket = q > 0 ? bucket.venda / q : 0;
       });
       const evoArr = Array.from(evoMap.values());
+
 
       // Insights engine
       const _insights: Insights = {
