@@ -1231,7 +1231,10 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
               <TabsTrigger value="participacao">Participação</TabsTrigger>
               <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
               <TabsTrigger value="ranking">Ranking</TabsTrigger>
+              <TabsTrigger value="ticket">Ticket Médio</TabsTrigger>
+              <TabsTrigger value="ausencias">Férias / Feriados / Folgas</TabsTrigger>
               <TabsTrigger value="insights">Insights</TabsTrigger>
+
             </TabsList>
 
             {/* Comparativo */}
