@@ -136,12 +136,40 @@ export type Database = {
         }
         Relationships: []
       }
+      folgas: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          id: string
+          motivo: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: string
+          id?: string
+          motivo?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          id?: string
+          motivo?: string | null
+          vendedor_id?: string
+        }
+        Relationships: []
+      }
       metas: {
         Row: {
           ano: number
           created_at: string
           id: string
           mes: number
+          meta_ticket: number
           updated_at: string
           valor_meta: number
           vendedor_id: string
@@ -151,6 +179,7 @@ export type Database = {
           created_at?: string
           id?: string
           mes: number
+          meta_ticket?: number
           updated_at?: string
           valor_meta?: number
           vendedor_id: string
@@ -160,6 +189,7 @@ export type Database = {
           created_at?: string
           id?: string
           mes?: number
+          meta_ticket?: number
           updated_at?: string
           valor_meta?: number
           vendedor_id?: string
