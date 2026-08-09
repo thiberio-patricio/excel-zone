@@ -182,16 +182,24 @@ function monthRange(from: Date, to: Date): { mes: number; ano: number; key: stri
   return out;
 }
 
+type VendaRow = {
+  valor: number;
+  devolucao: number | null;
+  quantidade_vendas: number | null;
+  data: string;
+  vendedor_id: string;
+};
+
 async function fetchVendasRange(vendedorIds: string[], inicio: string, fim: string) {
-  if (vendedorIds.length === 0) return [];
+  if (vendedorIds.length === 0) return [] as VendaRow[];
 
   const pageSize = 1000;
-  const vendas: { valor: number; devolucao: number | null; data: string; vendedor_id: string }[] = [];
+  const vendas: VendaRow[] = [];
 
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase
       .from("vendas")
-      .select("valor, devolucao, data, vendedor_id")
+      .select("valor, devolucao, quantidade_vendas, data, vendedor_id")
       .in("vendedor_id", vendedorIds)
       .gte("data", inicio)
       .lte("data", fim)
@@ -200,13 +208,24 @@ async function fetchVendasRange(vendedorIds: string[], inicio: string, fim: stri
       .range(offset, offset + pageSize - 1);
 
     if (error) throw error;
-    const pagina = (data ?? []) as typeof vendas;
+    const pagina = (data ?? []) as VendaRow[];
     vendas.push(...pagina);
     if (pagina.length < pageSize) break;
   }
 
   return vendas;
 }
+
+/** Quantidade de dias de um período de férias que caem dentro da janela do relatório */
+function diasNoIntervalo(inicio: string, fim: string, from: Date, to: Date) {
+  const ini = new Date(inicio + "T00:00:00");
+  const end = new Date(fim + "T00:00:00");
+  const start = ini > from ? ini : from;
+  const stop = end < to ? end : to;
+  if (stop < start) return 0;
+  return Math.floor((stop.getTime() - start.getTime()) / 86400000) + 1;
+}
+
 
 /* --------------------------------- Presets --------------------------------- */
 
