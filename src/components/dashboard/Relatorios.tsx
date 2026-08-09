@@ -666,15 +666,33 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             : `Aumentar campanhas promocionais em ${nomes}.`
         );
       }
-
+      // Ticket médio
+      lojasArr.forEach((l) => {
+        if (l.ticketPercentual >= 100) _insights.destaques.push(`${l.nome} atingiu ${formatPct(l.ticketPercentual)} da meta de ticket médio (${formatBRL(l.ticket)}).`);
+        else if (l.ticket > 0) _insights.oportunidades.push(`${l.nome} está com ticket médio de ${formatBRL(l.ticket)} (${formatPct(l.ticketPercentual)} da meta).`);
+      });
+      // Ausências consideradas na análise
+      lojasArr.forEach((l) => {
+        if (l.diasFerias > 0 || l.diasFolgas > 0) {
+          _insights.alertas.push(
+            `${l.nome} teve ${l.diasFerias} dia(s) de férias e ${l.diasFolgas} folga(s) no período — considerar no resultado.`
+          );
+        }
+      });
 
       setLojas(lojasArr);
       setEvolucao(evoArr);
       setTotalVendido(totalV);
       setMetaTotal(totalM);
       setTotalAnterior(totalPrev);
+      setTicketGeral(ticketGeralValor);
+      setMetaTicketGeral(metaTicketGeralValor);
+      setFeriasList(feriasArr);
+      setFolgasList(folgasArr);
+      setFeriadosList(feriadosArr);
       setInsights(_insights);
       setGenerated(true);
+
 
       // Trigger AI
       const bestLoja = [...lojasArr].sort((a, b) => b.percentual - a.percentual)[0];
