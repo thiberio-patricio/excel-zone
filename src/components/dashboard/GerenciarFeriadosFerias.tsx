@@ -151,7 +151,7 @@ export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosF
     }
 
     try {
-      // Obter filial_id do usuário logado
+      // Obter filial_id do escopo atual (ou do usuário logado)
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from("profiles")
@@ -164,9 +164,10 @@ export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosF
         .insert({
           data: feriadoData,
           descricao: feriadoDescricao,
-          filial_id: profile?.filial_id,
+          filial_id: filialId ?? profile?.filial_id,
           created_by: user?.id
         });
+
 
       if (error) throw error;
 
