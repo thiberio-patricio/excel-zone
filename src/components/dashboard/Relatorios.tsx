@@ -69,6 +69,12 @@ interface LojaAgg {
   crescimento: number;
   participacao: number;
   diferenca: number;
+  quantidade: number;
+  ticket: number;
+  metaTicket: number;
+  ticketPercentual: number;
+  diasFerias: number;
+  diasFolgas: number;
 }
 
 interface MesAgg {
@@ -76,6 +82,33 @@ interface MesAgg {
   label: string;
   meta: number;
   venda: number;
+  ticket: number;
+  metaTicket: number;
+}
+
+interface FeriadoItem {
+  id: string;
+  data: string;
+  descricao: string;
+  filialNome: string;
+}
+
+interface FeriasItem {
+  id: string;
+  vendedorNome: string;
+  unidadeNome: string;
+  data_inicio: string;
+  data_fim: string;
+  diasNoPeriodo: number;
+  observacoes: string | null;
+}
+
+interface FolgaItem {
+  id: string;
+  vendedorNome: string;
+  unidadeNome: string;
+  data: string;
+  motivo: string | null;
 }
 
 interface Insights {
@@ -84,6 +117,7 @@ interface Insights {
   oportunidades: string[];
   recomendacoes: string[];
 }
+
 
 /* --------------------------------- Utils --------------------------------- */
 
