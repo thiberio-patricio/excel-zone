@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CalendarDays, Palmtree, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarDays, Palmtree, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
