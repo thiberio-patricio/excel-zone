@@ -457,6 +457,78 @@ export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosF
               </div>
             )}
           </TabsContent>
+
+          <TabsContent value="folgas" className="space-y-4">
+            <Dialog open={folgaDialogOpen} onOpenChange={setFolgaDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full gradient-primary text-primary-foreground shadow-glow">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Folga
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova Folga</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Vendedor</Label>
+                    <Select value={folgaVendedorId} onValueChange={setFolgaVendedorId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>{vendedor.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="folgaData">Data</Label>
+                    <Input id="folgaData" type="date" value={folgaData} onChange={(e) => setFolgaData(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="folgaMotivo">Motivo</Label>
+                    <Textarea id="folgaMotivo" placeholder="Motivo da folga (opcional)" value={folgaMotivo} onChange={(e) => setFolgaMotivo(e.target.value)} rows={3} />
+                  </div>
+                  <Button onClick={handleSalvarFolga} className="w-full gradient-primary text-primary-foreground shadow-glow">
+                    Salvar Folga
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {folgas.length === 0 ? (
+              <EmptyState icon={CalendarClock} title="Nenhuma folga cadastrada" description="Registre folgas pontuais da equipe para considerá-las nas análises." />
+            ) : (
+              <div className="space-y-2">
+                {folgas.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-center justify-between p-4 rounded-btn border border-white/5 bg-surface-1/40 hover:bg-white/[0.03] transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                        <CalendarClock className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{f.vendedor?.nome || "Vendedor"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(f.data + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </p>
+                        {f.motivo && <p className="text-xs text-muted-foreground mt-1">{f.motivo}</p>}
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleExcluirFolga(f.id)} className="hover:bg-destructive/10 opacity-60 group-hover:opacity-100">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
         </Tabs>
       </PageCard>
     </div>
