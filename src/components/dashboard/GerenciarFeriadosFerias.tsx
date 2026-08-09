@@ -34,9 +34,23 @@ interface Ferias {
   vendedor?: { nome: string };
 }
 
-export default function GerenciarFeriadosFerias() {
+interface Folga {
+  id: string;
+  vendedor_id: string;
+  data: string;
+  motivo: string | null;
+  vendedor?: { nome: string };
+}
+
+interface GerenciarFeriadosFeriasProps {
+  /** Escopo opcional de filial (usado quando o diretor acessa a visão de uma filial) */
+  filialId?: string | null;
+}
+
+export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosFeriasProps = {}) {
   const [feriados, setFeriados] = useState<Feriado[]>([]);
   const [ferias, setFerias] = useState<Ferias[]>([]);
+  const [folgas, setFolgas] = useState<Folga[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   
   // Formulário de feriado
@@ -51,17 +65,23 @@ export default function GerenciarFeriadosFerias() {
   const [feriasObservacoes, setFeriasObservacoes] = useState("");
   const [feriasDialogOpen, setFeriasDialogOpen] = useState(false);
 
+  // Formulário de folga
+  const [folgaVendedorId, setFolgaVendedorId] = useState("");
+  const [folgaData, setFolgaData] = useState("");
+  const [folgaMotivo, setFolgaMotivo] = useState("");
+  const [folgaDialogOpen, setFolgaDialogOpen] = useState(false);
+
   useEffect(() => {
     carregarDados();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filialId]);
 
   const carregarDados = async () => {
     try {
       // Carregar feriados
-      const { data: feriadosData } = await supabase
-        .from("feriados")
-        .select("*")
-        .order("data", { ascending: true });
+      let feriadosQuery = supabase.from("feriados").select("*");
+      if (filialId) feriadosQuery = feriadosQuery.or(`filial_id.eq.${filialId},filial_id.is.null`);
+      const { data: feriadosData } = await feriadosQuery.order("data", { ascending: true });
       
       setFeriados(feriadosData || []);
 
@@ -71,16 +91,25 @@ export default function GerenciarFeriadosFerias() {
         .select("user_id")
         .eq("role", "vendedor");
 
-      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+      const roleIds = rolesData?.map(r => r.user_id) || [];
 
-      if (vendedorIds.length > 0) {
-        const { data: profilesData } = await supabase
+      if (roleIds.length > 0) {
+        let profilesQuery = supabase
           .from("profiles")
           .select("id, nome")
-          .in("id", vendedorIds)
-          .order("nome");
+          .in("id", roleIds);
+        if (filialId) profilesQuery = profilesQuery.eq("filial_id", filialId);
+
+        const { data: profilesData } = await profilesQuery.order("nome");
 
         setVendedores(profilesData || []);
+
+        const vendedorIds = (profilesData || []).map((p) => p.id);
+        if (vendedorIds.length === 0) {
+          setFerias([]);
+          setFolgas([]);
+          return;
+        }
 
         // Carregar férias
         const { data: feriasData } = await supabase
@@ -96,11 +125,24 @@ export default function GerenciarFeriadosFerias() {
         }));
 
         setFerias(feriasComNome);
+
+        // Carregar folgas
+        const { data: folgasData } = await supabase
+          .from("folgas")
+          .select("*")
+          .in("vendedor_id", vendedorIds)
+          .order("data", { ascending: true });
+
+        setFolgas((folgasData || []).map((f) => ({
+          ...f,
+          vendedor: profilesData?.find(p => p.id === f.vendedor_id)
+        })));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
   };
+
 
   const handleSalvarFeriado = async () => {
     if (!feriadoData || !feriadoDescricao) {
