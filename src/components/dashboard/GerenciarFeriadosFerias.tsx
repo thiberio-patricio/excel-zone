@@ -255,6 +255,50 @@ export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosF
     }
   };
 
+  const handleSalvarFolga = async () => {
+    if (!folgaVendedorId || !folgaData) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from("folgas")
+        .insert({
+          vendedor_id: folgaVendedorId,
+          data: folgaData,
+          motivo: folgaMotivo || null,
+          created_by: user?.id,
+        });
+
+      if (error) throw error;
+
+      toast.success("Folga cadastrada com sucesso!");
+      setFolgaVendedorId("");
+      setFolgaData("");
+      setFolgaMotivo("");
+      setFolgaDialogOpen(false);
+      carregarDados();
+    } catch (error: any) {
+      toast.error("Erro ao cadastrar folga");
+      console.error(error);
+    }
+  };
+
+  const handleExcluirFolga = async (id: string) => {
+    try {
+      const { error } = await supabase.from("folgas").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Folga excluída com sucesso!");
+      carregarDados();
+    } catch (error: any) {
+      toast.error("Erro ao excluir folga");
+      console.error(error);
+    }
+  };
+
   return (
     <div>
       <PageHeader
