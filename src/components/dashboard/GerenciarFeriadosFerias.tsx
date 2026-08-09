@@ -305,12 +305,12 @@ export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosF
         icon={CalendarDays}
         eyebrow="Gestão"
         title="Férias / Feriados"
-        description="Controle feriados corporativos e agende períodos de férias da equipe."
+        description="Controle feriados corporativos, férias e folgas da equipe."
       />
 
       <PageCard>
         <Tabs defaultValue="feriados" className="space-y-5">
-          <TabsList className="grid w-full grid-cols-2 bg-surface-1/60 border border-white/5 p-1 rounded-btn">
+          <TabsList className="grid w-full grid-cols-3 bg-surface-1/60 border border-white/5 p-1 rounded-btn">
             <TabsTrigger value="feriados" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow rounded-md">
               <CalendarDays className="w-4 h-4" />
               Feriados
@@ -319,7 +319,12 @@ export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosF
               <Palmtree className="w-4 h-4" />
               Férias
             </TabsTrigger>
+            <TabsTrigger value="folgas" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow rounded-md">
+              <CalendarClock className="w-4 h-4" />
+              Folgas
+            </TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="feriados" className="space-y-4">
             <Dialog open={feriadoDialogOpen} onOpenChange={setFeriadoDialogOpen}>
