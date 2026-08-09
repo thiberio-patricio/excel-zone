@@ -69,6 +69,12 @@ interface LojaAgg {
   crescimento: number;
   participacao: number;
   diferenca: number;
+  quantidade: number;
+  ticket: number;
+  metaTicket: number;
+  ticketPercentual: number;
+  diasFerias: number;
+  diasFolgas: number;
 }
 
 interface MesAgg {
@@ -76,6 +82,33 @@ interface MesAgg {
   label: string;
   meta: number;
   venda: number;
+  ticket: number;
+  metaTicket: number;
+}
+
+interface FeriadoItem {
+  id: string;
+  data: string;
+  descricao: string;
+  filialNome: string;
+}
+
+interface FeriasItem {
+  id: string;
+  vendedorNome: string;
+  unidadeNome: string;
+  data_inicio: string;
+  data_fim: string;
+  diasNoPeriodo: number;
+  observacoes: string | null;
+}
+
+interface FolgaItem {
+  id: string;
+  vendedorNome: string;
+  unidadeNome: string;
+  data: string;
+  motivo: string | null;
 }
 
 interface Insights {
@@ -84,6 +117,7 @@ interface Insights {
   oportunidades: string[];
   recomendacoes: string[];
 }
+
 
 /* --------------------------------- Utils --------------------------------- */
 
@@ -148,16 +182,24 @@ function monthRange(from: Date, to: Date): { mes: number; ano: number; key: stri
   return out;
 }
 
+type VendaRow = {
+  valor: number;
+  devolucao: number | null;
+  quantidade_vendas: number | null;
+  data: string;
+  vendedor_id: string;
+};
+
 async function fetchVendasRange(vendedorIds: string[], inicio: string, fim: string) {
-  if (vendedorIds.length === 0) return [];
+  if (vendedorIds.length === 0) return [] as VendaRow[];
 
   const pageSize = 1000;
-  const vendas: { valor: number; devolucao: number | null; data: string; vendedor_id: string }[] = [];
+  const vendas: VendaRow[] = [];
 
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase
       .from("vendas")
-      .select("valor, devolucao, data, vendedor_id")
+      .select("valor, devolucao, quantidade_vendas, data, vendedor_id")
       .in("vendedor_id", vendedorIds)
       .gte("data", inicio)
       .lte("data", fim)
@@ -166,13 +208,24 @@ async function fetchVendasRange(vendedorIds: string[], inicio: string, fim: stri
       .range(offset, offset + pageSize - 1);
 
     if (error) throw error;
-    const pagina = (data ?? []) as typeof vendas;
+    const pagina = (data ?? []) as VendaRow[];
     vendas.push(...pagina);
     if (pagina.length < pageSize) break;
   }
 
   return vendas;
 }
+
+/** Quantidade de dias de um período de férias que caem dentro da janela do relatório */
+function diasNoIntervalo(inicio: string, fim: string, from: Date, to: Date) {
+  const ini = new Date(inicio + "T00:00:00");
+  const end = new Date(fim + "T00:00:00");
+  const start = ini > from ? ini : from;
+  const stop = end < to ? end : to;
+  if (stop < start) return 0;
+  return Math.floor((stop.getTime() - start.getTime()) / 86400000) + 1;
+}
+
 
 /* --------------------------------- Presets --------------------------------- */
 
@@ -216,6 +269,12 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
   const [totalVendido, setTotalVendido] = useState(0);
   const [metaTotal, setMetaTotal] = useState(0);
   const [totalAnterior, setTotalAnterior] = useState(0);
+  const [ticketGeral, setTicketGeral] = useState(0);
+  const [metaTicketGeral, setMetaTicketGeral] = useState(500);
+  const [feriasList, setFeriasList] = useState<FeriasItem[]>([]);
+  const [folgasList, setFolgasList] = useState<FolgaItem[]>([]);
+  const [feriadosList, setFeriadosList] = useState<FeriadoItem[]>([]);
+
 
   const [aiExec, setAiExec] = useState<string>("");
   const [aiComparativo, setAiComparativo] = useState<string>("");
@@ -332,18 +391,50 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
 
       // Vendas do período atual + período anterior + TODAS as metas históricas dos vendedores
-      const [vendasAtual, vendasAnterior, metasRes] = await Promise.all([
+      const [vendasAtual, vendasAnterior, metasRes, feriasRes, folgasRes, feriadosRes] = await Promise.all([
         fetchVendasRange(vendedorIds, toISO(from), toISO(to)),
         fetchVendasRange(vendedorIds, toISO(prevFrom), toISO(prevTo)),
         vendedorIds.length
           ? supabase
               .from("metas")
-              .select("vendedor_id, valor_meta, mes, ano")
+              .select("vendedor_id, valor_meta, meta_ticket, mes, ano")
               .in("vendedor_id", vendedorIds)
           : Promise.resolve({ data: [] as any[] }),
+        vendedorIds.length
+          ? supabase
+              .from("ferias")
+              .select("id, vendedor_id, data_inicio, data_fim, observacoes")
+              .in("vendedor_id", vendedorIds)
+              .lte("data_inicio", toISO(to))
+              .gte("data_fim", toISO(from))
+          : Promise.resolve({ data: [] as any[] }),
+        vendedorIds.length
+          ? supabase
+              .from("folgas")
+              .select("id, vendedor_id, data, motivo")
+              .in("vendedor_id", vendedorIds)
+              .gte("data", toISO(from))
+              .lte("data", toISO(to))
+          : Promise.resolve({ data: [] as any[] }),
+        supabase
+          .from("feriados")
+          .select("id, data, descricao, filial_id")
+          .gte("data", toISO(from))
+          .lte("data", toISO(to)),
       ]);
 
       const metas = (metasRes.data ?? []) as any[];
+
+      // Nomes dos vendedores para os relatórios de ausências
+      const { data: nomesData } = vendedorIds.length
+        ? await supabase.from("profiles").select("id, nome, filial_id").in("id", vendedorIds)
+        : { data: [] as any[] };
+      const nomePorVendedor = new Map<string, string>(((nomesData ?? []) as any[]).map((p) => [p.id, p.nome]));
+      const nomeUnidade = (vid: string) => {
+        if (mode === "vendedor") return nomePorVendedor.get(vid) ?? "Vendedor";
+        const fid = vendedorToFilial.get(vid);
+        return filiais.find((f) => f.id === fid)?.nome ?? "-";
+      };
 
       // Aggregate per filial
       const lojaMap = new Map<string, LojaAgg>();
@@ -360,6 +451,12 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             crescimento: 0,
             participacao: 0,
             diferenca: 0,
+            quantidade: 0,
+            ticket: 0,
+            metaTicket: 0,
+            ticketPercentual: 0,
+            diasFerias: 0,
+            diasFolgas: 0,
           })
         );
 
@@ -369,6 +466,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         const agg = lojaMap.get(fid);
         if (!agg) return;
         agg.venda += Number(v.valor) - Number(v.devolucao ?? 0);
+        agg.quantidade += Number(v.quantidade_vendas ?? 0);
       });
       vendasAnterior.forEach((v) => {
         const fid = vendedorToFilial.get(v.vendedor_id);
@@ -376,6 +474,43 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         const agg = lojaMap.get(fid);
         if (!agg) return;
         agg.vendaAnterior += Number(v.valor) - Number(v.devolucao ?? 0);
+      });
+
+      // Ausências: férias e folgas dentro do período
+      const feriasArr: FeriasItem[] = ((feriasRes.data ?? []) as any[]).map((f) => ({
+        id: f.id,
+        vendedorNome: nomePorVendedor.get(f.vendedor_id) ?? "Vendedor",
+        unidadeNome: nomeUnidade(f.vendedor_id),
+        data_inicio: f.data_inicio,
+        data_fim: f.data_fim,
+        diasNoPeriodo: diasNoIntervalo(f.data_inicio, f.data_fim, from, to),
+        observacoes: f.observacoes ?? null,
+      }));
+      const folgasArr: FolgaItem[] = ((folgasRes.data ?? []) as any[]).map((f) => ({
+        id: f.id,
+        vendedorNome: nomePorVendedor.get(f.vendedor_id) ?? "Vendedor",
+        unidadeNome: nomeUnidade(f.vendedor_id),
+        data: f.data,
+        motivo: f.motivo ?? null,
+      }));
+      const feriadosArr: FeriadoItem[] = ((feriadosRes.data ?? []) as any[])
+        .filter((f) => !f.filial_id || mode === "vendedor" || selectedFiliais.has(f.filial_id))
+        .map((f) => ({
+          id: f.id,
+          data: f.data,
+          descricao: f.descricao,
+          filialNome: f.filial_id ? filiais.find((x) => x.id === f.filial_id)?.nome ?? "Filial" : "Todas as lojas",
+        }));
+
+      ((feriasRes.data ?? []) as any[]).forEach((f) => {
+        const fid = vendedorToFilial.get(f.vendedor_id);
+        const agg = fid ? lojaMap.get(fid) : undefined;
+        if (agg) agg.diasFerias += diasNoIntervalo(f.data_inicio, f.data_fim, from, to);
+      });
+      ((folgasRes.data ?? []) as any[]).forEach((f) => {
+        const fid = vendedorToFilial.get(f.vendedor_id);
+        const agg = fid ? lojaMap.get(fid) : undefined;
+        if (agg) agg.diasFolgas += 1;
       });
 
       // Meta do período: para CADA mês do período, somamos a meta mais recente
@@ -404,6 +539,26 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         });
       });
 
+      // Meta de ticket médio por unidade: média das metas de ticket dos vendedores
+      // (última meta cadastrada de cada vendedor; padrão R$ 500).
+      const metaTicketPorVendedor = new Map<string, number>();
+      metasSorted.forEach((m) => {
+        metaTicketPorVendedor.set(m.vendedor_id, Number(m.meta_ticket ?? 500));
+      });
+      const ticketAcc = new Map<string, { soma: number; qtd: number }>();
+      vendedorIds.forEach((vid) => {
+        const fid = vendedorToFilial.get(vid);
+        if (!fid || !lojaMap.has(fid)) return;
+        const acc = ticketAcc.get(fid) ?? { soma: 0, qtd: 0 };
+        acc.soma += metaTicketPorVendedor.get(vid) ?? 500;
+        acc.qtd += 1;
+        ticketAcc.set(fid, acc);
+      });
+      ticketAcc.forEach((acc, fid) => {
+        const agg = lojaMap.get(fid);
+        if (agg) agg.metaTicket = acc.qtd > 0 ? acc.soma / acc.qtd : 500;
+      });
+
       // Compute derived per loja
       let totalV = 0;
       let totalM = 0;
@@ -424,12 +579,21 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             : 0;
         l.participacao = totalV > 0 ? (l.venda / totalV) * 100 : 0;
         l.diferenca = l.venda - l.meta;
+        l.ticket = l.quantidade > 0 ? l.venda / l.quantidade : 0;
+        if (!l.metaTicket) l.metaTicket = 500;
+        l.ticketPercentual = l.metaTicket > 0 ? (l.ticket / l.metaTicket) * 100 : 0;
         lojasArr.push(l);
       });
       lojasArr.sort((a, b) => b.venda - a.venda);
 
+      const totalQtd = lojasArr.reduce((acc, l) => acc + l.quantidade, 0);
+      const ticketGeralValor = totalQtd > 0 ? totalV / totalQtd : 0;
+      const metaTicketGeralValor =
+        lojasArr.length > 0 ? lojasArr.reduce((acc, l) => acc + l.metaTicket, 0) / lojasArr.length : 500;
+
       // Evolução mensal — para cada mês, meta = soma das metas mais recentes até aquele mês
       const evoMap = new Map<string, MesAgg>();
+      const evoQtd = new Map<string, number>();
       meses.forEach((m) => {
         const rankLimite = m.ano * 12 + m.mes;
         const metaDoMes = new Map<string, number>();
@@ -442,15 +606,31 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         metaDoMes.forEach((val, vid) => {
           if (vendedorToFilial.has(vid)) somaMeta += val;
         });
-        evoMap.set(m.key, { key: m.key, label: m.label, meta: somaMeta, venda: 0 });
+        evoMap.set(m.key, {
+          key: m.key,
+          label: m.label,
+          meta: somaMeta,
+          venda: 0,
+          ticket: 0,
+          metaTicket: metaTicketGeralValor,
+        });
+        evoQtd.set(m.key, 0);
       });
       vendasAtual.forEach((v) => {
         const d = new Date(v.data + "T00:00:00");
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
         const bucket = evoMap.get(key);
-        if (bucket) bucket.venda += Number(v.valor) - Number(v.devolucao ?? 0);
+        if (bucket) {
+          bucket.venda += Number(v.valor) - Number(v.devolucao ?? 0);
+          evoQtd.set(key, (evoQtd.get(key) ?? 0) + Number(v.quantidade_vendas ?? 0));
+        }
+      });
+      evoMap.forEach((bucket, key) => {
+        const q = evoQtd.get(key) ?? 0;
+        bucket.ticket = q > 0 ? bucket.venda / q : 0;
       });
       const evoArr = Array.from(evoMap.values());
+
 
       // Insights engine
       const _insights: Insights = {
@@ -492,15 +672,33 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             : `Aumentar campanhas promocionais em ${nomes}.`
         );
       }
-
+      // Ticket médio
+      lojasArr.forEach((l) => {
+        if (l.ticketPercentual >= 100) _insights.destaques.push(`${l.nome} atingiu ${formatPct(l.ticketPercentual)} da meta de ticket médio (${formatBRL(l.ticket)}).`);
+        else if (l.ticket > 0) _insights.oportunidades.push(`${l.nome} está com ticket médio de ${formatBRL(l.ticket)} (${formatPct(l.ticketPercentual)} da meta).`);
+      });
+      // Ausências consideradas na análise
+      lojasArr.forEach((l) => {
+        if (l.diasFerias > 0 || l.diasFolgas > 0) {
+          _insights.alertas.push(
+            `${l.nome} teve ${l.diasFerias} dia(s) de férias e ${l.diasFolgas} folga(s) no período — considerar no resultado.`
+          );
+        }
+      });
 
       setLojas(lojasArr);
       setEvolucao(evoArr);
       setTotalVendido(totalV);
       setMetaTotal(totalM);
       setTotalAnterior(totalPrev);
+      setTicketGeral(ticketGeralValor);
+      setMetaTicketGeral(metaTicketGeralValor);
+      setFeriasList(feriasArr);
+      setFolgasList(folgasArr);
+      setFeriadosList(feriadosArr);
       setInsights(_insights);
       setGenerated(true);
+
 
       // Trigger AI
       const bestLoja = [...lojasArr].sort((a, b) => b.percentual - a.percentual)[0];
@@ -1033,7 +1231,10 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
               <TabsTrigger value="participacao">Participação</TabsTrigger>
               <TabsTrigger value="crescimento">Crescimento</TabsTrigger>
               <TabsTrigger value="ranking">Ranking</TabsTrigger>
+              <TabsTrigger value="ticket">Ticket Médio</TabsTrigger>
+              <TabsTrigger value="ausencias">Férias / Feriados / Folgas</TabsTrigger>
               <TabsTrigger value="insights">Insights</TabsTrigger>
+
             </TabsList>
 
             {/* Comparativo */}
@@ -1247,7 +1448,109 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
               </PageCard>
             </TabsContent>
 
+            {/* Ticket Médio */}
+            <TabsContent value="ticket" className="mt-6 space-y-6">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <KpiCard icon={Percent} label="Ticket Médio" value={formatBRL(ticketGeral)} hint="Venda real ÷ quantidade de vendas" tone="positive" />
+                <KpiCard icon={Target} label="Meta de Ticket" value={formatBRL(metaTicketGeral)} />
+                <KpiCard
+                  icon={TrendingUp}
+                  label="Atingimento do Ticket"
+                  value={formatPct(metaTicketGeral > 0 ? (ticketGeral / metaTicketGeral) * 100 : 0)}
+                  tone={ticketGeral >= metaTicketGeral ? "positive" : "warn"}
+                />
+              </div>
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Ticket Médio por {unitLabel}
+                </h3>
+                <div className="h-[360px] w-full">
+                  <ResponsiveContainer>
+                    <BarChart data={lojas}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="nome" tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }} />
+                      <YAxis tickFormatter={(v) => formatBRLShort(Number(v))} tick={{ fill: "hsl(var(--foreground))", fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{ background: "hsl(0 42% 11%)", border: "1px solid hsl(0 0% 100% / 0.1)" }}
+                        formatter={(v: any, name: any) => [formatBRL(Number(v)), name === "metaTicket" ? "Meta de Ticket" : "Ticket Médio"]}
+                      />
+                      <Legend formatter={(v) => (v === "metaTicket" ? "Meta de Ticket" : "Ticket Médio")} />
+                      <Bar dataKey="metaTicket" fill="hsl(0 0% 30%)" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="ticket" fill="hsl(38 92% 55%)" radius={[6, 6, 0, 0]}>
+                        <LabelList
+                          dataKey="ticketPercentual"
+                          position="top"
+                          formatter={(v: number) => `${v.toFixed(0)}%`}
+                          className="fill-foreground text-xs"
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </PageCard>
+            </TabsContent>
+
+            {/* Ausências */}
+            <TabsContent value="ausencias" className="mt-6 space-y-6">
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4">Férias no período</h3>
+                {feriasList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma férias registrada no período.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {feriasList.map((f) => (
+                      <li key={f.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2">
+                        <span className="font-medium">{f.vendedorNome}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(f.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")} a{" "}
+                          {new Date(f.data_fim + "T00:00:00").toLocaleDateString("pt-BR")} · {f.diasNoPeriodo} dia(s)
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </PageCard>
+
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4">Folgas no período</h3>
+                {folgasList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma folga registrada no período.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {folgasList.map((f) => (
+                      <li key={f.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2">
+                        <span className="font-medium">{f.vendedorNome}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(f.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                          {f.motivo ? ` · ${f.motivo}` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </PageCard>
+
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4">Feriados no período</h3>
+                {feriadosList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum feriado registrado no período.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {feriadosList.map((f) => (
+                      <li key={f.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2">
+                        <span className="font-medium">{f.descricao}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(f.data + "T00:00:00").toLocaleDateString("pt-BR")} · {f.filialNome}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </PageCard>
+            </TabsContent>
+
             {/* Insights */}
+
             <TabsContent value="insights" className="mt-6 space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <InsightBlock icon={Trophy} tone="positive" title="Destaques" items={insights.destaques} />

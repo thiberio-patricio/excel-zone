@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CalendarDays, Palmtree, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarDays, Palmtree, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -34,9 +34,23 @@ interface Ferias {
   vendedor?: { nome: string };
 }
 
-export default function GerenciarFeriadosFerias() {
+interface Folga {
+  id: string;
+  vendedor_id: string;
+  data: string;
+  motivo: string | null;
+  vendedor?: { nome: string };
+}
+
+interface GerenciarFeriadosFeriasProps {
+  /** Escopo opcional de filial (usado quando o diretor acessa a visão de uma filial) */
+  filialId?: string | null;
+}
+
+export default function GerenciarFeriadosFerias({ filialId }: GerenciarFeriadosFeriasProps = {}) {
   const [feriados, setFeriados] = useState<Feriado[]>([]);
   const [ferias, setFerias] = useState<Ferias[]>([]);
+  const [folgas, setFolgas] = useState<Folga[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   
   // Formulário de feriado
@@ -51,17 +65,23 @@ export default function GerenciarFeriadosFerias() {
   const [feriasObservacoes, setFeriasObservacoes] = useState("");
   const [feriasDialogOpen, setFeriasDialogOpen] = useState(false);
 
+  // Formulário de folga
+  const [folgaVendedorId, setFolgaVendedorId] = useState("");
+  const [folgaData, setFolgaData] = useState("");
+  const [folgaMotivo, setFolgaMotivo] = useState("");
+  const [folgaDialogOpen, setFolgaDialogOpen] = useState(false);
+
   useEffect(() => {
     carregarDados();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filialId]);
 
   const carregarDados = async () => {
     try {
       // Carregar feriados
-      const { data: feriadosData } = await supabase
-        .from("feriados")
-        .select("*")
-        .order("data", { ascending: true });
+      let feriadosQuery = supabase.from("feriados").select("*");
+      if (filialId) feriadosQuery = feriadosQuery.or(`filial_id.eq.${filialId},filial_id.is.null`);
+      const { data: feriadosData } = await feriadosQuery.order("data", { ascending: true });
       
       setFeriados(feriadosData || []);
 
@@ -71,16 +91,25 @@ export default function GerenciarFeriadosFerias() {
         .select("user_id")
         .eq("role", "vendedor");
 
-      const vendedorIds = rolesData?.map(r => r.user_id) || [];
+      const roleIds = rolesData?.map(r => r.user_id) || [];
 
-      if (vendedorIds.length > 0) {
-        const { data: profilesData } = await supabase
+      if (roleIds.length > 0) {
+        let profilesQuery = supabase
           .from("profiles")
           .select("id, nome")
-          .in("id", vendedorIds)
-          .order("nome");
+          .in("id", roleIds);
+        if (filialId) profilesQuery = profilesQuery.eq("filial_id", filialId);
+
+        const { data: profilesData } = await profilesQuery.order("nome");
 
         setVendedores(profilesData || []);
+
+        const vendedorIds = (profilesData || []).map((p) => p.id);
+        if (vendedorIds.length === 0) {
+          setFerias([]);
+          setFolgas([]);
+          return;
+        }
 
         // Carregar férias
         const { data: feriasData } = await supabase
@@ -96,11 +125,24 @@ export default function GerenciarFeriadosFerias() {
         }));
 
         setFerias(feriasComNome);
+
+        // Carregar folgas
+        const { data: folgasData } = await supabase
+          .from("folgas")
+          .select("*")
+          .in("vendedor_id", vendedorIds)
+          .order("data", { ascending: true });
+
+        setFolgas((folgasData || []).map((f) => ({
+          ...f,
+          vendedor: profilesData?.find(p => p.id === f.vendedor_id)
+        })));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
   };
+
 
   const handleSalvarFeriado = async () => {
     if (!feriadoData || !feriadoDescricao) {
@@ -109,7 +151,7 @@ export default function GerenciarFeriadosFerias() {
     }
 
     try {
-      // Obter filial_id do usuário logado
+      // Obter filial_id do escopo atual (ou do usuário logado)
       const { data: { user } } = await supabase.auth.getUser();
       const { data: profile } = await supabase
         .from("profiles")
@@ -122,9 +164,10 @@ export default function GerenciarFeriadosFerias() {
         .insert({
           data: feriadoData,
           descricao: feriadoDescricao,
-          filial_id: profile?.filial_id,
+          filial_id: filialId ?? profile?.filial_id,
           created_by: user?.id
         });
+
 
       if (error) throw error;
 
@@ -212,18 +255,62 @@ export default function GerenciarFeriadosFerias() {
     }
   };
 
+  const handleSalvarFolga = async () => {
+    if (!folgaVendedorId || !folgaData) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      const { error } = await supabase
+        .from("folgas")
+        .insert({
+          vendedor_id: folgaVendedorId,
+          data: folgaData,
+          motivo: folgaMotivo || null,
+          created_by: user?.id,
+        });
+
+      if (error) throw error;
+
+      toast.success("Folga cadastrada com sucesso!");
+      setFolgaVendedorId("");
+      setFolgaData("");
+      setFolgaMotivo("");
+      setFolgaDialogOpen(false);
+      carregarDados();
+    } catch (error: any) {
+      toast.error("Erro ao cadastrar folga");
+      console.error(error);
+    }
+  };
+
+  const handleExcluirFolga = async (id: string) => {
+    try {
+      const { error } = await supabase.from("folgas").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Folga excluída com sucesso!");
+      carregarDados();
+    } catch (error: any) {
+      toast.error("Erro ao excluir folga");
+      console.error(error);
+    }
+  };
+
   return (
     <div>
       <PageHeader
         icon={CalendarDays}
         eyebrow="Gestão"
         title="Férias / Feriados"
-        description="Controle feriados corporativos e agende períodos de férias da equipe."
+        description="Controle feriados corporativos, férias e folgas da equipe."
       />
 
       <PageCard>
         <Tabs defaultValue="feriados" className="space-y-5">
-          <TabsList className="grid w-full grid-cols-2 bg-surface-1/60 border border-white/5 p-1 rounded-btn">
+          <TabsList className="grid w-full grid-cols-3 bg-surface-1/60 border border-white/5 p-1 rounded-btn">
             <TabsTrigger value="feriados" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow rounded-md">
               <CalendarDays className="w-4 h-4" />
               Feriados
@@ -232,7 +319,12 @@ export default function GerenciarFeriadosFerias() {
               <Palmtree className="w-4 h-4" />
               Férias
             </TabsTrigger>
+            <TabsTrigger value="folgas" className="flex items-center gap-2 data-[state=active]:bg-gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-glow rounded-md">
+              <CalendarClock className="w-4 h-4" />
+              Folgas
+            </TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="feriados" className="space-y-4">
             <Dialog open={feriadoDialogOpen} onOpenChange={setFeriadoDialogOpen}>
@@ -370,6 +462,78 @@ export default function GerenciarFeriadosFerias() {
               </div>
             )}
           </TabsContent>
+
+          <TabsContent value="folgas" className="space-y-4">
+            <Dialog open={folgaDialogOpen} onOpenChange={setFolgaDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="w-full gradient-primary text-primary-foreground shadow-glow">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Folga
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova Folga</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Vendedor</Label>
+                    <Select value={folgaVendedorId} onValueChange={setFolgaVendedorId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o vendedor" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vendedores.map((vendedor) => (
+                          <SelectItem key={vendedor.id} value={vendedor.id}>{vendedor.nome}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="folgaData">Data</Label>
+                    <Input id="folgaData" type="date" value={folgaData} onChange={(e) => setFolgaData(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="folgaMotivo">Motivo</Label>
+                    <Textarea id="folgaMotivo" placeholder="Motivo da folga (opcional)" value={folgaMotivo} onChange={(e) => setFolgaMotivo(e.target.value)} rows={3} />
+                  </div>
+                  <Button onClick={handleSalvarFolga} className="w-full gradient-primary text-primary-foreground shadow-glow">
+                    Salvar Folga
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {folgas.length === 0 ? (
+              <EmptyState icon={CalendarClock} title="Nenhuma folga cadastrada" description="Registre folgas pontuais da equipe para considerá-las nas análises." />
+            ) : (
+              <div className="space-y-2">
+                {folgas.map((f) => (
+                  <div
+                    key={f.id}
+                    className="flex items-center justify-between p-4 rounded-btn border border-white/5 bg-surface-1/40 hover:bg-white/[0.03] transition-colors group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
+                        <CalendarClock className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium">{f.vendedor?.nome || "Vendedor"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(f.data + 'T00:00:00').toLocaleDateString('pt-BR')}
+                        </p>
+                        {f.motivo && <p className="text-xs text-muted-foreground mt-1">{f.motivo}</p>}
+                      </div>
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => handleExcluirFolga(f.id)} className="hover:bg-destructive/10 opacity-60 group-hover:opacity-100">
+                      <Trash2 className="w-4 h-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
         </Tabs>
       </PageCard>
     </div>
