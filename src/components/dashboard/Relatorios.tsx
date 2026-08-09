@@ -1448,7 +1448,109 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
               </PageCard>
             </TabsContent>
 
+            {/* Ticket Médio */}
+            <TabsContent value="ticket" className="mt-6 space-y-6">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <KpiCard icon={Percent} label="Ticket Médio" value={formatBRL(ticketGeral)} hint="Venda real ÷ quantidade de vendas" tone="positive" />
+                <KpiCard icon={Target} label="Meta de Ticket" value={formatBRL(metaTicketGeral)} />
+                <KpiCard
+                  icon={TrendingUp}
+                  label="Atingimento do Ticket"
+                  value={formatPct(metaTicketGeral > 0 ? (ticketGeral / metaTicketGeral) * 100 : 0)}
+                  tone={ticketGeral >= metaTicketGeral ? "positive" : "warn"}
+                />
+              </div>
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" /> Ticket Médio por {unitLabel}
+                </h3>
+                <div className="h-[360px] w-full">
+                  <ResponsiveContainer>
+                    <BarChart data={lojas}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                      <XAxis dataKey="nome" tick={{ fill: "hsl(var(--foreground))", fontSize: 12 }} />
+                      <YAxis tickFormatter={(v) => formatBRLShort(Number(v))} tick={{ fill: "hsl(var(--foreground))", fontSize: 11 }} />
+                      <Tooltip
+                        contentStyle={{ background: "hsl(0 42% 11%)", border: "1px solid hsl(0 0% 100% / 0.1)" }}
+                        formatter={(v: any, name: any) => [formatBRL(Number(v)), name === "metaTicket" ? "Meta de Ticket" : "Ticket Médio"]}
+                      />
+                      <Legend formatter={(v) => (v === "metaTicket" ? "Meta de Ticket" : "Ticket Médio")} />
+                      <Bar dataKey="metaTicket" fill="hsl(0 0% 30%)" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="ticket" fill="hsl(38 92% 55%)" radius={[6, 6, 0, 0]}>
+                        <LabelList
+                          dataKey="ticketPercentual"
+                          position="top"
+                          formatter={(v: number) => `${v.toFixed(0)}%`}
+                          className="fill-foreground text-xs"
+                        />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </PageCard>
+            </TabsContent>
+
+            {/* Ausências */}
+            <TabsContent value="ausencias" className="mt-6 space-y-6">
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4">Férias no período</h3>
+                {feriasList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma férias registrada no período.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {feriasList.map((f) => (
+                      <li key={f.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2">
+                        <span className="font-medium">{f.vendedorNome}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(f.data_inicio + "T00:00:00").toLocaleDateString("pt-BR")} a{" "}
+                          {new Date(f.data_fim + "T00:00:00").toLocaleDateString("pt-BR")} · {f.diasNoPeriodo} dia(s)
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </PageCard>
+
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4">Folgas no período</h3>
+                {folgasList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhuma folga registrada no período.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {folgasList.map((f) => (
+                      <li key={f.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2">
+                        <span className="font-medium">{f.vendedorNome}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(f.data + "T00:00:00").toLocaleDateString("pt-BR")}
+                          {f.motivo ? ` · ${f.motivo}` : ""}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </PageCard>
+
+              <PageCard>
+                <h3 className="font-display font-semibold mb-4">Feriados no período</h3>
+                {feriadosList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Nenhum feriado registrado no período.</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {feriadosList.map((f) => (
+                      <li key={f.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2">
+                        <span className="font-medium">{f.descricao}</span>
+                        <span className="text-muted-foreground">
+                          {new Date(f.data + "T00:00:00").toLocaleDateString("pt-BR")} · {f.filialNome}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </PageCard>
+            </TabsContent>
+
             {/* Insights */}
+
             <TabsContent value="insights" className="mt-6 space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <InsightBlock icon={Trophy} tone="positive" title="Destaques" items={insights.destaques} />
