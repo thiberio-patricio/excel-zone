@@ -737,6 +737,16 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         melhorLoja: bestLoja,
         maiorCrescimento: bestCresc,
         lojas: lojasArr,
+        ticketGeral: ticketGeralValor,
+        metaTicketGeral: metaTicketGeralValor,
+        ticketPercentual: metaTicketGeralValor > 0 ? (ticketGeralValor / metaTicketGeralValor) * 100 : 0,
+        ausencias: {
+          feriasPeriodo: feriasArr.map((f) => ({ vendedor: f.vendedorNome, unidade: f.unidadeNome, dias: f.diasNoPeriodo })),
+          folgasPeriodo: folgasArr.length,
+          feriasPeriodoAnterior: lojasArr
+            .filter((l) => l.diasFeriasAnterior > 0)
+            .map((l) => ({ unidade: l.nome, dias: l.diasFeriasAnterior })),
+        },
         mode,
       });
     } catch (e: any) {
