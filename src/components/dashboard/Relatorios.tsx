@@ -75,6 +75,7 @@ interface LojaAgg {
   ticketPercentual: number;
   diasFerias: number;
   diasFolgas: number;
+  diasFeriasAnterior: number;
 }
 
 interface MesAgg {
