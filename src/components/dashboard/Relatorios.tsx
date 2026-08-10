@@ -458,6 +458,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             ticketPercentual: 0,
             diasFerias: 0,
             diasFolgas: 0,
+            diasFeriasAnterior: 0,
           })
         );
 
