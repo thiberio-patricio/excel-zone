@@ -31,6 +31,13 @@ interface Ferias {
   data_fim: string;
 }
 
+interface Folga {
+  id: string;
+  data: string;
+  motivo: string | null;
+}
+
+
 export default function CalendarioVendas({
   vendedorId,
   isReadOnly,
@@ -58,6 +65,7 @@ export default function CalendarioVendas({
   const [meta, setMeta] = useState<number | null>(null);
   const [feriados, setFeriados] = useState<Feriado[]>([]);
   const [ferias, setFerias] = useState<Ferias[]>([]);
+  const [folgas, setFolgas] = useState<Folga[]>([]);
 
   useEffect(() => {
     carregarDados();
@@ -117,6 +125,16 @@ export default function CalendarioVendas({
         .gte("data_fim", primeiroDia);
 
       setFerias(feriasData || []);
+
+      // Carregar folgas do vendedor no mês
+      const { data: folgasData } = await supabase
+        .from("folgas")
+        .select("id, data, motivo")
+        .eq("vendedor_id", vendedorId)
+        .gte("data", primeiroDia)
+        .lte("data", ultimoDia);
+
+      setFolgas(folgasData || []);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
@@ -124,6 +142,10 @@ export default function CalendarioVendas({
 
   const isFeriado = (dataStr: string): Feriado | undefined => {
     return feriados.find(f => f.data === dataStr);
+  };
+
+  const isFolga = (dataStr: string): Folga | undefined => {
+    return folgas.find(f => f.data === dataStr);
   };
 
   const isFerias = (dataStr: string): boolean => {
@@ -134,6 +156,7 @@ export default function CalendarioVendas({
       return data >= inicio && data <= fim;
     });
   };
+
 
   const getDiasDoMes = () => {
     const primeiroDia = new Date(ano, mes - 1, 1);
