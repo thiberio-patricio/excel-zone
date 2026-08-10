@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Calendar, Palmtree, CalendarDays } from "lucide-react";
+import { Calendar, Palmtree, CalendarDays, Coffee } from "lucide-react";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface CalendarioVendasProps {
@@ -361,7 +361,12 @@ export default function CalendarioVendas({
               <Palmtree className="w-3 h-3 mr-1" />
               Férias
             </Badge>
+            <Badge variant="outline" className="bg-purple-500/10 border-purple-500 text-purple-700">
+              <Coffee className="w-3 h-3 mr-1" />
+              Folga
+            </Badge>
           </div>
+
 
           {/* Legenda dos dias da semana */}
           <div className="grid grid-cols-6 gap-2 mb-2">
