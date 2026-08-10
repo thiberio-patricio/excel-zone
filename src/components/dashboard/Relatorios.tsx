@@ -75,6 +75,7 @@ interface LojaAgg {
   ticketPercentual: number;
   diasFerias: number;
   diasFolgas: number;
+  diasFeriasAnterior: number;
 }
 
 interface MesAgg {
@@ -391,7 +392,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
 
       // Vendas do período atual + período anterior + TODAS as metas históricas dos vendedores
-      const [vendasAtual, vendasAnterior, metasRes, feriasRes, folgasRes, feriadosRes] = await Promise.all([
+      const [vendasAtual, vendasAnterior, metasRes, feriasRes, folgasRes, feriadosRes, feriasAnteriorRes] = await Promise.all([
         fetchVendasRange(vendedorIds, toISO(from), toISO(to)),
         fetchVendasRange(vendedorIds, toISO(prevFrom), toISO(prevTo)),
         vendedorIds.length
@@ -421,6 +422,15 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           .select("id, data, descricao, filial_id")
           .gte("data", toISO(from))
           .lte("data", toISO(to)),
+        // Férias do período ANTERIOR (ex.: mês passado) — usadas na comparação de resultados
+        vendedorIds.length
+          ? supabase
+              .from("ferias")
+              .select("id, vendedor_id, data_inicio, data_fim")
+              .in("vendedor_id", vendedorIds)
+              .lte("data_inicio", toISO(prevTo))
+              .gte("data_fim", toISO(prevFrom))
+          : Promise.resolve({ data: [] as any[] }),
       ]);
 
       const metas = (metasRes.data ?? []) as any[];
@@ -457,6 +467,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             ticketPercentual: 0,
             diasFerias: 0,
             diasFolgas: 0,
+            diasFeriasAnterior: 0,
           })
         );
 
@@ -511,6 +522,11 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         const fid = vendedorToFilial.get(f.vendedor_id);
         const agg = fid ? lojaMap.get(fid) : undefined;
         if (agg) agg.diasFolgas += 1;
+      });
+      ((feriasAnteriorRes.data ?? []) as any[]).forEach((f) => {
+        const fid = vendedorToFilial.get(f.vendedor_id);
+        const agg = fid ? lojaMap.get(fid) : undefined;
+        if (agg) agg.diasFeriasAnterior += diasNoIntervalo(f.data_inicio, f.data_fim, prevFrom, prevTo);
       });
 
       // Meta do período: para CADA mês do período, somamos a meta mais recente
@@ -684,7 +700,16 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             `${l.nome} teve ${l.diasFerias} dia(s) de férias e ${l.diasFolgas} folga(s) no período — considerar no resultado.`
           );
         }
+        // Férias no período anterior (ex.: mês passado) distorcem a comparação de crescimento
+        if (l.diasFeriasAnterior > 0) {
+          const msg =
+            l.crescimento > 0
+              ? `${l.nome} cresceu ${formatPct(l.crescimento)}, mas o período anterior teve ${l.diasFeriasAnterior} dia(s) de férias — base de comparação reduzida.`
+              : `${l.nome} teve ${l.diasFeriasAnterior} dia(s) de férias no período anterior — considerar na comparação de ${formatPct(l.crescimento)}.`;
+          _insights.alertas.push(msg);
+        }
       });
+
 
       setLojas(lojasArr);
       setEvolucao(evoArr);
@@ -712,6 +737,16 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         melhorLoja: bestLoja,
         maiorCrescimento: bestCresc,
         lojas: lojasArr,
+        ticketGeral: ticketGeralValor,
+        metaTicketGeral: metaTicketGeralValor,
+        ticketPercentual: metaTicketGeralValor > 0 ? (ticketGeralValor / metaTicketGeralValor) * 100 : 0,
+        ausencias: {
+          feriasPeriodo: feriasArr.map((f) => ({ vendedor: f.vendedorNome, unidade: f.unidadeNome, dias: f.diasNoPeriodo })),
+          folgasPeriodo: folgasArr.length,
+          feriasPeriodoAnterior: lojasArr
+            .filter((l) => l.diasFeriasAnterior > 0)
+            .map((l) => ({ unidade: l.nome, dias: l.diasFeriasAnterior })),
+        },
         mode,
       });
     } catch (e: any) {

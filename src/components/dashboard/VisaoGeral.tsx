@@ -9,6 +9,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend
 import { useChartColors, ChartThemePicker } from "@/hooks/useChartColors";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 import PainelExecutivo from "./PainelExecutivo";
+import FilialGestaoCompleta from "./FilialGestaoCompleta";
 
 const META_TICKET = 500;
 
@@ -336,105 +337,21 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       <PainelExecutivo mes={mesSelecionado} ano={anoSelecionado} stats={stats} />
 
       {filialSelecionada ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">
-            <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" onClick={voltarParaFiliais}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Voltar para Filiais
-              </Button>
-              <div>
-                <CardTitle>Meta vs Vendido — {filialSelecionada.nome} ({labelPeriodo})</CardTitle>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Clique em uma barra de vendedor para ver o calendário de vendas.
-                </p>
-              </div>
-            </div>
-            <ChartThemePicker themeId={chartThemeId} onChange={setChartThemeId} />
-          </CardHeader>
-          <CardContent>
-            {loadingVendedores ? (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                Carregando...
-              </div>
-            ) : vendasPorVendedor.length === 0 ? (
-              <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                Nenhum vendedor encontrado nesta filial.
-              </div>
-            ) : (
-              <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={vendasPorVendedor} margin={{ top: 28, right: 12, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                    <XAxis
-                      dataKey="nome"
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--foreground))' }}
-                      angle={-25}
-                      textAnchor="end"
-                      height={70}
-                    />
-                    <YAxis
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--foreground))' }}
-                      domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.15) / 1000) * 1000]}
-                      allowDataOverflow={false}
-                      tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                    />
-
-                    <ChartTooltip
-                      content={
-                        <ChartTooltipContent
-                          formatter={(value, name, props) => {
-                            if (props?.dataKey === 'percentual' || props?.dataKey === 'percentualTicket') return `Percentual: ${Number(value).toFixed(0)}%`;
-                            if (props?.dataKey === 'ticket') return `Ticket Médio: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} (${Math.round((Number(value) / META_TICKET) * 100)}% da meta de R$ 500,00)`;
-                            return `${name === 'meta' ? 'Meta' : name === 'ticket' ? 'Ticket Médio' : 'Vendido'}: R$ ${Number(value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-                          }}
-                        />
-                      }
-                    />
-                    <Legend formatter={(value) => value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : value === "ticket" ? "Ticket Médio" : "Vendido"} />
-                    <Bar
-                      dataKey="meta"
-                      fill={chartTheme.meta}
-                      radius={[8, 8, 0, 0]}
-                      name="meta"
-                    />
-                    <Bar
-                      dataKey="total"
-                      fill={chartTheme.vendido}
-                      radius={[8, 8, 0, 0]}
-                      name="total"
-                      cursor="pointer"
-                      onClick={handleVendedorClick}
-                    >
-                      <LabelList
-                        dataKey="percentual"
-                        position="top"
-                        formatter={(value: number) => `${value}%`}
-                        className="text-xs fill-foreground"
-                      />
-                    </Bar>
-                    <Bar
-                      dataKey="ticket"
-                      fill={chartTheme.percentual}
-                      radius={[8, 8, 0, 0]}
-                      name="ticket"
-                    >
-                      <LabelList
-                        dataKey="percentualTicket"
-                        position="top"
-                        formatter={(value: number) => `${value}%`}
-                        className="text-xs fill-foreground"
-                      />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
+        <FilialGestaoCompleta
+          filialId={filialSelecionada.id}
+          filialNome={filialSelecionada.nome}
+          mes={mesSelecionado}
+          ano={anoSelecionado}
+          performance={vendasPorVendedor}
+          loadingPerformance={loadingVendedores}
+          onVoltar={voltarParaFiliais}
+          onReload={() => {
+            carregarEstatisticas();
+            carregarVendedoresDaFilial(filialSelecionada.id, filialSelecionada.nome);
+          }}
+        />
       ) : (
+
         vendasPorFilial.length > 0 && (
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0">

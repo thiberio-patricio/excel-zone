@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Calendar, Palmtree, CalendarDays } from "lucide-react";
+import { Calendar, Palmtree, CalendarDays, Coffee } from "lucide-react";
 import { fetchMetaWithFallback } from "@/utils/fetchMetaWithFallback";
 
 interface CalendarioVendasProps {
@@ -30,6 +30,13 @@ interface Ferias {
   data_inicio: string;
   data_fim: string;
 }
+
+interface Folga {
+  id: string;
+  data: string;
+  motivo: string | null;
+}
+
 
 export default function CalendarioVendas({
   vendedorId,
@@ -58,6 +65,7 @@ export default function CalendarioVendas({
   const [meta, setMeta] = useState<number | null>(null);
   const [feriados, setFeriados] = useState<Feriado[]>([]);
   const [ferias, setFerias] = useState<Ferias[]>([]);
+  const [folgas, setFolgas] = useState<Folga[]>([]);
 
   useEffect(() => {
     carregarDados();
@@ -117,6 +125,16 @@ export default function CalendarioVendas({
         .gte("data_fim", primeiroDia);
 
       setFerias(feriasData || []);
+
+      // Carregar folgas do vendedor no mês
+      const { data: folgasData } = await supabase
+        .from("folgas")
+        .select("id, data, motivo")
+        .eq("vendedor_id", vendedorId)
+        .gte("data", primeiroDia)
+        .lte("data", ultimoDia);
+
+      setFolgas(folgasData || []);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     }
@@ -124,6 +142,10 @@ export default function CalendarioVendas({
 
   const isFeriado = (dataStr: string): Feriado | undefined => {
     return feriados.find(f => f.data === dataStr);
+  };
+
+  const isFolga = (dataStr: string): Folga | undefined => {
+    return folgas.find(f => f.data === dataStr);
   };
 
   const isFerias = (dataStr: string): boolean => {
@@ -134,6 +156,7 @@ export default function CalendarioVendas({
       return data >= inicio && data <= fim;
     });
   };
+
 
   const getDiasDoMes = () => {
     const primeiroDia = new Date(ano, mes - 1, 1);
@@ -173,10 +196,11 @@ export default function CalendarioVendas({
 
     const dataStr = formatarDataLocal(data);
 
-    // Não calcular para domingos, feriados ou férias
+    // Não calcular para domingos, feriados, férias ou folgas
     if (data.getDay() === 0) return null;
     if (isFeriado(dataStr)) return null;
     if (isFerias(dataStr)) return null;
+    if (isFolga(dataStr)) return null;
 
     // Se já tem venda registrada nesse dia, não mostra esperada
     const vendaExistente = vendas.find(v => v.data === dataStr);
@@ -196,6 +220,7 @@ export default function CalendarioVendas({
       const dStr = formatarDataLocal(d);
       if (isFeriado(dStr)) continue; // Exclui feriados
       if (isFerias(dStr)) continue; // Exclui férias
+      if (isFolga(dStr)) continue; // Exclui folgas
       const temVenda = vendas.find(v => v.data === dStr);
       if (!temVenda) {
         diasSemVenda++;
@@ -336,7 +361,12 @@ export default function CalendarioVendas({
               <Palmtree className="w-3 h-3 mr-1" />
               Férias
             </Badge>
+            <Badge variant="outline" className="bg-purple-500/10 border-purple-500 text-purple-700">
+              <Coffee className="w-3 h-3 mr-1" />
+              Folga
+            </Badge>
           </div>
+
 
           {/* Legenda dos dias da semana */}
           <div className="grid grid-cols-6 gap-2 mb-2">
@@ -362,6 +392,7 @@ export default function CalendarioVendas({
               const vendaEsperada = calcularVendaEsperada(dia);
               const feriadoDoDia = isFeriado(dataStr);
               const emFerias = isFerias(dataStr);
+              const folgaDoDia = isFolga(dataStr);
 
               return (
                 <button
@@ -376,6 +407,8 @@ export default function CalendarioVendas({
                       ? 'bg-amber-500/10 border-amber-500 hover:bg-amber-500/20'
                       : emFerias
                       ? 'bg-blue-500/10 border-blue-500 hover:bg-blue-500/20'
+                      : folgaDoDia
+                      ? 'bg-purple-500/10 border-purple-500 hover:bg-purple-500/20'
                       : venda
                       ? 'bg-success/10 border-success hover:bg-success/20'
                       : 'bg-card border-border hover:bg-muted'
@@ -394,6 +427,9 @@ export default function CalendarioVendas({
                       {emFerias && (
                         <Palmtree className="w-3 h-3 text-blue-600" />
                       )}
+                      {folgaDoDia && !emFerias && (
+                        <Coffee className="w-3 h-3 text-purple-600" />
+                      )}
                     </div>
                   </div>
                   
@@ -410,6 +446,13 @@ export default function CalendarioVendas({
                       Férias
                     </div>
                   )}
+
+                  {/* Folga */}
+                  {folgaDoDia && !emFerias && !feriadoDoDia && !isSelected && (
+                    <div className="text-[10px] text-purple-700 truncate">
+                      {folgaDoDia.motivo ? `Folga · ${folgaDoDia.motivo}` : "Folga"}
+                    </div>
+                  )}
                   
                   {/* Venda Real (dias com venda registrada) */}
                   {venda && !feriadoDoDia && !emFerias && (
@@ -421,8 +464,8 @@ export default function CalendarioVendas({
                     </div>
                   )}
                   
-                  {/* Venda Esperada (dias sem venda registrada, sem feriado e sem férias) */}
-                  {!venda && !feriadoDoDia && !emFerias && vendaEsperada !== null && (
+                  {/* Venda Esperada (dias sem venda registrada, sem feriado, férias ou folga) */}
+                  {!venda && !feriadoDoDia && !emFerias && !folgaDoDia && vendaEsperada !== null && (
                     <div className="text-xs mt-1">
                       <div className="font-medium text-primary">
                         R$ {vendaEsperada.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -430,6 +473,7 @@ export default function CalendarioVendas({
                       <div className="text-[10px] text-muted-foreground">Esperada</div>
                     </div>
                   )}
+
                 </button>
               );
             })}
