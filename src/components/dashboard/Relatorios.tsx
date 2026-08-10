@@ -523,6 +523,11 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         const agg = fid ? lojaMap.get(fid) : undefined;
         if (agg) agg.diasFolgas += 1;
       });
+      ((feriasAnteriorRes.data ?? []) as any[]).forEach((f) => {
+        const fid = vendedorToFilial.get(f.vendedor_id);
+        const agg = fid ? lojaMap.get(fid) : undefined;
+        if (agg) agg.diasFeriasAnterior += diasNoIntervalo(f.data_inicio, f.data_fim, prevFrom, prevTo);
+      });
 
       // Meta do período: para CADA mês do período, somamos a meta mais recente
       // (<= aquele mês) de cada vendedor. Isso respeita alterações históricas de meta
