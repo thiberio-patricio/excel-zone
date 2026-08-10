@@ -700,7 +700,16 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             `${l.nome} teve ${l.diasFerias} dia(s) de férias e ${l.diasFolgas} folga(s) no período — considerar no resultado.`
           );
         }
+        // Férias no período anterior (ex.: mês passado) distorcem a comparação de crescimento
+        if (l.diasFeriasAnterior > 0) {
+          const msg =
+            l.crescimento > 0
+              ? `${l.nome} cresceu ${formatPct(l.crescimento)}, mas o período anterior teve ${l.diasFeriasAnterior} dia(s) de férias — base de comparação reduzida.`
+              : `${l.nome} teve ${l.diasFeriasAnterior} dia(s) de férias no período anterior — considerar na comparação de ${formatPct(l.crescimento)}.`;
+          _insights.alertas.push(msg);
+        }
       });
+
 
       setLojas(lojasArr);
       setEvolucao(evoArr);
