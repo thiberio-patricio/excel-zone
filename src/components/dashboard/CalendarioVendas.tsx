@@ -407,6 +407,8 @@ export default function CalendarioVendas({
                       ? 'bg-amber-500/10 border-amber-500 hover:bg-amber-500/20'
                       : emFerias
                       ? 'bg-blue-500/10 border-blue-500 hover:bg-blue-500/20'
+                      : folgaDoDia
+                      ? 'bg-purple-500/10 border-purple-500 hover:bg-purple-500/20'
                       : venda
                       ? 'bg-success/10 border-success hover:bg-success/20'
                       : 'bg-card border-border hover:bg-muted'
@@ -425,6 +427,9 @@ export default function CalendarioVendas({
                       {emFerias && (
                         <Palmtree className="w-3 h-3 text-blue-600" />
                       )}
+                      {folgaDoDia && !emFerias && (
+                        <Coffee className="w-3 h-3 text-purple-600" />
+                      )}
                     </div>
                   </div>
                   
@@ -441,6 +446,13 @@ export default function CalendarioVendas({
                       Férias
                     </div>
                   )}
+
+                  {/* Folga */}
+                  {folgaDoDia && !emFerias && !feriadoDoDia && !isSelected && (
+                    <div className="text-[10px] text-purple-700 truncate">
+                      {folgaDoDia.motivo ? `Folga · ${folgaDoDia.motivo}` : "Folga"}
+                    </div>
+                  )}
                   
                   {/* Venda Real (dias com venda registrada) */}
                   {venda && !feriadoDoDia && !emFerias && (
@@ -452,8 +464,8 @@ export default function CalendarioVendas({
                     </div>
                   )}
                   
-                  {/* Venda Esperada (dias sem venda registrada, sem feriado e sem férias) */}
-                  {!venda && !feriadoDoDia && !emFerias && vendaEsperada !== null && (
+                  {/* Venda Esperada (dias sem venda registrada, sem feriado, férias ou folga) */}
+                  {!venda && !feriadoDoDia && !emFerias && !folgaDoDia && vendaEsperada !== null && (
                     <div className="text-xs mt-1">
                       <div className="font-medium text-primary">
                         R$ {vendaEsperada.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -461,6 +473,7 @@ export default function CalendarioVendas({
                       <div className="text-[10px] text-muted-foreground">Esperada</div>
                     </div>
                   )}
+
                 </button>
               );
             })}
