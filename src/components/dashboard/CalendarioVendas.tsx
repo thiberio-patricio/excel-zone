@@ -392,6 +392,7 @@ export default function CalendarioVendas({
               const vendaEsperada = calcularVendaEsperada(dia);
               const feriadoDoDia = isFeriado(dataStr);
               const emFerias = isFerias(dataStr);
+              const folgaDoDia = isFolga(dataStr);
 
               return (
                 <button
