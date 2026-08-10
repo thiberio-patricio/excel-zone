@@ -392,7 +392,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const vendedorToFilial = new Map(vendedores.map((v) => [v.id, v.filial_id]));
 
       // Vendas do período atual + período anterior + TODAS as metas históricas dos vendedores
-      const [vendasAtual, vendasAnterior, metasRes, feriasRes, folgasRes, feriadosRes] = await Promise.all([
+      const [vendasAtual, vendasAnterior, metasRes, feriasRes, folgasRes, feriadosRes, feriasAnteriorRes] = await Promise.all([
         fetchVendasRange(vendedorIds, toISO(from), toISO(to)),
         fetchVendasRange(vendedorIds, toISO(prevFrom), toISO(prevTo)),
         vendedorIds.length
@@ -422,6 +422,15 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           .select("id, data, descricao, filial_id")
           .gte("data", toISO(from))
           .lte("data", toISO(to)),
+        // Férias do período ANTERIOR (ex.: mês passado) — usadas na comparação de resultados
+        vendedorIds.length
+          ? supabase
+              .from("ferias")
+              .select("id, vendedor_id, data_inicio, data_fim")
+              .in("vendedor_id", vendedorIds)
+              .lte("data_inicio", toISO(prevTo))
+              .gte("data_fim", toISO(prevFrom))
+          : Promise.resolve({ data: [] as any[] }),
       ]);
 
       const metas = (metasRes.data ?? []) as any[];
