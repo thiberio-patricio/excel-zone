@@ -16,6 +16,12 @@ interface LojaResumo {
   percentual: number;
   crescimento?: number;
   participacao?: number;
+  ticket?: number;
+  metaTicket?: number;
+  ticketPercentual?: number;
+  diasFerias?: number;
+  diasFolgas?: number;
+  diasFeriasAnterior?: number;
 }
 
 interface Payload {
@@ -27,6 +33,14 @@ interface Payload {
   melhorLoja?: LojaResumo;
   maiorCrescimento?: LojaResumo;
   lojas: LojaResumo[];
+  ticketGeral?: number;
+  metaTicketGeral?: number;
+  ticketPercentual?: number;
+  ausencias?: {
+    feriasPeriodo?: { vendedor: string; unidade: string; dias: number }[];
+    folgasPeriodo?: number;
+    feriasPeriodoAnterior?: { unidade: string; dias: number }[];
+  };
   mode?: "filial" | "vendedor";
   section?:
     | "executivo"
@@ -88,7 +102,13 @@ function userPrompt(p: Payload, mode: "filial" | "vendedor") {
       (l) =>
         `- ${l.nome}: venda ${fmt(l.venda)}, meta ${fmt(l.meta)}, atingimento ${l.percentual.toFixed(1)}%${
           l.crescimento !== undefined ? `, crescimento ${l.crescimento.toFixed(1)}%` : ""
-        }${l.participacao !== undefined ? `, participação ${l.participacao.toFixed(1)}%` : ""}`
+        }${l.participacao !== undefined ? `, participação ${l.participacao.toFixed(1)}%` : ""}${
+          l.ticket !== undefined
+            ? `, ticket médio ${fmt(l.ticket)} (${(l.ticketPercentual ?? 0).toFixed(1)}% da meta de ticket ${fmt(l.metaTicket ?? 500)})`
+            : ""
+        }${l.diasFerias ? `, ${l.diasFerias} dia(s) de férias no período` : ""}${
+          l.diasFolgas ? `, ${l.diasFolgas} folga(s) no período` : ""
+        }${l.diasFeriasAnterior ? `, ${l.diasFeriasAnterior} dia(s) de férias no PERÍODO ANTERIOR` : ""}`
     )
     .join("\n");
 
@@ -100,10 +120,29 @@ Crescimento vs período anterior: ${p.crescimento.toFixed(1)}%
 ${p.melhorLoja ? `${t.best.charAt(0).toUpperCase() + t.best.slice(1)}: ${p.melhorLoja.nome} (${p.melhorLoja.percentual.toFixed(1)}% da meta)` : ""}
 ${p.maiorCrescimento ? `Maior crescimento entre ${t.unitPlural}: ${p.maiorCrescimento.nome} (+${p.maiorCrescimento.crescimento?.toFixed(1)}%)` : ""}
 
+${
+    p.ticketGeral !== undefined
+      ? `Ticket médio consolidado: ${fmt(p.ticketGeral)} (meta ${fmt(p.metaTicketGeral ?? 500)}, atingimento ${(p.ticketPercentual ?? 0).toFixed(1)}%)`
+      : ""
+  }
+${
+    p.ausencias?.feriasPeriodoAnterior?.length
+      ? `Férias registradas no período anterior (impactam a base de comparação de crescimento): ${p.ausencias.feriasPeriodoAnterior
+          .map((f) => `${f.unidade} (${f.dias} dia(s))`)
+          .join("; ")}`
+      : ""
+  }
+${
+    p.ausencias?.feriasPeriodo?.length
+      ? `Férias no período atual: ${p.ausencias.feriasPeriodo.map((f) => `${f.vendedor} (${f.dias} dia(s))`).join("; ")}`
+      : ""
+  }
+${p.ausencias?.folgasPeriodo ? `Total de folgas no período atual: ${p.ausencias.folgasPeriodo}` : ""}
+
 Detalhamento por ${t.unit}:
 ${linhas}
 
-Gere a análise conforme as regras, tratando cada item como ${t.unit}.`;
+Gere a análise conforme as regras, tratando cada item como ${t.unit}. Analise obrigatoriamente o ticket médio (atual vs meta) e considere explicitamente as férias e folgas — inclusive as férias do período anterior, que reduzem a base de comparação e podem inflar ou distorcer o crescimento.`;
 }
 
 Deno.serve(async (req) => {
