@@ -9,6 +9,7 @@ import {
   Sparkles,
   Settings,
   FileText,
+  Bot,
 } from "lucide-react";
 import {
   Sidebar,
