@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.relatorio-insights]
 verify_jwt = true
+
+[functions.ana-executiva]
+verify_jwt = true
