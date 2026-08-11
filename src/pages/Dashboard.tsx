@@ -134,7 +134,7 @@ export default function Dashboard() {
           <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10">
             <PageTransition transitionKey={activeSection} className="mx-auto max-w-[1400px]">
               {(userRole === "diretor" || userRole === "admin") ? (
-                <DiretorDashboard profile={profile} />
+                <DiretorDashboard profile={profile} role={userRole} />
               ) : userRole === "gerente" ? (
                 <GerenteDashboard profile={profile} />
               ) : (

@@ -8,8 +8,10 @@ import GerenciarDiretores from "./GerenciarDiretores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import VisaoGeral from "./VisaoGeral";
 import Relatorios from "./Relatorios";
+import IAExecutiva from "./IAExecutiva";
 
 interface DiretorDashboardProps {
+  role?: string;
   profile: {
     id: string;
     nome: string;
@@ -18,8 +20,9 @@ interface DiretorDashboardProps {
   };
 }
 
-export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
-  const validTabs = ["visao-geral", "relatorios", "filiais", "gerentes", "diretores", "vendedor"];
+export default function DiretorDashboard({ profile, role }: DiretorDashboardProps) {
+  const isAdmin = role === "admin";
+  const validTabs = ["visao-geral", "relatorios", "filiais", "gerentes", "diretores", "vendedor", ...(isAdmin ? ["ia-executiva"] : [])];
   const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialHash) ? initialHash : "visao-geral"
@@ -53,6 +56,12 @@ export default function DiretorDashboard({ profile }: DiretorDashboardProps) {
         <TabsContent value="visao-geral" className="mt-6">
           <VisaoGeral onVendedorSelecionado={handleVendedorSelecionado} />
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="ia-executiva" className="mt-6">
+            <IAExecutiva />
+          </TabsContent>
+        )}
 
         <TabsContent value="relatorios" className="mt-6">
           <Relatorios />
