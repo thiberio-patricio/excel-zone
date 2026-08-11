@@ -109,6 +109,23 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     });
   }, [mes, ano, filialId]);
 
+  // Vendedores com férias no período (não devem ser sinalizados como risco)
+  useEffect(() => {
+    const primeiro = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const ultimoDiaDate = new Date(ano, mes, 0);
+    const ultimo = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
+
+    supabase
+      .from("ferias")
+      .select("vendedor_id, data_inicio, data_fim")
+      .lte("data_inicio", ultimo)
+      .gte("data_fim", primeiro)
+      .then(({ data }) => {
+        setEmFeriasIds(new Set(((data as any[]) || []).map((f) => f.vendedor_id)));
+      });
+  }, [mes, ano, filialId]);
+
+
 
 
   const carregar = async () => {
