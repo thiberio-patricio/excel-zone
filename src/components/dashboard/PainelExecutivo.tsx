@@ -74,6 +74,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [ticketsPorLoja, setTicketsPorLoja] = useState<number[]>([]);
   /** Dias do mês que são feriados (excluídos dos dias de venda) */
   const [feriadoDias, setFeriadoDias] = useState<number[]>([]);
+  /** Vendedores que tiveram férias no período analisado */
+  const [emFeriasIds, setEmFeriasIds] = useState<Set<string>>(new Set());
 
 
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
@@ -108,6 +110,23 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
       setFeriadoDias(dias);
     });
   }, [mes, ano, filialId]);
+
+  // Vendedores com férias no período (não devem ser sinalizados como risco)
+  useEffect(() => {
+    const primeiro = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    const ultimoDiaDate = new Date(ano, mes, 0);
+    const ultimo = `${ano}-${String(mes).padStart(2, "0")}-${String(ultimoDiaDate.getDate()).padStart(2, "0")}`;
+
+    supabase
+      .from("ferias")
+      .select("vendedor_id, data_inicio, data_fim")
+      .lte("data_inicio", ultimo)
+      .gte("data_fim", primeiro)
+      .then(({ data }) => {
+        setEmFeriasIds(new Set(((data as any[]) || []).map((f) => f.vendedor_id)));
+      });
+  }, [mes, ano, filialId]);
+
 
 
 
@@ -463,7 +482,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
     // Alerta: baixa performance
     const criticos = vendedores
-      .filter((v) => v.meta > 0 && v.percentual < 40)
+      .filter((v) => v.meta > 0 && v.percentual < 40 && !emFeriasIds.has(v.id))
       .sort((a, b) => a.percentual - b.percentual)
       .slice(0, 3);
     if (criticos.length > 0) {
@@ -527,7 +546,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     });
 
     return items;
-  }, [vendedores, stats, derived, scopeLabel]);
+  }, [vendedores, stats, derived, scopeLabel, emFeriasIds]);
 
   const kpis: any[] = [
     {
