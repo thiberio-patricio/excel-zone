@@ -546,7 +546,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
     });
 
     return items;
-  }, [vendedores, stats, derived, scopeLabel]);
+  }, [vendedores, stats, derived, scopeLabel, emFeriasIds]);
 
   const kpis: any[] = [
     {
