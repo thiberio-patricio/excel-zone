@@ -74,6 +74,8 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   const [ticketsPorLoja, setTicketsPorLoja] = useState<number[]>([]);
   /** Dias do mês que são feriados (excluídos dos dias de venda) */
   const [feriadoDias, setFeriadoDias] = useState<number[]>([]);
+  /** Vendedores que tiveram férias no período analisado */
+  const [emFeriasIds, setEmFeriasIds] = useState<Set<string>>(new Set());
 
 
   const emptyStats = { totalFiliais: 0, totalGerentes: 0, totalVendedores: 0, vendasMesAtual: 0, metaGeral: 0 };
