@@ -67,6 +67,12 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       ],
     },
     {
+      label: "Inteligência",
+      items: [
+        { id: "ia-executiva", title: "IA Executiva", icon: Bot },
+      ],
+    },
+    {
       label: "Gestão",
       items: [
         { id: "filiais", title: "Filiais", icon: Building2 },
@@ -75,6 +81,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       ],
     },
   ],
+
   gerente: [
     {
       label: "Performance",
