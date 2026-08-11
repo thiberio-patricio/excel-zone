@@ -482,7 +482,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
 
     // Alerta: baixa performance
     const criticos = vendedores
-      .filter((v) => v.meta > 0 && v.percentual < 40)
+      .filter((v) => v.meta > 0 && v.percentual < 40 && !emFeriasIds.has(v.id))
       .sort((a, b) => a.percentual - b.percentual)
       .slice(0, 3);
     if (criticos.length > 0) {
