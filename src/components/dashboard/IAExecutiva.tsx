@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -13,6 +13,7 @@ import {
   CalendarDays,
   Users,
   MessageCircle,
+  type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -160,6 +161,38 @@ function calcularRange(tipo: Tipo, base: string) {
     label: `${fmtData(ini)} a ${fmtData(fim)}`,
     prevLabel: `${fmtData(prevIni)} a ${fmtData(prevFim)}`,
   };
+}
+
+function CardSecao({
+  icon: Icon,
+  title,
+  description,
+  actions,
+  children,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <PageCard>
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold text-foreground">{title}</h3>
+            {description && <p className="text-sm text-muted-foreground">{description}</p>}
+          </div>
+        </div>
+        {actions}
+      </div>
+      {children}
+    </PageCard>
+  );
 }
 
 export default function IAExecutiva() {
@@ -418,7 +451,7 @@ export default function IAExecutiva() {
         }
       />
 
-      <PageCard
+      <CardSecao
         icon={CalendarDays}
         title="Período da análise"
         description="Selecione o tipo de relatório e a data de referência."
@@ -468,9 +501,9 @@ export default function IAExecutiva() {
             ))}
           </div>
         )}
-      </PageCard>
+      </CardSecao>
 
-      <PageCard
+      <CardSecao
         icon={Sparkles}
         title={`Análise da ANA · ${TIPO_LABEL[tipo]}`}
         description="Mensagem consultiva gerada com base nos dados reais do período, pronta para WhatsApp."
@@ -507,9 +540,9 @@ export default function IAExecutiva() {
             description="Clique em “Gerar análise” para a ANA interpretar os dados do período selecionado."
           />
         )}
-      </PageCard>
+      </CardSecao>
 
-      <PageCard
+      <CardSecao
         icon={Users}
         title="Destinatários"
         description="Proprietários, diretores e gestores que recebem as análises da ANA."
@@ -606,7 +639,7 @@ export default function IAExecutiva() {
             ))
           )}
         </div>
-      </PageCard>
+      </CardSecao>
     </div>
   );
 }
