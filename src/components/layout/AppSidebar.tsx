@@ -10,6 +10,11 @@ import {
   Settings,
   FileText,
   Bot,
+  CalendarClock,
+  BellRing,
+  History,
+  MessageSquareText,
+
 } from "lucide-react";
 import {
   Sidebar,
