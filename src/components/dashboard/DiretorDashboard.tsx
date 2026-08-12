@@ -9,6 +9,24 @@ import VisualizarVendedor from "./VisualizarVendedor";
 import VisaoGeral from "./VisaoGeral";
 import Relatorios from "./Relatorios";
 import IAExecutiva from "./IAExecutiva";
+import IADashboard from "./ia/IADashboard";
+import IAConfiguracoes from "./ia/IAConfiguracoes";
+import IAAgendamentos from "./ia/IAAgendamentos";
+import IAHistorico from "./ia/IAHistorico";
+import IAAlertas from "./ia/IAAlertas";
+import IADestinatarios from "./ia/IADestinatarios";
+import IAModelos from "./ia/IAModelos";
+
+const IA_TABS: { id: string; component: React.ComponentType }[] = [
+  { id: "ia-dashboard", component: IADashboard },
+  { id: "ia-executiva", component: IAExecutiva },
+  { id: "ia-config", component: IAConfiguracoes },
+  { id: "ia-agendamentos", component: IAAgendamentos },
+  { id: "ia-historico", component: IAHistorico },
+  { id: "ia-alertas", component: IAAlertas },
+  { id: "ia-destinatarios", component: IADestinatarios },
+  { id: "ia-modelos", component: IAModelos },
+];
 
 interface DiretorDashboardProps {
   role?: string;
@@ -22,7 +40,7 @@ interface DiretorDashboardProps {
 
 export default function DiretorDashboard({ profile, role }: DiretorDashboardProps) {
   const isAdmin = role === "admin";
-  const validTabs = ["visao-geral", "relatorios", "filiais", "gerentes", "diretores", "vendedor", ...(isAdmin ? ["ia-executiva"] : [])];
+  const validTabs = ["visao-geral", "relatorios", "filiais", "gerentes", "diretores", "vendedor", ...(isAdmin ? IA_TABS.map((t) => t.id) : [])];
   const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialHash) ? initialHash : "visao-geral"
@@ -57,11 +75,12 @@ export default function DiretorDashboard({ profile, role }: DiretorDashboardProp
           <VisaoGeral onVendedorSelecionado={handleVendedorSelecionado} />
         </TabsContent>
 
-        {isAdmin && (
-          <TabsContent value="ia-executiva" className="mt-6">
-            <IAExecutiva />
-          </TabsContent>
-        )}
+        {isAdmin &&
+          IA_TABS.map(({ id, component: Componente }) => (
+            <TabsContent key={id} value={id} className="mt-6">
+              <Componente />
+            </TabsContent>
+          ))}
 
         <TabsContent value="relatorios" className="mt-6">
           <Relatorios />
