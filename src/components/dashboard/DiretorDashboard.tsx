@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ComponentType } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Building2, Users, BarChart3, ShieldCheck, User, ArrowLeft } from "lucide-react";
@@ -17,7 +17,7 @@ import IAAlertas from "./ia/IAAlertas";
 import IADestinatarios from "./ia/IADestinatarios";
 import IAModelos from "./ia/IAModelos";
 
-const IA_TABS: { id: string; component: React.ComponentType }[] = [
+const IA_TABS: { id: string; component: ComponentType }[] = [
   { id: "ia-dashboard", component: IADashboard },
   { id: "ia-executiva", component: IAExecutiva },
   { id: "ia-config", component: IAConfiguracoes },
