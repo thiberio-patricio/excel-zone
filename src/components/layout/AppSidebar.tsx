@@ -68,11 +68,19 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       ],
     },
     {
-      label: "Inteligência",
+      label: "IA Executiva",
       items: [
-        { id: "ia-executiva", title: "IA Executiva", icon: Bot },
+        { id: "ia-dashboard", title: "Dashboard IA", icon: Bot },
+        { id: "ia-executiva", title: "Gerar Análise", icon: Sparkles },
+        { id: "ia-config", title: "Configurações", icon: Settings },
+        { id: "ia-agendamentos", title: "Agendamentos", icon: CalendarClock },
+        { id: "ia-historico", title: "Histórico de Análises", icon: History },
+        { id: "ia-alertas", title: "Alertas Inteligentes", icon: BellRing },
+        { id: "ia-destinatarios", title: "Destinatários", icon: Users },
+        { id: "ia-modelos", title: "Modelos de Mensagens", icon: MessageSquareText },
       ],
     },
+
     {
       label: "Gestão",
       items: [
