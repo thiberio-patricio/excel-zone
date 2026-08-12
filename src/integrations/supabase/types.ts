@@ -14,6 +14,181 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_analysis_history: {
+        Row: {
+          analysis_date: string
+          analysis_type: string
+          company_id: string | null
+          created_at: string
+          generated_by: string | null
+          generated_text: string
+          id: string
+          store_id: string | null
+        }
+        Insert: {
+          analysis_date?: string
+          analysis_type: string
+          company_id?: string | null
+          created_at?: string
+          generated_by?: string | null
+          generated_text: string
+          id?: string
+          store_id?: string | null
+        }
+        Update: {
+          analysis_date?: string
+          analysis_type?: string
+          company_id?: string | null
+          created_at?: string
+          generated_by?: string | null
+          generated_text?: string
+          id?: string
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analysis_history_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_assistants: {
+        Row: {
+          active: boolean
+          assistant_name: string
+          assistant_photo: string | null
+          assistant_role: string
+          company_id: string | null
+          created_at: string
+          id: string
+          tone: string
+        }
+        Insert: {
+          active?: boolean
+          assistant_name?: string
+          assistant_photo?: string | null
+          assistant_role?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          tone?: string
+        }
+        Update: {
+          active?: boolean
+          assistant_name?: string
+          assistant_photo?: string | null
+          assistant_role?: string
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          tone?: string
+        }
+        Relationships: []
+      }
+      ai_notification_settings: {
+        Row: {
+          active: boolean
+          company_id: string | null
+          conversion_alert: boolean
+          created_at: string
+          daily_report_enabled: boolean
+          goal_risk_alert: boolean
+          id: string
+          monthly_report_enabled: boolean
+          ranking_alert: boolean
+          sales_drop_alert: boolean
+          send_time: string
+          stock_alert: boolean
+          ticket_average_alert: boolean
+          updated_at: string
+          weekly_report_enabled: boolean
+        }
+        Insert: {
+          active?: boolean
+          company_id?: string | null
+          conversion_alert?: boolean
+          created_at?: string
+          daily_report_enabled?: boolean
+          goal_risk_alert?: boolean
+          id?: string
+          monthly_report_enabled?: boolean
+          ranking_alert?: boolean
+          sales_drop_alert?: boolean
+          send_time?: string
+          stock_alert?: boolean
+          ticket_average_alert?: boolean
+          updated_at?: string
+          weekly_report_enabled?: boolean
+        }
+        Update: {
+          active?: boolean
+          company_id?: string | null
+          conversion_alert?: boolean
+          created_at?: string
+          daily_report_enabled?: boolean
+          goal_risk_alert?: boolean
+          id?: string
+          monthly_report_enabled?: boolean
+          ranking_alert?: boolean
+          sales_drop_alert?: boolean
+          send_time?: string
+          stock_alert?: boolean
+          ticket_average_alert?: boolean
+          updated_at?: string
+          weekly_report_enabled?: boolean
+        }
+        Relationships: []
+      }
+      ai_notifications: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          delivery_status: string
+          id: string
+          message: string
+          notification_type: string
+          recipient_name: string
+          recipient_phone: string
+          sent_at: string | null
+          store_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          delivery_status?: string
+          id?: string
+          message: string
+          notification_type: string
+          recipient_name: string
+          recipient_phone: string
+          sent_at?: string | null
+          store_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          delivery_status?: string
+          id?: string
+          message?: string
+          notification_type?: string
+          recipient_name?: string
+          recipient_phone?: string
+          sent_at?: string | null
+          store_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_notifications_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           acao: string
