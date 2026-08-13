@@ -37,6 +37,8 @@ import {
 import { ProfilePhoto } from "@/components/ui/profile-photo";
 import { useNotifications } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
+import { ScoreComercialBadge } from "@/components/ia/ScoreComercialBadge";
+import type { EngineScope } from "@/services/aiExecutiveEngine";
 
 type Role = "vendedor" | "gerente" | "diretor" | "admin";
 
@@ -50,6 +52,8 @@ interface TopbarProps {
   role: Role;
   onLogout: () => void;
   onNavigate?: (section: string) => void;
+  /** Escopo usado pelo Score Comercial (AIExecutiveEngine) exibido na topbar. */
+  scoreScope?: EngineScope;
 }
 
 interface SearchItem {
@@ -105,6 +109,7 @@ export function Topbar({
   role,
   onLogout,
   onNavigate,
+  scoreScope,
 }: TopbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead } =
@@ -189,6 +194,11 @@ export function Topbar({
           </span>
           <Sparkles className="h-3.5 w-3.5 text-primary" />
           <span className="text-xs font-semibold text-foreground">IA ativa</span>
+        </div>
+
+        {/* Score Comercial global */}
+        <div className="hidden lg:block">
+          <ScoreComercialBadge scope={scoreScope ?? {}} />
         </div>
 
         {/* Notifications */}

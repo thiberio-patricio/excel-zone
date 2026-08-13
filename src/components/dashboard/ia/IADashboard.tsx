@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { toLocalISO } from "@/utils/dateISO";
+import ScoreComercialPanel from "@/components/ia/ScoreComercialPanel";
 
 const fmtBRL = (v: number) =>
   `R$ ${Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
@@ -312,6 +313,8 @@ export default function IADashboard() {
           accent={CORES[2]}
         />
       </div>
+
+      <ScoreComercialPanel />
 
       <div className="grid gap-6 xl:grid-cols-2">
         <PageCard>
