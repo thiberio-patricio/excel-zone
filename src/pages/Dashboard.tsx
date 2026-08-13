@@ -130,6 +130,13 @@ export default function Dashboard() {
             role={userRole}
             onLogout={handleLogout}
             onNavigate={handleSelect}
+            scoreScope={
+              userRole === "vendedor"
+                ? { vendedorId: profile.id, nome: profile.nome }
+                : userRole === "gerente"
+                ? { filialId: profile.filial_id, nome: "Minha filial" }
+                : { nome: "Rede" }
+            }
           />
           <main className="flex-1 px-4 sm:px-8 py-6 sm:py-10">
             <PageTransition transitionKey={activeSection} className="mx-auto max-w-[1400px]">
