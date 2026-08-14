@@ -50,7 +50,28 @@ import {
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import html2canvas from "html2canvas";
 import logoUnidos from "@/assets/logo-unidos.png";
+import { Send, Crown, Store } from "lucide-react";
+
+/** Destinatários de relatórios cadastrados em IA Executiva → Destinatários. */
+function getDestinatariosRelatorio(): string[] {
+  try {
+    const raw = localStorage.getItem("ana_destinatarios");
+    if (!raw) return [];
+    const lista = JSON.parse(raw) as {
+      telefone?: string;
+      relatorios?: string[];
+    }[];
+    return lista
+      .filter((d) => !!d.telefone)
+      .map((d) => String(d.telefone).replace(/\D/g, ""))
+      .filter((t) => t.length >= 10);
+  } catch {
+    return [];
+  }
+}
+
 
 /* --------------------------------- Types --------------------------------- */
 
@@ -76,6 +97,10 @@ interface LojaAgg {
   diasFerias: number;
   diasFolgas: number;
   diasFeriasAnterior: number;
+  /** Dias com movimento no período (usado como base de conversão) */
+  diasComVenda: number;
+  /** Proxy de conversão: vendas por dia com movimento */
+  conversao: number;
 }
 
 interface MesAgg {
@@ -292,8 +317,10 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
   });
 
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [whatsLoading, setWhatsLoading] = useState(false);
 
   const dashRef = useRef<HTMLDivElement>(null);
+  const pdfChartsRef = useRef<HTMLDivElement>(null);
 
   /* Load units (branches OR sellers of the manager's branch) */
   useEffect(() => {
@@ -352,6 +379,92 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
     () => [...lojas].sort((a, b) => b.crescimento - a.crescimento)[0],
     [lojas]
   );
+
+  /* Comparativo entre lojas — destaques automáticos */
+  const piorLoja = useMemo(
+    () => [...lojas].sort((a, b) => a.percentual - b.percentual)[0],
+    [lojas]
+  );
+  const maiorQueda = useMemo(() => {
+    const pior = [...lojas].sort((a, b) => a.crescimento - b.crescimento)[0];
+    return pior && pior.crescimento < 0 ? pior : undefined;
+  }, [lojas]);
+  const melhorTicket = useMemo(
+    () => [...lojas].sort((a, b) => b.ticket - a.ticket)[0],
+    [lojas]
+  );
+  const melhorConversao = useMemo(
+    () => [...lojas].sort((a, b) => b.conversao - a.conversao)[0],
+    [lojas]
+  );
+
+  /** Resumo executivo gerado automaticamente a partir dos números do período. */
+  const resumoExecutivo = useMemo(() => {
+    if (lojas.length === 0) return "";
+    const un = unitLabel.toLowerCase();
+    const partes: string[] = [];
+    partes.push(
+      `No período de ${periodoLabel}, ${lojas.length} ${
+        lojas.length === 1 ? un : unitLabelPlural.toLowerCase()
+      } faturaram ${formatBRL(totalVendido)} frente a uma meta de ${formatBRL(
+        metaTotal
+      )}, atingindo ${formatPct(percentualAtingido)} do objetivo e ${
+        crescimentoTotal >= 0 ? "crescimento" : "retração"
+      } de ${formatPct(Math.abs(crescimentoTotal))} sobre o período anterior.`
+    );
+    if (melhorLoja)
+      partes.push(
+        `Melhor desempenho: ${melhorLoja.nome}, com ${formatPct(melhorLoja.percentual)} da meta (${formatBRL(
+          melhorLoja.venda
+        )}).`
+      );
+    if (piorLoja && piorLoja.id !== melhorLoja?.id)
+      partes.push(
+        `Pior desempenho: ${piorLoja.nome}, com ${formatPct(piorLoja.percentual)} da meta (${formatBRL(
+          piorLoja.venda
+        )}).`
+      );
+    if (maiorCrescimento && maiorCrescimento.crescimento > 0)
+      partes.push(
+        `Maior crescimento: ${maiorCrescimento.nome} (+${maiorCrescimento.crescimento.toFixed(1)}%).`
+      );
+    if (maiorQueda)
+      partes.push(`Maior queda: ${maiorQueda.nome} (${maiorQueda.crescimento.toFixed(1)}%).`);
+    if (melhorTicket && melhorTicket.ticket > 0)
+      partes.push(
+        `Melhor ticket médio: ${melhorTicket.nome} (${formatBRL(melhorTicket.ticket)}, ${formatPct(
+          melhorTicket.ticketPercentual
+        )} da meta de ticket).`
+      );
+    if (melhorConversao && melhorConversao.conversao > 0)
+      partes.push(
+        `Melhor conversão: ${melhorConversao.nome}, com média de ${melhorConversao.conversao.toFixed(
+          1
+        )} venda(s) por dia de movimento.`
+      );
+    const abaixo = lojas.filter((l) => l.percentual < 100);
+    if (abaixo.length > 0)
+      partes.push(
+        `${abaixo.length} de ${lojas.length} ainda estão abaixo da meta e concentram o foco do plano de ação.`
+      );
+    return partes.join(" ");
+  }, [
+    lojas,
+    periodoLabel,
+    totalVendido,
+    metaTotal,
+    percentualAtingido,
+    crescimentoTotal,
+    melhorLoja,
+    piorLoja,
+    maiorCrescimento,
+    maiorQueda,
+    melhorTicket,
+    melhorConversao,
+    unitLabel,
+    unitLabelPlural,
+  ]);
+
 
   /* ------------------------- Data fetch ------------------------- */
 
@@ -468,9 +581,13 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
             diasFerias: 0,
             diasFolgas: 0,
             diasFeriasAnterior: 0,
+            diasComVenda: 0,
+            conversao: 0,
           })
         );
 
+      // Dias com movimento por unidade (base de conversão)
+      const diasMovimento = new Map<string, Set<string>>();
       vendasAtual.forEach((v) => {
         const fid = vendedorToFilial.get(v.vendedor_id);
         if (!fid) return;
@@ -478,6 +595,15 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         if (!agg) return;
         agg.venda += Number(v.valor) - Number(v.devolucao ?? 0);
         agg.quantidade += Number(v.quantidade_vendas ?? 0);
+        if (Number(v.quantidade_vendas ?? 0) > 0 || Number(v.valor) > 0) {
+          const set = diasMovimento.get(fid) ?? new Set<string>();
+          set.add(String(v.data));
+          diasMovimento.set(fid, set);
+        }
+      });
+      diasMovimento.forEach((set, fid) => {
+        const agg = lojaMap.get(fid);
+        if (agg) agg.diasComVenda = set.size;
       });
       vendasAnterior.forEach((v) => {
         const fid = vendedorToFilial.get(v.vendedor_id);
@@ -598,6 +724,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         l.ticket = l.quantidade > 0 ? l.venda / l.quantidade : 0;
         if (!l.metaTicket) l.metaTicket = 500;
         l.ticketPercentual = l.metaTicket > 0 ? (l.ticket / l.metaTicket) * 100 : 0;
+        l.conversao = l.diasComVenda > 0 ? l.quantidade / l.diasComVenda : 0;
         lojasArr.push(l);
       });
       lojasArr.sort((a, b) => b.venda - a.venda);
@@ -797,17 +924,39 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
 
   /* ------------------------- PDF ------------------------- */
 
-  const gerarPDF = async () => {
-    if (!generated) {
-      toast.error("Gere o relatório primeiro");
-      return;
+  /** Captura os gráficos offscreen como imagens PNG para o PDF. */
+  const capturarGraficos = async () => {
+    const el = pdfChartsRef.current;
+    if (!el) return [] as { titulo: string; dataUrl: string; ratio: number }[];
+    const nodes = Array.from(el.querySelectorAll<HTMLElement>("[data-pdf-chart]"));
+    const imagens: { titulo: string; dataUrl: string; ratio: number }[] = [];
+    for (const node of nodes) {
+      try {
+        const canvas = await html2canvas(node, {
+          backgroundColor: "#ffffff",
+          scale: 2,
+          logging: false,
+        });
+        imagens.push({
+          titulo: node.dataset.pdfChart || "Gráfico",
+          dataUrl: canvas.toDataURL("image/png"),
+          ratio: canvas.height / canvas.width,
+        });
+      } catch (e) {
+        console.warn("Falha ao capturar gráfico", e);
+      }
     }
-    setPdfLoading(true);
-    try {
+    return imagens;
+  };
+
+  const buildPDF = async (): Promise<jsPDF> => {
+    const graficos = await capturarGraficos();
+    {
       const doc = new jsPDF({ unit: "pt", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
       const pageH = doc.internal.pageSize.getHeight();
       const margin = 40;
+
 
       // COVER
       doc.setFillColor(15, 15, 15);
@@ -862,7 +1011,24 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       });
       y = (doc as any).lastAutoTable.finalY + 24;
 
+      // Resumo executivo automático
+      if (resumoExecutivo) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(13);
+        doc.text("Resumo do Período", margin, y);
+        y += 16;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        const rLines = doc.splitTextToSize(resumoExecutivo, pageW - margin * 2);
+        doc.text(rLines, margin, y);
+        y += rLines.length * 12 + 20;
+      }
+
       // Análise Executiva
+      if (y > pageH - 160) {
+        doc.addPage();
+        y = margin;
+      }
       doc.setFont("helvetica", "bold");
       doc.setFontSize(13);
       doc.text("Análise Executiva (IA)", margin, y);
@@ -873,6 +1039,126 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       const execLines = doc.splitTextToSize(execText, pageW - margin * 2);
       doc.text(execLines, margin, y);
       y += execLines.length * 12 + 20;
+
+      // COMPARATIVO ENTRE LOJAS
+      doc.addPage();
+      y = margin;
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text(`Comparativo entre ${unitLabelPlural}`, margin, y);
+      y += 24;
+      doc.setDrawColor(200, 40, 40);
+      doc.line(margin, y, margin + 60, y);
+      y += 12;
+
+      const destaquesPDF: [string, string][] = [
+        [
+          `Melhor ${unitLabel.toLowerCase()}`,
+          melhorLoja ? `${melhorLoja.nome} — ${formatPct(melhorLoja.percentual)} da meta` : "-",
+        ],
+        [
+          `Pior ${unitLabel.toLowerCase()}`,
+          piorLoja ? `${piorLoja.nome} — ${formatPct(piorLoja.percentual)} da meta` : "-",
+        ],
+        [
+          "Maior crescimento",
+          maiorCrescimento
+            ? `${maiorCrescimento.nome} — ${maiorCrescimento.crescimento.toFixed(1)}%`
+            : "-",
+        ],
+        [
+          "Maior queda",
+          maiorQueda ? `${maiorQueda.nome} — ${maiorQueda.crescimento.toFixed(1)}%` : "Nenhuma queda",
+        ],
+        [
+          "Melhor ticket médio",
+          melhorTicket ? `${melhorTicket.nome} — ${formatBRL(melhorTicket.ticket)}` : "-",
+        ],
+        [
+          "Melhor conversão",
+          melhorConversao
+            ? `${melhorConversao.nome} — ${melhorConversao.conversao.toFixed(1)} vendas/dia`
+            : "-",
+        ],
+      ];
+      autoTable(doc, {
+        startY: y,
+        head: [["Destaque", "Resultado"]],
+        body: destaquesPDF,
+        theme: "grid",
+        headStyles: { fillColor: [200, 40, 40], textColor: 255 },
+        styles: { fontSize: 10, cellPadding: 6 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 20;
+
+      autoTable(doc, {
+        startY: y,
+        head: [[unitLabel, "Venda", "Meta", "%", "Cresc.", "Ticket", "Conversão"]],
+        body: [...lojas]
+          .sort((a, b) => b.percentual - a.percentual)
+          .map((l) => [
+            l.nome,
+            formatBRL(l.venda),
+            formatBRL(l.meta),
+            formatPct(l.percentual),
+            `${l.crescimento.toFixed(1)}%`,
+            formatBRL(l.ticket),
+            `${l.conversao.toFixed(1)}/dia`,
+          ]),
+        theme: "striped",
+        headStyles: { fillColor: [40, 40, 40], textColor: 255 },
+        styles: { fontSize: 9, cellPadding: 5 },
+      });
+      y = (doc as any).lastAutoTable.finalY + 20;
+
+      if (aiComparativo) {
+        if (y > pageH - 140) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("Análise Comparativa (IA)", margin, y);
+        y += 14;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+        const cmpLines = doc.splitTextToSize(aiComparativo, pageW - margin * 2);
+        doc.text(cmpLines, margin, y);
+        y += cmpLines.length * 12 + 10;
+      }
+
+      // GRÁFICOS
+      if (graficos.length > 0) {
+        doc.addPage();
+        y = margin;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(16);
+        doc.setTextColor(20, 20, 20);
+        doc.text("Gráficos do Período", margin, y);
+        y += 24;
+        doc.setDrawColor(200, 40, 40);
+        doc.line(margin, y, margin + 60, y);
+        y += 18;
+
+        const imgW = pageW - margin * 2;
+        for (const g of graficos) {
+          const imgH = imgW * g.ratio;
+          if (y + imgH + 24 > pageH - margin) {
+            doc.addPage();
+            y = margin;
+          }
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.setTextColor(20, 20, 20);
+          doc.text(g.titulo, margin, y);
+          y += 12;
+          try {
+            doc.addImage(g.dataUrl, "PNG", margin, y, imgW, imgH);
+          } catch {}
+          y += imgH + 22;
+        }
+      }
+
 
       // RANKING
       doc.addPage();
@@ -984,7 +1270,22 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         }
       }
 
-      doc.save(`Relatorio-Executivo-${new Date().toISOString().split("T")[0]}.pdf`);
+      return doc;
+    }
+  };
+
+  const nomeArquivoPDF = () =>
+    `Relatorio-Executivo-${new Date().toISOString().split("T")[0]}.pdf`;
+
+  const gerarPDF = async () => {
+    if (!generated) {
+      toast.error("Gere o relatório primeiro");
+      return;
+    }
+    setPdfLoading(true);
+    try {
+      const doc = await buildPDF();
+      doc.save(nomeArquivoPDF());
       toast.success("PDF gerado com sucesso");
     } catch (e) {
       console.error(e);
@@ -993,6 +1294,65 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       setPdfLoading(false);
     }
   };
+
+  /** Gera o PDF, publica no armazenamento e envia por WhatsApp aos destinatários. */
+  const enviarPDFWhatsApp = async () => {
+    if (!generated) {
+      toast.error("Gere o relatório primeiro");
+      return;
+    }
+    const destinatarios = getDestinatariosRelatorio();
+    if (destinatarios.length === 0) {
+      toast.error("Cadastre destinatários em IA Executiva → Destinatários");
+      return;
+    }
+    setWhatsLoading(true);
+    try {
+      const doc = await buildPDF();
+      const blob = doc.output("blob");
+      const filename = nomeArquivoPDF();
+      const path = `executivo/${Date.now()}-${filename}`;
+
+      const { error: upErr } = await supabase.storage
+        .from("relatorios")
+        .upload(path, blob, { contentType: "application/pdf", upsert: true });
+      if (upErr) throw upErr;
+
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("relatorios")
+        .createSignedUrl(path, 60 * 60 * 24 * 7);
+      if (signErr || !signed?.signedUrl) throw signErr ?? new Error("URL indisponível");
+
+      const legenda = `📊 Relatório Executivo · ${periodoLabel}\n\n${resumoExecutivo.slice(0, 700)}`;
+
+      let enviados = 0;
+      for (const numero of destinatarios) {
+        const { error } = await supabase.functions.invoke("whatsapp-send", {
+          body: {
+            kind: "pdf",
+            to: numero,
+            message: legenda,
+            media_url: signed.signedUrl,
+            media_filename: filename,
+          },
+        });
+        if (error) console.error("Falha no envio", numero, error);
+        else enviados++;
+      }
+
+      if (enviados === 0) toast.error("Não foi possível enviar o relatório");
+      else
+        toast.success(
+          `Relatório enviado por WhatsApp para ${enviados} destinatário(s)`
+        );
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message ?? "Erro ao enviar relatório por WhatsApp");
+    } finally {
+      setWhatsLoading(false);
+    }
+  };
+
 
   /* ------------------------- Rendering helpers ------------------------- */
 
@@ -1098,14 +1458,25 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         title="Relatórios Executivos"
         description="Visão estratégica do desempenho comercial com análises inteligentes."
         actions={
-          <Button
-            onClick={gerarPDF}
-            disabled={!generated || pdfLoading}
-            className="gap-2 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
-          >
-            {pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Gerar Relatório PDF
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={enviarPDFWhatsApp}
+              disabled={!generated || whatsLoading || pdfLoading}
+              className="gap-2 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10"
+            >
+              {whatsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar por WhatsApp
+            </Button>
+            <Button
+              onClick={gerarPDF}
+              disabled={!generated || pdfLoading}
+              className="gap-2 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90"
+            >
+              {pdfLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              Gerar Relatório PDF
+            </Button>
+          </div>
         }
       />
 
@@ -1274,7 +1645,87 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
 
             {/* Comparativo */}
             <TabsContent value="comparativo" className="mt-6 space-y-6">
+              {/* Destaques automáticos */}
               <PageCard>
+                <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-primary" /> Destaques do Comparativo
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {[
+                    {
+                      icon: Crown,
+                      label: `Melhor ${unitLabel.toLowerCase()}`,
+                      nome: melhorLoja?.nome ?? "-",
+                      valor: melhorLoja ? `${formatPct(melhorLoja.percentual)} da meta` : "-",
+                      tone: "text-emerald-400",
+                    },
+                    {
+                      icon: ArrowDownRight,
+                      label: `Pior ${unitLabel.toLowerCase()}`,
+                      nome: piorLoja?.nome ?? "-",
+                      valor: piorLoja ? `${formatPct(piorLoja.percentual)} da meta` : "-",
+                      tone: "text-destructive",
+                    },
+                    {
+                      icon: ArrowUpRight,
+                      label: "Maior crescimento",
+                      nome: maiorCrescimento?.nome ?? "-",
+                      valor: maiorCrescimento ? `${maiorCrescimento.crescimento.toFixed(1)}%` : "-",
+                      tone: "text-emerald-400",
+                    },
+                    {
+                      icon: ArrowDownRight,
+                      label: "Maior queda",
+                      nome: maiorQueda?.nome ?? "Nenhuma queda",
+                      valor: maiorQueda ? `${maiorQueda.crescimento.toFixed(1)}%` : "—",
+                      tone: "text-destructive",
+                    },
+                    {
+                      icon: Target,
+                      label: "Melhor ticket médio",
+                      nome: melhorTicket?.nome ?? "-",
+                      valor: melhorTicket ? formatBRL(melhorTicket.ticket) : "-",
+                      tone: "text-primary",
+                    },
+                    {
+                      icon: Store,
+                      label: "Melhor conversão",
+                      nome: melhorConversao?.nome ?? "-",
+                      valor: melhorConversao
+                        ? `${melhorConversao.conversao.toFixed(1)} vendas/dia`
+                        : "-",
+                      tone: "text-primary",
+                    },
+                  ].map((d) => (
+                    <div
+                      key={d.label}
+                      className="rounded-xl border border-border/60 bg-card/40 p-4 backdrop-blur"
+                    >
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <d.icon className={`h-3.5 w-3.5 ${d.tone}`} />
+                        {d.label}
+                      </div>
+                      <p className="mt-2 font-display font-semibold text-foreground truncate">
+                        {d.nome}
+                      </p>
+                      <p className={`text-sm font-medium ${d.tone}`}>{d.valor}</p>
+                    </div>
+                  ))}
+                </div>
+                {resumoExecutivo && (
+                  <div className="mt-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                    <p className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                      <Sparkles className="h-3.5 w-3.5" /> Resumo Executivo
+                    </p>
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {resumoExecutivo}
+                    </p>
+                  </div>
+                )}
+              </PageCard>
+
+              <PageCard>
+
                 <h3 className="font-display font-semibold mb-4 flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" /> Meta vs Realizado
                 </h3>
@@ -1604,7 +2055,70 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           </Tabs>
         </div>
       )}
+
+      {/* Gráficos offscreen usados na exportação em PDF */}
+      {generated && (
+        <div
+          ref={pdfChartsRef}
+          aria-hidden
+          style={{ position: "fixed", left: -10000, top: 0, width: 900 }}
+        >
+          <div
+            data-pdf-chart={`Meta vs Realizado por ${unitLabel}`}
+            style={{ width: 900, height: 380, background: "#ffffff", padding: 12 }}
+          >
+            <ResponsiveContainer>
+              <BarChart data={lojas}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                <XAxis dataKey="nome" tick={{ fill: "#333", fontSize: 12 }} />
+                <YAxis tick={{ fill: "#333", fontSize: 11 }} tickFormatter={(v) => formatBRLShort(Number(v))} />
+                <Legend formatter={(v) => (v === "meta" ? "Meta" : "Vendido")} />
+                <Bar dataKey="meta" fill="#8a8a8a" isAnimationActive={false} />
+                <Bar dataKey="venda" fill="#c82828" isAnimationActive={false} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div
+            data-pdf-chart="Percentual de Meta Atingida"
+            style={{ width: 900, height: 380, background: "#ffffff", padding: 12 }}
+          >
+            <ResponsiveContainer>
+              <BarChart data={ranking} layout="vertical" margin={{ left: 60, right: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: "#333", fontSize: 11 }} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: "#333", fontSize: 12 }} width={140} />
+                <Bar dataKey="percentual" fill="#c82828" isAnimationActive={false}>
+                  <LabelList
+                    dataKey="percentual"
+                    position="right"
+                    formatter={(v: number) => `${v.toFixed(1)}%`}
+                    fill="#333"
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div
+            data-pdf-chart="Evolução Mensal"
+            style={{ width: 900, height: 380, background: "#ffffff", padding: 12 }}
+          >
+            <ResponsiveContainer>
+              <LineChart data={evolucao}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                <XAxis dataKey="label" tick={{ fill: "#333", fontSize: 12 }} />
+                <YAxis tickFormatter={(v) => formatBRLShort(Number(v))} tick={{ fill: "#333", fontSize: 11 }} />
+                <Legend formatter={(v) => (v === "meta" ? "Meta mensal" : "Venda mensal")} />
+                <Line type="monotone" dataKey="meta" stroke="#8a8a8a" strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="venda" stroke="#c82828" strokeWidth={3} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
