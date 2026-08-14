@@ -14,6 +14,7 @@ import {
   BellRing,
   History,
   MessageSquareText,
+  Activity,
 
 } from "lucide-react";
 import {
