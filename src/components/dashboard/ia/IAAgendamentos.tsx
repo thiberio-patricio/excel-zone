@@ -131,6 +131,9 @@ export default function IAAgendamentos() {
                     <div>
                       <p className="text-sm font-medium text-foreground">{a.label}</p>
                       <p className="text-xs text-muted-foreground">{a.quando}</p>
+                      <p className="text-[11px] text-muted-foreground/70">
+                        Última execução: {a.ultimaExecucao}
+                      </p>
                     </div>
                     <Badge variant="outline" className="text-[10px]">
                       {(settings.send_time ?? "08:00").slice(0, 5)}
