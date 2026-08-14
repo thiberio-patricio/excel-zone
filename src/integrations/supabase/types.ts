@@ -97,14 +97,20 @@ export type Database = {
           daily_report_enabled: boolean
           goal_risk_alert: boolean
           id: string
+          last_daily_run_at: string | null
+          last_monthly_run_at: string | null
+          last_weekly_run_at: string | null
+          monthly_day: number
           monthly_report_enabled: boolean
           ranking_alert: boolean
           sales_drop_alert: boolean
           send_time: string
           stock_alert: boolean
           ticket_average_alert: boolean
+          timezone: string
           updated_at: string
           weekly_report_enabled: boolean
+          weekly_weekday: number
         }
         Insert: {
           active?: boolean
@@ -114,14 +120,20 @@ export type Database = {
           daily_report_enabled?: boolean
           goal_risk_alert?: boolean
           id?: string
+          last_daily_run_at?: string | null
+          last_monthly_run_at?: string | null
+          last_weekly_run_at?: string | null
+          monthly_day?: number
           monthly_report_enabled?: boolean
           ranking_alert?: boolean
           sales_drop_alert?: boolean
           send_time?: string
           stock_alert?: boolean
           ticket_average_alert?: boolean
+          timezone?: string
           updated_at?: string
           weekly_report_enabled?: boolean
+          weekly_weekday?: number
         }
         Update: {
           active?: boolean
@@ -131,14 +143,20 @@ export type Database = {
           daily_report_enabled?: boolean
           goal_risk_alert?: boolean
           id?: string
+          last_daily_run_at?: string | null
+          last_monthly_run_at?: string | null
+          last_weekly_run_at?: string | null
+          monthly_day?: number
           monthly_report_enabled?: boolean
           ranking_alert?: boolean
           sales_drop_alert?: boolean
           send_time?: string
           stock_alert?: boolean
           ticket_average_alert?: boolean
+          timezone?: string
           updated_at?: string
           weekly_report_enabled?: boolean
+          weekly_weekday?: number
         }
         Relationships: []
       }
@@ -188,6 +206,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ai_scheduler_logs: {
+        Row: {
+          analyses_generated: number
+          company_id: string | null
+          created_at: string
+          details: Json | null
+          duration_ms: number
+          executed_at: string
+          id: string
+          message: string | null
+          notifications_created: number
+          run_type: string
+          status: string
+          trigger_source: string
+        }
+        Insert: {
+          analyses_generated?: number
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          duration_ms?: number
+          executed_at?: string
+          id?: string
+          message?: string | null
+          notifications_created?: number
+          run_type: string
+          status?: string
+          trigger_source?: string
+        }
+        Update: {
+          analyses_generated?: number
+          company_id?: string | null
+          created_at?: string
+          details?: Json | null
+          duration_ms?: number
+          executed_at?: string
+          id?: string
+          message?: string | null
+          notifications_created?: number
+          run_type?: string
+          status?: string
+          trigger_source?: string
+        }
+        Relationships: []
       }
       audit_logs: {
         Row: {
