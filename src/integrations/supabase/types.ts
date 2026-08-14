@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          dedupe_key: string | null
+          id: string
+          message: string
+          metrics: Json | null
+          notified: boolean
+          severity: string
+          store_id: string | null
+          store_name: string | null
+          title: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          message: string
+          metrics?: Json | null
+          notified?: boolean
+          severity?: string
+          store_id?: string | null
+          store_name?: string | null
+          title: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          dedupe_key?: string | null
+          id?: string
+          message?: string
+          metrics?: Json | null
+          notified?: boolean
+          severity?: string
+          store_id?: string | null
+          store_name?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_alerts_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_analysis_history: {
         Row: {
           analysis_date: string
@@ -557,6 +607,146 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      whatsapp_config: {
+        Row: {
+          active: boolean
+          base_url: string | null
+          created_at: string
+          id: string
+          instance: string | null
+          phone_number_id: string | null
+          provider: string
+          sender_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          base_url?: string | null
+          created_at?: string
+          id?: string
+          instance?: string | null
+          phone_number_id?: string | null
+          provider?: string
+          sender_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          base_url?: string | null
+          created_at?: string
+          id?: string
+          instance?: string | null
+          phone_number_id?: string | null
+          provider?: string
+          sender_label?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_logs: {
+        Row: {
+          attempt: number
+          error: string | null
+          executed_at: string
+          http_status: number | null
+          id: string
+          message_id: string | null
+          response: Json | null
+          status: string
+        }
+        Insert: {
+          attempt?: number
+          error?: string | null
+          executed_at?: string
+          http_status?: number | null
+          id?: string
+          message_id?: string | null
+          response?: Json | null
+          status: string
+        }
+        Update: {
+          attempt?: number
+          error?: string | null
+          executed_at?: string
+          http_status?: number | null
+          id?: string
+          message_id?: string | null
+          response?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_logs_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_messages: {
+        Row: {
+          alert_id: string | null
+          attempts: number
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          last_error: string | null
+          media_filename: string | null
+          media_url: string | null
+          message: string | null
+          next_attempt_at: string
+          provider: string | null
+          provider_message_id: string | null
+          recipient_name: string
+          recipient_phone: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          alert_id?: string | null
+          attempts?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          media_filename?: string | null
+          media_url?: string | null
+          message?: string | null
+          next_attempt_at?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_name: string
+          recipient_phone: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          alert_id?: string | null
+          attempts?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          last_error?: string | null
+          media_filename?: string | null
+          media_url?: string | null
+          message?: string | null
+          next_attempt_at?: string
+          provider?: string | null
+          provider_message_id?: string | null
+          recipient_name?: string
+          recipient_phone?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
     }
     Views: {
