@@ -1,0 +1,3 @@
+CREATE POLICY "Gestores podem enviar relatorios" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'relatorios' AND (public.is_diretor(auth.uid()) OR public.has_role(auth.uid(), 'gerente')));
+CREATE POLICY "Gestores podem ler relatorios" ON storage.objects FOR SELECT TO authenticated USING (bucket_id = 'relatorios' AND (public.is_diretor(auth.uid()) OR public.has_role(auth.uid(), 'gerente')));
+CREATE POLICY "Diretores podem remover relatorios" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'relatorios' AND public.is_diretor(auth.uid()));
