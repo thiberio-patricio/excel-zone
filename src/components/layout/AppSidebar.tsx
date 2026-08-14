@@ -15,6 +15,7 @@ import {
   History,
   MessageSquareText,
   Activity,
+  MessageCircle,
 
 } from "lucide-react";
 import {
@@ -84,6 +85,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
         { id: "ia-alertas", title: "Alertas Inteligentes", icon: BellRing },
         { id: "ia-destinatarios", title: "Destinatários", icon: Users },
         { id: "ia-modelos", title: "Modelos de Mensagens", icon: MessageSquareText },
+        { id: "ia-whatsapp", title: "Integração WhatsApp", icon: MessageCircle },
         { id: "ia-monitoramento", title: "Monitoramento", icon: Activity },
       ],
     },
