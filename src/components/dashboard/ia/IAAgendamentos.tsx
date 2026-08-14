@@ -88,6 +88,32 @@ export default function IAAgendamentos() {
                   />
                 </div>
               </div>
+              <div className="space-y-2">
+                <Label>Dia do envio semanal</Label>
+                <select
+                  className="h-10 w-full rounded-btn border border-white/10 bg-transparent px-3 text-sm text-foreground"
+                  value={Number(settings.weekly_weekday ?? 1)}
+                  onChange={(e) => atualizar({ weekly_weekday: Number(e.target.value) })}
+                >
+                  {DIAS.map((d, i) => (
+                    <option key={d} value={i} className="bg-background">
+                      {d}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Dia do envio mensal</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={28}
+                  value={Number(settings.monthly_day ?? 1)}
+                  onChange={(e) =>
+                    atualizar({ monthly_day: Math.min(28, Math.max(1, Number(e.target.value) || 1)) })
+                  }
+                />
+              </div>
             </div>
           </PageCard>
 
