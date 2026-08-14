@@ -169,7 +169,7 @@ export function AppSidebar({ role, activeSection, onSelect }: AppSidebarProps) {
 
         <SidebarSeparator className="bg-white/5" />
 
-        <SidebarContent className="px-2 py-3 flex-1 overflow-y-auto min-h-0 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10 hover:scrollbar-thumb-white/20">
+        <SidebarContent className="px-2 py-3 flex-1 overflow-y-auto min-h-0">
           {groups.map((group, gi) => (
             <SidebarGroup key={group.label}>
               {!collapsed && (
