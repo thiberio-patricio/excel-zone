@@ -2055,7 +2055,70 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           </Tabs>
         </div>
       )}
+
+      {/* Gráficos offscreen usados na exportação em PDF */}
+      {generated && (
+        <div
+          ref={pdfChartsRef}
+          aria-hidden
+          style={{ position: "fixed", left: -10000, top: 0, width: 900 }}
+        >
+          <div
+            data-pdf-chart={`Meta vs Realizado por ${unitLabel}`}
+            style={{ width: 900, height: 380, background: "#ffffff", padding: 12 }}
+          >
+            <ResponsiveContainer>
+              <BarChart data={lojas}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                <XAxis dataKey="nome" tick={{ fill: "#333", fontSize: 12 }} />
+                <YAxis tick={{ fill: "#333", fontSize: 11 }} tickFormatter={(v) => formatBRLShort(Number(v))} />
+                <Legend formatter={(v) => (v === "meta" ? "Meta" : "Vendido")} />
+                <Bar dataKey="meta" fill="#8a8a8a" isAnimationActive={false} />
+                <Bar dataKey="venda" fill="#c82828" isAnimationActive={false} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div
+            data-pdf-chart="Percentual de Meta Atingida"
+            style={{ width: 900, height: 380, background: "#ffffff", padding: 12 }}
+          >
+            <ResponsiveContainer>
+              <BarChart data={ranking} layout="vertical" margin={{ left: 60, right: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                <XAxis type="number" tickFormatter={(v) => `${v}%`} tick={{ fill: "#333", fontSize: 11 }} />
+                <YAxis type="category" dataKey="nome" tick={{ fill: "#333", fontSize: 12 }} width={140} />
+                <Bar dataKey="percentual" fill="#c82828" isAnimationActive={false}>
+                  <LabelList
+                    dataKey="percentual"
+                    position="right"
+                    formatter={(v: number) => `${v.toFixed(1)}%`}
+                    fill="#333"
+                  />
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div
+            data-pdf-chart="Evolução Mensal"
+            style={{ width: 900, height: 380, background: "#ffffff", padding: 12 }}
+          >
+            <ResponsiveContainer>
+              <LineChart data={evolucao}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e5e5" />
+                <XAxis dataKey="label" tick={{ fill: "#333", fontSize: 12 }} />
+                <YAxis tickFormatter={(v) => formatBRLShort(Number(v))} tick={{ fill: "#333", fontSize: 11 }} />
+                <Legend formatter={(v) => (v === "meta" ? "Meta mensal" : "Venda mensal")} />
+                <Line type="monotone" dataKey="meta" stroke="#8a8a8a" strokeWidth={2} isAnimationActive={false} />
+                <Line type="monotone" dataKey="venda" stroke="#c82828" strokeWidth={3} isAnimationActive={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
     </div>
+
   );
 }
 
