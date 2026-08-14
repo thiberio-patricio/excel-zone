@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.ana-executiva]
 verify_jwt = true
+
+[functions.ana-insights]
+verify_jwt = true
+
+[functions.ana-scheduler]
+verify_jwt = false

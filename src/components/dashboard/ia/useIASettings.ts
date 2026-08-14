@@ -15,6 +15,12 @@ export interface IASettings {
   ranking_alert: boolean;
   send_time: string;
   active: boolean;
+  weekly_weekday: number;
+  monthly_day: number;
+  timezone: string;
+  last_daily_run_at: string | null;
+  last_weekly_run_at: string | null;
+  last_monthly_run_at: string | null;
 }
 
 export function useIASettings() {
