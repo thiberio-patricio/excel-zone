@@ -136,7 +136,7 @@ export function AppSidebar({ role, activeSection, onSelect }: AppSidebarProps) {
   return (
     <Sidebar collapsible="icon" className="border-r border-white/5">
       <div
-        className="h-full"
+        className="h-full flex flex-col"
         style={{
           background:
             "linear-gradient(180deg, hsl(0 42% 11% / 0.85), hsl(0 49% 9% / 0.75))",
@@ -169,7 +169,7 @@ export function AppSidebar({ role, activeSection, onSelect }: AppSidebarProps) {
 
         <SidebarSeparator className="bg-white/5" />
 
-        <SidebarContent className="px-2 py-3">
+        <SidebarContent className="px-2 py-3 flex-1 overflow-y-auto min-h-0">
           {groups.map((group, gi) => (
             <SidebarGroup key={group.label}>
               {!collapsed && (
