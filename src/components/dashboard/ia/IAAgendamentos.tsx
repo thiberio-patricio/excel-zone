@@ -10,23 +10,41 @@ import { useIASettings } from "./useIASettings";
 export default function IAAgendamentos() {
   const { settings, carregando, atualizar } = useIASettings();
 
-  const agendas = [
-    {
-      key: "daily_report_enabled" as const,
-      label: "Relatório diário",
-      quando: "Todos os dias",
-    },
-    {
-      key: "weekly_report_enabled" as const,
-      label: "Relatório semanal",
-      quando: "Toda segunda-feira",
-    },
-    {
-      key: "monthly_report_enabled" as const,
-      label: "Relatório mensal",
-      quando: "No primeiro dia do mês",
-    },
+  const DIAS = [
+    "domingo",
+    "segunda-feira",
+    "terça-feira",
+    "quarta-feira",
+    "quinta-feira",
+    "sexta-feira",
+    "sábado",
   ];
+
+  const ultima = (v?: string | null) =>
+    v ? new Date(v).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "nunca";
+
+  const agendas = settings
+    ? [
+        {
+          key: "daily_report_enabled" as const,
+          label: "Relatório diário",
+          quando: "Todos os dias",
+          ultimaExecucao: ultima(settings.last_daily_run_at),
+        },
+        {
+          key: "weekly_report_enabled" as const,
+          label: "Relatório semanal",
+          quando: `Toda ${DIAS[Number(settings.weekly_weekday ?? 1)] ?? "segunda-feira"}`,
+          ultimaExecucao: ultima(settings.last_weekly_run_at),
+        },
+        {
+          key: "monthly_report_enabled" as const,
+          label: "Relatório mensal",
+          quando: `No dia ${settings.monthly_day ?? 1} de cada mês`,
+          ultimaExecucao: ultima(settings.last_monthly_run_at),
+        },
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
