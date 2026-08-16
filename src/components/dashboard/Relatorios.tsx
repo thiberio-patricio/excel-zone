@@ -54,22 +54,20 @@ import html2canvas from "html2canvas";
 import logoUnidos from "@/assets/logo-unidos.png";
 import { Send, Crown, Store } from "lucide-react";
 
-/** Destinatários de relatórios cadastrados em IA Executiva → Destinatários. */
-function getDestinatariosRelatorio(): string[] {
-  try {
-    const raw = localStorage.getItem("ana_destinatarios");
-    if (!raw) return [];
-    const lista = JSON.parse(raw) as {
-      telefone?: string;
-      relatorios?: string[];
-    }[];
-    return lista
-      .filter((d) => !!d.telefone)
-      .map((d) => String(d.telefone).replace(/\D/g, ""))
-      .filter((t) => t.length >= 10);
-  } catch {
-    return [];
-  }
+/** Destinatários de relatórios cadastrados em IA Executiva → Central de Destinatários. */
+async function getDestinatariosRelatorio(): Promise<{ nome: string; telefone: string }[]> {
+  const { data } = await supabase
+    .from("ai_recipients")
+    .select("nome, telefone, alert_types, active")
+    .eq("active", true);
+  return (data ?? [])
+    .map((d: any) => ({
+      nome: String(d.nome ?? "Destinatário"),
+      telefone: String(d.telefone ?? "").replace(/\D/g, ""),
+      tipos: (d.alert_types ?? []) as string[],
+    }))
+    .filter((d) => d.telefone.length >= 10 && d.tipos.includes("mensal"))
+    .map(({ nome, telefone }) => ({ nome, telefone }));
 }
 
 
@@ -1301,7 +1299,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       toast.error("Gere o relatório primeiro");
       return;
     }
-    const destinatarios = getDestinatariosRelatorio();
+    const destinatarios = await getDestinatariosRelatorio();
     if (destinatarios.length === 0) {
       toast.error("Cadastre destinatários em IA Executiva → Destinatários");
       return;
