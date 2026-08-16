@@ -18,6 +18,7 @@ import IADestinatarios from "./ia/IADestinatarios";
 import IAModelos from "./ia/IAModelos";
 import IAMonitoramento from "./ia/IAMonitoramento";
 import IAWhatsApp from "./ia/IAWhatsApp";
+import IAAuditoria from "./ia/IAAuditoria";
 
 const IA_TABS: { id: string; component: ComponentType }[] = [
   { id: "ia-dashboard", component: IADashboard },
@@ -29,6 +30,7 @@ const IA_TABS: { id: string; component: ComponentType }[] = [
   { id: "ia-destinatarios", component: IADestinatarios },
   { id: "ia-modelos", component: IAModelos },
   { id: "ia-whatsapp", component: IAWhatsApp },
+  { id: "ia-auditoria", component: IAAuditoria },
   { id: "ia-monitoramento", component: IAMonitoramento },
 ];
 
