@@ -86,6 +86,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
         { id: "ia-destinatarios", title: "Destinatários", icon: Users },
         { id: "ia-modelos", title: "Modelos de Mensagens", icon: MessageSquareText },
         { id: "ia-whatsapp", title: "Integração WhatsApp", icon: MessageCircle },
+        { id: "ia-auditoria", title: "Auditoria de Envios", icon: ClipboardList },
         { id: "ia-monitoramento", title: "Monitoramento", icon: Activity },
       ],
     },
