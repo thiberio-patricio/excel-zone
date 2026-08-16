@@ -7,8 +7,6 @@ import {
   Send,
   Copy,
   RefreshCw,
-  Trash2,
-  Plus,
   Loader2,
   CalendarDays,
   Users,
