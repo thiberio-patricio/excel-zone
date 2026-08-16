@@ -1323,26 +1323,20 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
 
       const legenda = `📊 Relatório Executivo · ${periodoLabel}\n\n${resumoExecutivo.slice(0, 700)}`;
 
-      let enviados = 0;
-      for (const numero of destinatarios) {
-        const { error } = await supabase.functions.invoke("whatsapp-send", {
-          body: {
-            kind: "pdf",
-            to: numero,
-            message: legenda,
-            media_url: signed.signedUrl,
-            media_filename: filename,
-          },
-        });
-        if (error) console.error("Falha no envio", numero, error);
-        else enviados++;
-      }
+      const { data: resp, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: {
+          kind: "pdf",
+          destinos: destinatarios,
+          mensagem: legenda,
+          mediaUrl: signed.signedUrl,
+          mediaFilename: filename,
+        },
+      });
+      if (error || (resp as any)?.error) throw new Error((resp as any)?.error ?? "Falha no envio");
 
+      const enviados = (resp as any)?.enviados ?? (resp as any)?.enfileirados ?? 0;
       if (enviados === 0) toast.error("Não foi possível enviar o relatório");
-      else
-        toast.success(
-          `Relatório enviado por WhatsApp para ${enviados} destinatário(s)`
-        );
+      else toast.success(`Relatório enviado por WhatsApp para ${enviados} destinatário(s)`);
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message ?? "Erro ao enviar relatório por WhatsApp");
