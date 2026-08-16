@@ -7,8 +7,6 @@ import {
   Send,
   Copy,
   RefreshCw,
-  Trash2,
-  Plus,
   Loader2,
   CalendarDays,
   Users,
@@ -33,7 +31,6 @@ import { EmptyState } from "@/components/layout/EmptyState";
 import { toLocalISO } from "@/utils/dateISO";
 
 const META_TICKET = 500;
-const STORAGE_KEY = "ana_destinatarios";
 
 type Tipo = "diario" | "semanal" | "mensal";
 
@@ -42,7 +39,7 @@ interface Destinatario {
   nome: string;
   cargo: string;
   telefone: string;
-  relatorios: Tipo[];
+  alert_types: string[];
 }
 
 interface UnidadeResumo {
@@ -204,21 +201,17 @@ export default function IAExecutiva() {
   const [gerando, setGerando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [destinatarios, setDestinatarios] = useState<Destinatario[]>([]);
-  const [novo, setNovo] = useState({ nome: "", cargo: "", telefone: "" });
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setDestinatarios(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
+    (async () => {
+      const { data } = await supabase
+        .from("ai_recipients")
+        .select("id, nome, cargo, telefone, alert_types")
+        .eq("active", true)
+        .order("created_at", { ascending: true });
+      setDestinatarios((data ?? []) as unknown as Destinatario[]);
+    })();
   }, []);
-
-  const persistir = (lista: Destinatario[]) => {
-    setDestinatarios(lista);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(lista));
-  };
 
   const range = useMemo(() => calcularRange(tipo, dataBase), [tipo, dataBase]);
 
@@ -395,33 +388,6 @@ export default function IAExecutiva() {
     }
   };
 
-  const adicionarDestinatario = () => {
-    const telefone = novo.telefone.replace(/\D/g, "");
-    if (!novo.nome.trim() || telefone.length < 10) {
-      toast.error("Informe nome e um telefone válido com DDD");
-      return;
-    }
-    persistir([
-      ...destinatarios,
-      {
-        id: crypto.randomUUID(),
-        nome: novo.nome.trim(),
-        cargo: novo.cargo.trim(),
-        telefone,
-        relatorios: ["diario", "semanal", "mensal"],
-      },
-    ]);
-    setNovo({ nome: "", cargo: "", telefone: "" });
-    toast.success("Destinatário cadastrado");
-  };
-
-  const alternarRelatorio = (d: Destinatario, t: Tipo) => {
-    const relatorios = d.relatorios.includes(t)
-      ? d.relatorios.filter((r) => r !== t)
-      : [...d.relatorios, t];
-    persistir(destinatarios.map((x) => (x.id === d.id ? { ...x, relatorios } : x)));
-  };
-
   const linkWhatsapp = (telefone: string) => {
     const numero = telefone.startsWith("55") ? telefone : `55${telefone}`;
     return `https://wa.me/${numero}?text=${encodeURIComponent(mensagem)}`;
@@ -545,35 +511,14 @@ export default function IAExecutiva() {
       <CardSecao
         icon={Users}
         title="Destinatários"
-        description="Proprietários, diretores e gestores que recebem as análises da ANA."
+        description="Cadastrados na Central de Destinatários (IA Executiva → Destinatários)."
       >
-        <div className="grid gap-3 sm:grid-cols-4">
-          <div className="space-y-2">
-            <Label>Nome</Label>
-            <Input value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} placeholder="Nome completo" />
-          </div>
-          <div className="space-y-2">
-            <Label>Cargo</Label>
-            <Input value={novo.cargo} onChange={(e) => setNovo({ ...novo, cargo: e.target.value })} placeholder="Proprietário, Diretor..." />
-          </div>
-          <div className="space-y-2">
-            <Label>WhatsApp (DDD + número)</Label>
-            <Input value={novo.telefone} onChange={(e) => setNovo({ ...novo, telefone: e.target.value })} placeholder="11999999999" />
-          </div>
-          <div className="flex items-end">
-            <Button className="w-full" onClick={adicionarDestinatario}>
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar
-            </Button>
-          </div>
-        </div>
-
         <div className="mt-6 space-y-3">
           {destinatarios.length === 0 ? (
             <EmptyState
               icon={Users}
               title="Nenhum destinatário cadastrado"
-              description="Cadastre quem deve receber os relatórios diário, semanal e mensal da ANA."
+              description="Cadastre os gestores na Central de Destinatários para gerar e enviar as análises."
             />
           ) : (
             destinatarios.map((d) => (
@@ -589,14 +534,9 @@ export default function IAExecutiva() {
                   </p>
                   <p className="text-xs text-muted-foreground">+{d.telefone.startsWith("55") ? d.telefone : `55${d.telefone}`}</p>
                   <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(["diario", "semanal", "mensal"] as Tipo[]).map((t) => (
-                      <Badge
-                        key={t}
-                        variant={d.relatorios.includes(t) ? "default" : "outline"}
-                        className="cursor-pointer text-[10px]"
-                        onClick={() => alternarRelatorio(d, t)}
-                      >
-                        {TIPO_LABEL[t]}
+                    {d.alert_types.map((t) => (
+                      <Badge key={t} variant="outline" className="text-[10px] capitalize">
+                        {t}
                       </Badge>
                     ))}
                   </div>
@@ -626,13 +566,6 @@ export default function IAExecutiva() {
                       <Send className="mr-2 h-3.5 w-3.5" />
                       WhatsApp
                     </a>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => persistir(destinatarios.filter((x) => x.id !== d.id))}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
                   </Button>
                 </div>
               </div>

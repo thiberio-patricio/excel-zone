@@ -267,14 +267,16 @@ async function executarTipo(settings: any, tipo: Tipo, origem: string) {
 
     // Enfileira o envio para os destinatários cadastrados.
     const { data: destinatarios } = await admin
-      .from("ai_notifications")
-      .select("recipient_name, recipient_phone")
-      .not("recipient_phone", "is", null)
-      .order("created_at", { ascending: false })
-      .limit(200);
+      .from("ai_recipients")
+      .select("nome, telefone, alert_types, active")
+      .eq("active", true);
 
     const unicos = new Map<string, string>();
-    for (const d of destinatarios ?? []) unicos.set((d as any).recipient_phone, (d as any).recipient_name);
+    for (const d of destinatarios ?? []) {
+      const tel = String((d as any).telefone ?? "").replace(/\D/g, "");
+      const tipos: string[] = (d as any).alert_types ?? [];
+      if (tel.length >= 10 && tipos.includes(tipo)) unicos.set(tel, (d as any).nome ?? "Destinatário");
+    }
 
     if (unicos.size) {
       const rows = [...unicos.entries()].map(([phone, nome]) => ({

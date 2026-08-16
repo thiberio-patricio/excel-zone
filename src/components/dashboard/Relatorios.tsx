@@ -54,22 +54,20 @@ import html2canvas from "html2canvas";
 import logoUnidos from "@/assets/logo-unidos.png";
 import { Send, Crown, Store } from "lucide-react";
 
-/** Destinatários de relatórios cadastrados em IA Executiva → Destinatários. */
-function getDestinatariosRelatorio(): string[] {
-  try {
-    const raw = localStorage.getItem("ana_destinatarios");
-    if (!raw) return [];
-    const lista = JSON.parse(raw) as {
-      telefone?: string;
-      relatorios?: string[];
-    }[];
-    return lista
-      .filter((d) => !!d.telefone)
-      .map((d) => String(d.telefone).replace(/\D/g, ""))
-      .filter((t) => t.length >= 10);
-  } catch {
-    return [];
-  }
+/** Destinatários de relatórios cadastrados em IA Executiva → Central de Destinatários. */
+async function getDestinatariosRelatorio(): Promise<{ nome: string; telefone: string }[]> {
+  const { data } = await supabase
+    .from("ai_recipients")
+    .select("nome, telefone, alert_types, active")
+    .eq("active", true);
+  return (data ?? [])
+    .map((d: any) => ({
+      nome: String(d.nome ?? "Destinatário"),
+      telefone: String(d.telefone ?? "").replace(/\D/g, ""),
+      tipos: (d.alert_types ?? []) as string[],
+    }))
+    .filter((d) => d.telefone.length >= 10 && d.tipos.includes("mensal"))
+    .map(({ nome, telefone }) => ({ nome, telefone }));
 }
 
 
@@ -1301,7 +1299,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
       toast.error("Gere o relatório primeiro");
       return;
     }
-    const destinatarios = getDestinatariosRelatorio();
+    const destinatarios = await getDestinatariosRelatorio();
     if (destinatarios.length === 0) {
       toast.error("Cadastre destinatários em IA Executiva → Destinatários");
       return;
@@ -1325,26 +1323,20 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
 
       const legenda = `📊 Relatório Executivo · ${periodoLabel}\n\n${resumoExecutivo.slice(0, 700)}`;
 
-      let enviados = 0;
-      for (const numero of destinatarios) {
-        const { error } = await supabase.functions.invoke("whatsapp-send", {
-          body: {
-            kind: "pdf",
-            to: numero,
-            message: legenda,
-            media_url: signed.signedUrl,
-            media_filename: filename,
-          },
-        });
-        if (error) console.error("Falha no envio", numero, error);
-        else enviados++;
-      }
+      const { data: resp, error } = await supabase.functions.invoke("whatsapp-send", {
+        body: {
+          kind: "pdf",
+          destinos: destinatarios,
+          mensagem: legenda,
+          mediaUrl: signed.signedUrl,
+          mediaFilename: filename,
+        },
+      });
+      if (error || (resp as any)?.error) throw new Error((resp as any)?.error ?? "Falha no envio");
 
+      const enviados = (resp as any)?.enviados ?? (resp as any)?.enfileirados ?? 0;
       if (enviados === 0) toast.error("Não foi possível enviar o relatório");
-      else
-        toast.success(
-          `Relatório enviado por WhatsApp para ${enviados} destinatário(s)`
-        );
+      else toast.success(`Relatório enviado por WhatsApp para ${enviados} destinatário(s)`);
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message ?? "Erro ao enviar relatório por WhatsApp");

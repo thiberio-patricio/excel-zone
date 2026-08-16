@@ -257,6 +257,45 @@ export type Database = {
           },
         ]
       }
+      ai_recipients: {
+        Row: {
+          active: boolean
+          alert_types: string[]
+          cargo: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lojas: string[]
+          nome: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          alert_types?: string[]
+          cargo?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lojas?: string[]
+          nome: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          alert_types?: string[]
+          cargo?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lojas?: string[]
+          nome?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_scheduler_logs: {
         Row: {
           analyses_generated: number

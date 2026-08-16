@@ -334,14 +334,15 @@ Deno.serve(async (req) => {
 
     if (novos.length) {
       const { data: destinatarios } = await admin
-        .from("ai_notifications")
-        .select("recipient_name, recipient_phone")
-        .not("recipient_phone", "is", null);
+        .from("ai_recipients")
+        .select("nome, telefone, alert_types, active")
+        .eq("active", true);
 
       const unicos = new Map<string, string>();
       for (const d of destinatarios ?? []) {
-        const tel = String((d as any).recipient_phone).replace(/\D/g, "");
-        if (tel.length >= 10) unicos.set(tel, (d as any).recipient_name ?? "Destinatário");
+        const tel = String((d as any).telefone ?? "").replace(/\D/g, "");
+        const tipos: string[] = (d as any).alert_types ?? [];
+        if (tel.length >= 10 && tipos.includes("alertas")) unicos.set(tel, (d as any).nome ?? "Destinatário");
       }
 
       if (unicos.size) {
