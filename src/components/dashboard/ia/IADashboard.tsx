@@ -53,13 +53,14 @@ const TIPO_LABEL: Record<string, string> = {
   mensal: "Relatório mensal",
   queda_vendas: "Queda de vendas",
   risco_meta: "Risco de meta",
+  previsao_fechamento: "Previsão de fechamento",
   ticket_medio: "Ticket médio",
   conversao: "Conversão",
   estoque: "Estoque",
   ranking: "Ranking",
 };
 
-const CRITICOS = new Set(["queda_vendas", "risco_meta", "ticket_medio", "conversao", "estoque"]);
+const CRITICOS = new Set(["queda_vendas", "previsao_fechamento", "risco_meta", "ticket_medio", "conversao", "estoque"]);
 
 interface LojaResumo {
   nome: string;
