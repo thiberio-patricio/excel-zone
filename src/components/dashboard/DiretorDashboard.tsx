@@ -10,6 +10,7 @@ import VisaoGeral from "./VisaoGeral";
 import Relatorios from "./Relatorios";
 import IAExecutiva from "./IAExecutiva";
 import IADashboard from "./ia/IADashboard";
+import IAPreditiva from "./ia/IAPreditiva";
 import IAConfiguracoes from "./ia/IAConfiguracoes";
 import IAAgendamentos from "./ia/IAAgendamentos";
 import IAHistorico from "./ia/IAHistorico";
@@ -23,6 +24,7 @@ import IAAuditoria from "./ia/IAAuditoria";
 const IA_TABS: { id: string; component: ComponentType }[] = [
   { id: "ia-dashboard", component: IADashboard },
   { id: "ia-executiva", component: IAExecutiva },
+  { id: "ia-preditiva", component: IAPreditiva },
   { id: "ia-config", component: IAConfiguracoes },
   { id: "ia-agendamentos", component: IAAgendamentos },
   { id: "ia-historico", component: IAHistorico },
