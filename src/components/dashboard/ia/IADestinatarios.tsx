@@ -31,6 +31,7 @@ const ALERTAS = [
   { value: "mensal", label: "Relatório mensal" },
   { value: "alertas", label: "Alertas inteligentes" },
   { value: "metas", label: "Risco de meta" },
+  { value: "previsao", label: "Previsão de fechamento" },
   { value: "ranking", label: "Ranking de lojas" },
 ];
 

@@ -19,6 +19,7 @@ import {
   ClipboardList,
 
 
+  BrainCircuit,
 } from "lucide-react";
 import {
   Sidebar,
@@ -81,6 +82,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       items: [
         { id: "ia-dashboard", title: "Dashboard IA", icon: Bot },
         { id: "ia-executiva", title: "Gerar Análise", icon: Sparkles },
+        { id: "ia-preditiva", title: "IA Preditiva", icon: BrainCircuit },
         { id: "ia-config", title: "Configurações", icon: Settings },
         { id: "ia-agendamentos", title: "Agendamentos", icon: CalendarClock },
         { id: "ia-historico", title: "Histórico de Análises", icon: History },
