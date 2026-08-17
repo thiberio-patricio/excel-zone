@@ -84,6 +84,95 @@ function agrupar(
   return mapa;
 }
 
+/** Vendas do período com a data, usadas pela previsão de fechamento. */
+async function vendasComData(inicio: string, fim: string) {
+  const linhas: { vendedor_id: string; data: string; valor: number; devolucao: number; quantidade_vendas: number }[] = [];
+  const passo = 1000;
+  for (let de = 0; ; de += passo) {
+    const { data, error } = await admin
+      .from("vendas")
+      .select("vendedor_id, data, valor, devolucao, quantidade_vendas")
+      .gte("data", inicio)
+      .lte("data", fim)
+      .range(de, de + passo - 1);
+    if (error) throw error;
+    linhas.push(...((data ?? []) as typeof linhas));
+    if (!data || data.length < passo) break;
+  }
+  return linhas;
+}
+
+/** Aproximação da normal acumulada. */
+function normalCdf(z: number) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(z));
+  const d = 0.3989423 * Math.exp((-z * z) / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return z >= 0 ? 1 - p : p;
+}
+
+interface Previsao {
+  probabilidade: number;
+  confianca: number;
+  projecao: number;
+  atingimentoProjetado: number;
+  necessarioPorDia: number;
+  ticketProjetado: number;
+  conversaoProjetada: number;
+  restantes: number;
+}
+
+/** Previsão de fechamento do mês a partir da série diária realizada. */
+function preverFechamento(
+  serie: number[],
+  quantidade: number,
+  meta: number,
+  restantes: number,
+  totalDiasUteis: number,
+): Previsao {
+  const realizado = serie.reduce((s, v) => s + v, 0);
+  const decorridos = Math.max(1, serie.length);
+  const media = realizado / decorridos;
+  const ultimos = serie.slice(-7);
+  const mediaRecente = ultimos.length ? ultimos.reduce((s, v) => s + v, 0) / ultimos.length : media;
+  const ritmo = ultimos.length >= 3 ? (mediaRecente * 2 + media) / 3 : media;
+
+  const variancia =
+    serie.length > 1
+      ? serie.reduce((s, v) => s + (v - media) ** 2, 0) / (serie.length - 1)
+      : 0;
+  const sigmaDia = Math.sqrt(variancia);
+  const sigmaRestante = sigmaDia * Math.sqrt(Math.max(1, restantes));
+
+  const projecao = realizado + ritmo * restantes;
+  const faltante = Math.max(0, meta - realizado);
+
+  let probabilidade: number;
+  if (meta <= 0) probabilidade = 0;
+  else if (realizado >= meta) probabilidade = 100;
+  else if (restantes <= 0) probabilidade = 0;
+  else if (sigmaRestante <= 0) probabilidade = projecao >= meta ? 90 : 10;
+  else probabilidade = Math.min(99, Math.max(1, normalCdf((ritmo * restantes - faltante) / sigmaRestante) * 100));
+
+  const cv = media > 0 ? sigmaDia / media : 1.5;
+  const confianca = Math.round(
+    Math.min(97, Math.max(15, Math.min(100, (decorridos / 12) * 100) * 0.5 + Math.min(100, Math.max(15, 100 - cv * 55)) * 0.5)),
+  );
+
+  const conversaoDia = quantidade / decorridos;
+  const quantidadeProjetada = Math.round(quantidade + conversaoDia * restantes);
+
+  return {
+    probabilidade,
+    confianca,
+    projecao,
+    atingimentoProjetado: meta > 0 ? (projecao / meta) * 100 : 0,
+    necessarioPorDia: restantes > 0 ? faltante / restantes : faltante,
+    ticketProjetado: quantidadeProjetada > 0 ? projecao / quantidadeProjetada : 0,
+    conversaoProjetada: totalDiasUteis > 0 ? quantidadeProjetada / totalDiasUteis : conversaoDia,
+    restantes,
+  };
+}
+
 async function monitorar(settings: any): Promise<Alerta[]> {
   const hoje = new Date();
   const hojeISO = iso(hoje);
@@ -110,6 +199,12 @@ async function monitorar(settings: any): Promise<Alerta[]> {
       admin.from("ferias").select("vendedor_id, data_inicio, data_fim").lte("data_inicio", hojeISO).gte("data_fim", hojeISO),
     ]);
 
+  const fimMesISO = iso(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
+  const [diarioMes, feriadosRes] = await Promise.all([
+    vendasComData(inicioMes, hojeISO),
+    admin.from("feriados").select("data, filial_id").gte("data", inicioMes).lte("data", fimMesISO),
+  ]);
+
   const filialDe = new Map<string, string | null>((profiles ?? []).map((p: any) => [p.id, p.filial_id]));
   const nomeVendedor = new Map<string, string>((profiles ?? []).map((p: any) => [p.id, p.nome]));
   const nomeFilial = new Map<string, string>((filiais ?? []).map((f: any) => [f.id, f.nome]));
@@ -126,6 +221,45 @@ async function monitorar(settings: any): Promise<Alerta[]> {
     if (!fid) continue;
     metaFilial.set(fid, (metaFilial.get(fid) ?? 0) + Number((m as any).valor_meta || 0));
   }
+
+  // Série diária por filial (para a previsão de fechamento)
+  const serieFilial = new Map<string, Map<string, { valor: number; quantidade: number }>>();
+  for (const v of diarioMes) {
+    const fid = filialDe.get(v.vendedor_id);
+    if (!fid) continue;
+    const mapa = serieFilial.get(fid) ?? new Map();
+    const a = mapa.get(v.data) ?? { valor: 0, quantidade: 0 };
+    a.valor += Number(v.valor || 0) - Number(v.devolucao || 0);
+    a.quantidade += Number(v.quantidade_vendas || 0);
+    mapa.set(v.data, a);
+    serieFilial.set(fid, mapa);
+  }
+
+  const feriadosRede = new Set<string>();
+  const feriadosFilial = new Map<string, Set<string>>();
+  for (const f of (feriadosRes.data ?? []) as any[]) {
+    const d = String(f.data);
+    if (!f.filial_id) feriadosRede.add(d);
+    else {
+      const set = feriadosFilial.get(f.filial_id) ?? new Set<string>();
+      set.add(d);
+      feriadosFilial.set(f.filial_id, set);
+    }
+  }
+
+  /** Dias úteis do mês da filial (exclui domingos e feriados aplicáveis). */
+  const diasUteisDe = (fid: string) => {
+    const feriados = new Set(feriadosRede);
+    feriadosFilial.get(fid)?.forEach((d) => feriados.add(d));
+    const lista: string[] = [];
+    for (let d = 1; d <= diasNoMes; d++) {
+      const data = new Date(hoje.getFullYear(), hoje.getMonth(), d);
+      const dISO = iso(data);
+      if (data.getDay() === 0 || feriados.has(dISO)) continue;
+      lista.push(dISO);
+    }
+    return lista;
+  };
 
   const ritmoEsperado = hoje.getDate() / diasNoMes;
   const selo = `${hojeISO}`;
@@ -205,6 +339,38 @@ async function monitorar(settings: any): Promise<Alerta[]> {
         metrics: { pct, vendido: mes.vendido, meta },
         dedupe_key: `risco_meta:${fid}:${selo}`,
       });
+    }
+
+    // Previsão de fechamento do mês (IA Preditiva)
+    if (settings.goal_risk_alert && meta > 0) {
+      const uteis = diasUteisDe(fid);
+      const decorridos = uteis.filter((d) => d <= hojeISO);
+      const restantes = uteis.filter((d) => d > hojeISO).length;
+      const mapa = serieFilial.get(fid) ?? new Map();
+      const serie = decorridos.map((d) => mapa.get(d)?.valor ?? 0);
+      const p = preverFechamento(serie, mes.quantidade, meta, restantes, uteis.length);
+
+      if (p.probabilidade < 60 && restantes > 0 && decorridos.length >= 3) {
+        alertas.push({
+          alert_type: "previsao_fechamento",
+          severity: p.probabilidade < 30 ? "elevado" : "moderado",
+          store_id: fid,
+          store_name: nome,
+          title: "Previsão de fechamento abaixo da meta",
+          message: `*Previsão de fechamento — ${nome}*\nProbabilidade de atingir a meta: ${p.probabilidade.toFixed(0)}% (confiança ${p.confianca}%).\nProjeção: ${fmt(p.projecao)} (${p.atingimentoProjetado.toFixed(1)}% da meta de ${fmt(meta)}).\nTicket projetado: ${fmt(p.ticketProjetado)} | Conversão projetada: ${p.conversaoProjetada.toFixed(1)} venda(s)/dia.\nNecessário ${fmt(p.necessarioPorDia)} por dia nos ${restantes} dia(s) úteis restantes.\n\n*Ações preventivas*\n• Elevar o ritmo diário e priorizar clientes de maior potencial.\n• Reforçar venda adicional para sustentar o ticket médio.\n• Acompanhamento individual dos vendedores abaixo da meta.\n\nANA — Gestão Comercial`,
+          metrics: {
+            probabilidade: p.probabilidade,
+            confianca: p.confianca,
+            projecao: p.projecao,
+            atingimentoProjetado: p.atingimentoProjetado,
+            ticketProjetado: p.ticketProjetado,
+            conversaoProjetada: p.conversaoProjetada,
+            necessarioPorDia: p.necessarioPorDia,
+            diasRestantes: restantes,
+          },
+          dedupe_key: `previsao_fechamento:${fid}:${selo}`,
+        });
+      }
     }
 
     // Meta atingida / superada
@@ -342,7 +508,8 @@ Deno.serve(async (req) => {
       for (const d of destinatarios ?? []) {
         const tel = String((d as any).telefone ?? "").replace(/\D/g, "");
         const tipos: string[] = (d as any).alert_types ?? [];
-        if (tel.length >= 10 && tipos.includes("alertas")) unicos.set(tel, (d as any).nome ?? "Destinatário");
+        if (tel.length >= 10 && tipos.some((t) => ["alertas", "metas", "previsao"].includes(t)))
+          unicos.set(tel, (d as any).nome ?? "Destinatário");
       }
 
       if (unicos.size) {
