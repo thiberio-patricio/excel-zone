@@ -390,6 +390,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                   />
                   <Bar 
                     dataKey="vendido" 
+                    yAxisId="left"
                     fill="url(#colorVendido)" 
                     name="Vendido"
                     radius={[8, 8, 0, 0]}
@@ -404,6 +405,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                   </Bar>
                   <Bar 
                     dataKey="meta" 
+                    yAxisId="left"
                     fill="url(#colorMeta)" 
                     name="Meta"
                     radius={[8, 8, 0, 0]}
@@ -411,11 +413,13 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                   />
                   <Bar 
                     dataKey="ticket" 
+                    yAxisId="right"
                     fill={chartTheme.percentual}
                     name="Ticket Médio"
                     radius={[8, 8, 0, 0]}
                     maxBarSize={60}
                   >
+
                     <LabelList
                       dataKey="percentualTicket"
                       position="top"
