@@ -321,12 +321,13 @@ export const AIPredictiveEngine = {
       .map((f) => {
         const ids = vendedoresPorFilial.get(f.id) ?? new Set<string>();
         const linhas = vendas.filter((v) => ids.has(v.vendedor_id));
+        const metasLoja = metaResolver.somaMetas(ids, mes, ano);
         return calcularPrevisao(
           f.id,
           f.nome,
           agregarDias(linhas),
-          metaPorFilial.get(f.id) ?? 0,
-          ids.size * META_TICKET_PADRAO,
+          metasLoja.valorMeta,
+          metasLoja.metaTicketMedia,
           diasUteisDe(f.id),
           hojeISO
         );
@@ -335,15 +336,21 @@ export const AIPredictiveEngine = {
       .sort((a, b) => b.probabilidadeMeta - a.probabilidadeMeta);
 
     const diasRede = diasUteisDe(null);
+    const metasRede = metaResolver.somaMetas(
+      perfis.map((p) => p.id),
+      mes,
+      ano
+    );
     const rede = calcularPrevisao(
       "rede",
       "Rede completa",
       agregarDias(vendas),
-      metaRede,
-      perfis.length * META_TICKET_PADRAO,
+      metasRede.valorMeta,
+      metasRede.metaTicketMedia,
       diasRede,
       hojeISO
     );
+
 
     /* --------------------------------------------------- série do gráfico */
 
