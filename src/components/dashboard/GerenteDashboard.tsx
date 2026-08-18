@@ -330,6 +330,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     height={80}
                   />
                   <YAxis 
+                    yAxisId="left"
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={13}
                     fontWeight={500}
@@ -340,6 +341,18 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     }
                     width={80}
                   />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    fontWeight={500}
+                    tickLine={false}
+                    axisLine={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
+                    tickFormatter={(value) => `R$\u00A0${Math.round(value)}`}
+                    width={80}
+                  />
+
                   <Tooltip 
                     cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
                     contentStyle={{
