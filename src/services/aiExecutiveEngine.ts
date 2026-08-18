@@ -7,6 +7,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalISO } from "@/utils/dateISO";
+import { criarMetaResolver } from "@/utils/metaResolver";
+
 
 export const META_TICKET_PADRAO = 500;
 
