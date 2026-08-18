@@ -7,6 +7,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalISO } from "@/utils/dateISO";
+import { criarMetaResolver } from "@/utils/metaResolver";
+
 
 export const META_TICKET_PADRAO = 500;
 
@@ -383,13 +385,9 @@ export const AIExecutiveEngine = {
           .in("vendedor_id", ids)
           .gte("data", inicioMesAnterior)
           .lte("data", fimMes),
-        supabase
-          .from("metas")
-          .select("vendedor_id, mes, ano, valor_meta, meta_ticket")
-          .in("vendedor_id", ids)
-          .or(
-            `and(mes.eq.${mes},ano.eq.${ano}),and(mes.eq.${mes === 1 ? 12 : mes - 1},ano.eq.${mes === 1 ? ano - 1 : ano})`
-          ),
+        // Todas as metas do vendedor: o resolver aplica fallback quando o mês
+        // analisado ainda não tem metas lançadas (evita atingimentos irreais).
+        supabase.from("metas").select("vendedor_id, mes, ano, valor_meta, meta_ticket").in("vendedor_id", ids),
       ]);
       vendas = ((vendasRes.data ?? []) as any[]).map((v) => ({
         vendedor_id: v.vendedor_id,
@@ -401,12 +399,14 @@ export const AIExecutiveEngine = {
       metas = (metasRes.data ?? []) as MetaRow[];
     }
 
-    const metaMesDe = (m: number, a: number) =>
-      metas.filter((x) => x.mes === m && x.ano === a).reduce((s, x) => s + (Number(x.valor_meta) || 0), 0);
+    const metaResolver = criarMetaResolver(metas);
+    const metaMesDe = (m: number, a: number) => metaResolver.somaMetas(ids, m, a).valorMeta;
 
     const metaMesAtual = metaMesDe(mes, ano);
     const metaMesAnt = metaMesDe(mes === 1 ? 12 : mes - 1, mes === 1 ? ano - 1 : ano);
-    const metaTicketTotal = perfis.length * META_TICKET_PADRAO;
+    // Ticket é uma média — comparar com a média das metas de ticket reais.
+    const metaTicketTotal = metaResolver.somaMetas(ids, mes, ano).metaTicketMedia;
+
 
     const uteisMes = diasUteis(inicioMes, fimMes, feriados);
     const uteisAteHoje = diasUteis(inicioMes, hojeISO, feriados);
@@ -474,10 +474,9 @@ export const AIExecutiveEngine = {
           inicioMes,
           hojeISO,
           doVendedor,
-          metas
-            .filter((m) => m.vendedor_id === p.id && m.mes === mes && m.ano === ano)
-            .reduce((s, m) => s + (Number(m.valor_meta) || 0), 0),
-          META_TICKET_PADRAO
+          metaResolver.resolver(p.id, mes, ano)?.valorMeta ?? 0,
+          metaResolver.resolver(p.id, mes, ano)?.metaTicket ?? META_TICKET_PADRAO
+
         );
         const anterior = metricsDe(p.nome, inicioMesAnterior, mesmoPeriodoFim, doVendedor, 0, META_TICKET_PADRAO);
         const cresc = variacao(atual.faturamento, anterior.faturamento);
@@ -508,10 +507,9 @@ export const AIExecutiveEngine = {
       .map((f) => {
         const membros = perfis.filter((p) => p.filial_id === f.id).map((p) => p.id);
         const doGrupo = vendas.filter((v) => membros.includes(v.vendedor_id));
-        const metaLoja = metas
-          .filter((m) => membros.includes(m.vendedor_id) && m.mes === mes && m.ano === ano)
-          .reduce((s, m) => s + (Number(m.valor_meta) || 0), 0);
-        const atual = metricsDe(f.nome, inicioMes, hojeISO, doGrupo, metaLoja, membros.length * META_TICKET_PADRAO);
+        const metasLoja = metaResolver.somaMetas(membros, mes, ano);
+        const atual = metricsDe(f.nome, inicioMes, hojeISO, doGrupo, metasLoja.valorMeta, metasLoja.metaTicketMedia);
+
         const anterior = metricsDe(f.nome, inicioMesAnterior, mesmoPeriodoFim, doGrupo, 0, 0);
         const cresc = variacao(atual.faturamento, anterior.faturamento);
         return {

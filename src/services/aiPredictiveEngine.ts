@@ -5,6 +5,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toLocalISO } from "@/utils/dateISO";
+import { criarMetaResolver } from "@/utils/metaResolver";
+
 
 export const META_TICKET_PADRAO = 500;
 
@@ -251,7 +253,9 @@ export const AIPredictiveEngine = {
         .select("vendedor_id, data, valor, devolucao, quantidade_vendas")
         .gte("data", inicioMes)
         .lte("data", fimMes),
-      supabase.from("metas").select("vendedor_id, valor_meta, meta_ticket").eq("mes", mes).eq("ano", ano),
+      // Todas as metas cadastradas: o resolver aplica fallback quando o mês
+      // corrente ainda não possui metas lançadas.
+      supabase.from("metas").select("vendedor_id, mes, ano, valor_meta, meta_ticket"),
       supabase.from("feriados").select("data, filial_id").gte("data", inicioMes).lte("data", fimMes),
     ]);
 
@@ -266,14 +270,8 @@ export const AIPredictiveEngine = {
     }));
 
     const filialDe = new Map(perfis.map((p) => [p.id, p.filial_id]));
-    const metaPorFilial = new Map<string, number>();
-    let metaRede = 0;
-    for (const m of (metasRes.data ?? []) as any[]) {
-      const valor = Number(m.valor_meta) || 0;
-      metaRede += valor;
-      const fid = filialDe.get(String(m.vendedor_id));
-      if (fid) metaPorFilial.set(fid, (metaPorFilial.get(fid) ?? 0) + valor);
-    }
+    const metaResolver = criarMetaResolver((metasRes.data ?? []) as any[]);
+
 
     const feriadosRede = new Set<string>();
     const feriadosPorFilial = new Map<string, Set<string>>();
@@ -325,12 +323,13 @@ export const AIPredictiveEngine = {
       .map((f) => {
         const ids = vendedoresPorFilial.get(f.id) ?? new Set<string>();
         const linhas = vendas.filter((v) => ids.has(v.vendedor_id));
+        const metasLoja = metaResolver.somaMetas(ids, mes, ano);
         return calcularPrevisao(
           f.id,
           f.nome,
           agregarDias(linhas),
-          metaPorFilial.get(f.id) ?? 0,
-          ids.size * META_TICKET_PADRAO,
+          metasLoja.valorMeta,
+          metasLoja.metaTicketMedia,
           diasUteisDe(f.id),
           hojeISO
         );
@@ -339,15 +338,21 @@ export const AIPredictiveEngine = {
       .sort((a, b) => b.probabilidadeMeta - a.probabilidadeMeta);
 
     const diasRede = diasUteisDe(null);
+    const metasRede = metaResolver.somaMetas(
+      perfis.map((p) => p.id),
+      mes,
+      ano
+    );
     const rede = calcularPrevisao(
       "rede",
       "Rede completa",
       agregarDias(vendas),
-      metaRede,
-      perfis.length * META_TICKET_PADRAO,
+      metasRede.valorMeta,
+      metasRede.metaTicketMedia,
       diasRede,
       hojeISO
     );
+
 
     /* --------------------------------------------------- série do gráfico */
 
