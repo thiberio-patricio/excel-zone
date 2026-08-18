@@ -251,7 +251,9 @@ export const AIPredictiveEngine = {
         .select("vendedor_id, data, valor, devolucao, quantidade_vendas")
         .gte("data", inicioMes)
         .lte("data", fimMes),
-      supabase.from("metas").select("vendedor_id, valor_meta, meta_ticket").eq("mes", mes).eq("ano", ano),
+      // Todas as metas cadastradas: o resolver aplica fallback quando o mês
+      // corrente ainda não possui metas lançadas.
+      supabase.from("metas").select("vendedor_id, mes, ano, valor_meta, meta_ticket"),
       supabase.from("feriados").select("data, filial_id").gte("data", inicioMes).lte("data", fimMes),
     ]);
 
@@ -266,14 +268,8 @@ export const AIPredictiveEngine = {
     }));
 
     const filialDe = new Map(perfis.map((p) => [p.id, p.filial_id]));
-    const metaPorFilial = new Map<string, number>();
-    let metaRede = 0;
-    for (const m of (metasRes.data ?? []) as any[]) {
-      const valor = Number(m.valor_meta) || 0;
-      metaRede += valor;
-      const fid = filialDe.get(String(m.vendedor_id));
-      if (fid) metaPorFilial.set(fid, (metaPorFilial.get(fid) ?? 0) + valor);
-    }
+    const metaResolver = criarMetaResolver((metasRes.data ?? []) as any[]);
+
 
     const feriadosRede = new Set<string>();
     const feriadosPorFilial = new Map<string, Set<string>>();
