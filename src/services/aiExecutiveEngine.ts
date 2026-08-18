@@ -505,10 +505,9 @@ export const AIExecutiveEngine = {
       .map((f) => {
         const membros = perfis.filter((p) => p.filial_id === f.id).map((p) => p.id);
         const doGrupo = vendas.filter((v) => membros.includes(v.vendedor_id));
-        const metaLoja = metas
-          .filter((m) => membros.includes(m.vendedor_id) && m.mes === mes && m.ano === ano)
-          .reduce((s, m) => s + (Number(m.valor_meta) || 0), 0);
-        const atual = metricsDe(f.nome, inicioMes, hojeISO, doGrupo, metaLoja, membros.length * META_TICKET_PADRAO);
+        const metasLoja = metaResolver.somaMetas(membros, mes, ano);
+        const atual = metricsDe(f.nome, inicioMes, hojeISO, doGrupo, metasLoja.valorMeta, metasLoja.metaTicketMedia);
+
         const anterior = metricsDe(f.nome, inicioMesAnterior, mesmoPeriodoFim, doGrupo, 0, 0);
         const cresc = variacao(atual.faturamento, anterior.faturamento);
         return {
