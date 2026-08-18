@@ -472,10 +472,9 @@ export const AIExecutiveEngine = {
           inicioMes,
           hojeISO,
           doVendedor,
-          metas
-            .filter((m) => m.vendedor_id === p.id && m.mes === mes && m.ano === ano)
-            .reduce((s, m) => s + (Number(m.valor_meta) || 0), 0),
-          META_TICKET_PADRAO
+          metaResolver.resolver(p.id, mes, ano)?.valorMeta ?? 0,
+          metaResolver.resolver(p.id, mes, ano)?.metaTicket ?? META_TICKET_PADRAO
+
         );
         const anterior = metricsDe(p.nome, inicioMesAnterior, mesmoPeriodoFim, doVendedor, 0, META_TICKET_PADRAO);
         const cresc = variacao(atual.faturamento, anterior.faturamento);
