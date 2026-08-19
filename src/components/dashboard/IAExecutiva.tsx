@@ -205,15 +205,21 @@ export default function IAExecutiva() {
   const [gerando, setGerando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [destinatarios, setDestinatarios] = useState<Destinatario[]>([]);
+  const [filiaisLista, setFiliaisLista] = useState<{ id: string; nome: string }[]>([]);
+  const [filialId, setFilialId] = useState<string>("todas");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("ai_recipients")
-        .select("id, nome, cargo, telefone, alert_types")
-        .eq("active", true)
-        .order("created_at", { ascending: true });
+      const [{ data }, { data: fdata }] = await Promise.all([
+        supabase
+          .from("ai_recipients")
+          .select("id, nome, cargo, telefone, alert_types")
+          .eq("active", true)
+          .order("created_at", { ascending: true }),
+        supabase.from("filiais").select("id, nome").order("nome"),
+      ]);
       setDestinatarios((data ?? []) as unknown as Destinatario[]);
+      setFiliaisLista(fdata ?? []);
     })();
   }, []);
 
