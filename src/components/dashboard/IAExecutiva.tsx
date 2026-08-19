@@ -68,6 +68,10 @@ interface Analise {
   diasUteisRestantes: number;
   unidades: UnidadeResumo[];
   feriados: string[];
+  /** Escopo da análise: rede completa ou loja específica */
+  escopoNome: string;
+  /** "loja" quando a análise é da rede, "vendedor" quando é de uma loja específica */
+  unidadeLabel: "loja" | "vendedor";
 }
 
 const TIPO_LABEL: Record<Tipo, string> = {
@@ -201,15 +205,21 @@ export default function IAExecutiva() {
   const [gerando, setGerando] = useState(false);
   const [mensagem, setMensagem] = useState("");
   const [destinatarios, setDestinatarios] = useState<Destinatario[]>([]);
+  const [filiaisLista, setFiliaisLista] = useState<{ id: string; nome: string }[]>([]);
+  const [filialId, setFilialId] = useState<string>("todas");
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("ai_recipients")
-        .select("id, nome, cargo, telefone, alert_types")
-        .eq("active", true)
-        .order("created_at", { ascending: true });
+      const [{ data }, { data: fdata }] = await Promise.all([
+        supabase
+          .from("ai_recipients")
+          .select("id, nome, cargo, telefone, alert_types")
+          .eq("active", true)
+          .order("created_at", { ascending: true }),
+        supabase.from("filiais").select("id, nome").order("nome"),
+      ]);
       setDestinatarios((data ?? []) as unknown as Destinatario[]);
+      setFiliaisLista(fdata ?? []);
     })();
   }, []);
 
@@ -242,11 +252,21 @@ export default function IAExecutiva() {
         profiles.map((p) => [p.id, p.filial_id])
       );
 
+      // Escopo: rede completa (agrupa por loja) ou loja específica (agrupa por vendedor)
+      const porLoja = filialId === "todas";
+      const filialAtual = filiais.find((f) => f.id === filialId);
+      const escopoNome = porLoja ? "Rede completa" : filialAtual?.nome ?? "Loja";
+      const unidadeLabel: "loja" | "vendedor" = porLoja ? "loja" : "vendedor";
+
+      const noEscopo = (vendedorId: string) =>
+        porLoja ? true : filialDoVendedor.get(vendedorId) === filialId;
+
       const feriadosMes = feriadosRes.data ?? [];
-      const feriadosGerais = new Set(
-        feriadosMes.filter((f) => !f.filial_id).map((f) => f.data)
+      const feriadosRelevantes = feriadosMes.filter(
+        (f) => !f.filial_id || (!porLoja && f.filial_id === filialId)
       );
-      const feriadosPeriodo = feriadosMes
+      const feriadosGerais = new Set(feriadosRelevantes.map((f) => f.data));
+      const feriadosPeriodo = feriadosRelevantes
         .filter((f) => f.data >= ini && f.data <= fim)
         .map((f) => `${fmtData(f.data)} — ${f.descricao}`);
 
@@ -265,50 +285,65 @@ export default function IAExecutiva() {
           acc.set(id, { venda: 0, qtd: 0, prev: 0, meta: 0, metaTicket: 0, ferias: 0, folgas: 0 });
         return acc.get(id)!;
       };
-      filiais.forEach((f) => getAcc(f.id));
+
+      // Chaves do agrupamento
+      const grupos: { id: string; nome: string }[] = porLoja
+        ? filiais.map((f) => ({ id: f.id, nome: f.nome }))
+        : profiles
+            .filter((p) => p.filial_id === filialId)
+            .map((p) => ({ id: p.id, nome: p.nome }));
+      grupos.forEach((g) => getAcc(g.id));
+
+      const chave = (vendedorId: string) =>
+        porLoja ? filialDoVendedor.get(vendedorId) ?? null : vendedorId;
 
       (vendasRes.data ?? []).forEach((v) => {
-        const fid = filialDoVendedor.get(v.vendedor_id);
-        if (!fid) return;
-        const a = getAcc(fid);
+        if (!noEscopo(v.vendedor_id)) return;
+        const k = chave(v.vendedor_id);
+        if (!k) return;
+        const a = getAcc(k);
         a.venda += Number(v.valor || 0) - Number(v.devolucao || 0);
         a.qtd += Number(v.quantidade_vendas || 0);
       });
 
       (vendasPrevRes.data ?? []).forEach((v) => {
-        const fid = filialDoVendedor.get(v.vendedor_id);
-        if (!fid) return;
-        getAcc(fid).prev += Number(v.valor || 0) - Number(v.devolucao || 0);
+        if (!noEscopo(v.vendedor_id)) return;
+        const k = chave(v.vendedor_id);
+        if (!k) return;
+        getAcc(k).prev += Number(v.valor || 0) - Number(v.devolucao || 0);
       });
 
       (metasRes.data ?? []).forEach((m) => {
-        const fid = filialDoVendedor.get(m.vendedor_id);
-        if (!fid) return;
-        const a = getAcc(fid);
+        if (!noEscopo(m.vendedor_id)) return;
+        const k = chave(m.vendedor_id);
+        if (!k) return;
+        const a = getAcc(k);
         a.meta += Number(m.valor_meta || 0);
         a.metaTicket += Number(m.meta_ticket || META_TICKET);
       });
 
       (feriasRes.data ?? []).forEach((f) => {
-        const fid = filialDoVendedor.get(f.vendedor_id);
-        if (!fid) return;
-        getAcc(fid).ferias += overlapDias(ini, fim, f.data_inicio, f.data_fim);
+        if (!noEscopo(f.vendedor_id)) return;
+        const k = chave(f.vendedor_id);
+        if (!k) return;
+        getAcc(k).ferias += overlapDias(ini, fim, f.data_inicio, f.data_fim);
       });
 
       (folgasRes.data ?? []).forEach((f) => {
-        const fid = filialDoVendedor.get(f.vendedor_id);
-        if (!fid) return;
-        getAcc(fid).folgas += 1;
+        if (!noEscopo(f.vendedor_id)) return;
+        const k = chave(f.vendedor_id);
+        if (!k) return;
+        getAcc(k).folgas += 1;
       });
 
       const proporcao = uteisMes > 0 ? uteisPeriodo / uteisMes : 1;
 
-      const unidades: UnidadeResumo[] = filiais.map((f) => {
-        const a = getAcc(f.id);
+      const unidades: UnidadeResumo[] = grupos.map((g) => {
+        const a = getAcc(g.id);
         const meta = a.meta * proporcao;
         const ticket = a.qtd > 0 ? a.venda / a.qtd : 0;
         return {
-          nome: f.nome,
+          nome: g.nome,
           venda: a.venda,
           meta,
           percentual: meta > 0 ? (a.venda / meta) * 100 : 0,
@@ -335,10 +370,12 @@ export default function IAExecutiva() {
         percentualAtingido: metaPeriodo > 0 ? (totalVendido / metaPeriodo) * 100 : 0,
         crescimento: totalPrev > 0 ? ((totalVendido - totalPrev) / totalPrev) * 100 : totalVendido > 0 ? 100 : 0,
         ticketGeral: totalQtd > 0 ? totalVendido / totalQtd : 0,
-        metaTicket: META_TICKET * filiais.length,
+        metaTicket: porLoja ? META_TICKET * filiais.length : META_TICKET,
         diasUteisRestantes: uteisRestantes,
         unidades: unidades.sort((a, b) => b.percentual - a.percentual),
         feriados: feriadosPeriodo,
+        escopoNome,
+        unidadeLabel,
       });
     } catch (e) {
       console.error(e);
@@ -351,7 +388,7 @@ export default function IAExecutiva() {
   useEffect(() => {
     carregarDados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo, dataBase]);
+  }, [tipo, dataBase, filialId]);
 
   const gerarMensagem = async (destinatario?: Destinatario) => {
     if (!analise) return;
@@ -419,10 +456,26 @@ export default function IAExecutiva() {
 
       <CardSecao
         icon={CalendarDays}
-        title="Período da análise"
-        description="Selecione o tipo de relatório e a data de referência."
+        title="Período e escopo da análise"
+        description="Selecione a loja, o tipo de relatório e a data de referência."
       >
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label>Loja analisada</Label>
+            <Select value={filialId} onValueChange={setFilialId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as lojas (rede)</SelectItem>
+                {filiaisLista.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label>Tipo de relatório</Label>
             <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
@@ -449,30 +502,59 @@ export default function IAExecutiva() {
         </div>
 
         {analise && (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "Vendido", value: fmtBRL(analise.totalVendido) },
-              { label: "Meta do período", value: fmtBRL(analise.metaPeriodo) },
-              { label: "Atingimento", value: `${analise.percentualAtingido.toFixed(1)}%` },
-              { label: "Ticket médio", value: fmtBRL(analise.ticketGeral) },
-            ].map((kpi) => (
-              <div
-                key={kpi.label}
-                className="rounded-card border border-white/5 p-4"
-                style={{ background: "linear-gradient(135deg, hsl(0 42% 11% / 0.7), hsl(0 39% 15% / 0.5))" }}
-              >
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{kpi.label}</p>
-                <p className="mt-1 font-display text-lg font-bold text-foreground">{kpi.value}</p>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                Escopo: {analise.escopoNome}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                {analise.unidades.length} {analise.unidadeLabel === "loja" ? "loja(s)" : "vendedor(es)"}
+              </Badge>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: "Vendido", value: fmtBRL(analise.totalVendido) },
+                { label: "Meta do período", value: fmtBRL(analise.metaPeriodo) },
+                { label: "Atingimento", value: `${analise.percentualAtingido.toFixed(1)}%` },
+                { label: "Ticket médio", value: fmtBRL(analise.ticketGeral) },
+              ].map((kpi) => (
+                <div
+                  key={kpi.label}
+                  className="rounded-card border border-white/5 p-4"
+                  style={{ background: "linear-gradient(135deg, hsl(0 42% 11% / 0.7), hsl(0 39% 15% / 0.5))" }}
+                >
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{kpi.label}</p>
+                  <p className="mt-1 font-display text-lg font-bold text-foreground">{kpi.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {analise.unidades.map((u) => (
+                <div
+                  key={u.nome}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-white/5 px-4 py-3"
+                >
+                  <p className="text-sm font-semibold text-foreground">{u.nome}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {fmtBRL(u.venda)} • {u.percentual.toFixed(1)}% da meta • ticket {fmtBRL(u.ticket)} • {u.quantidade}{" "}
+                    venda(s)
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </CardSecao>
 
       <CardSecao
         icon={Sparkles}
-        title={`Análise da ANA · ${TIPO_LABEL[tipo]}`}
-        description="Mensagem consultiva gerada com base nos dados reais do período, pronta para WhatsApp."
+        title={`Análise da ANA · ${TIPO_LABEL[tipo]}${analise ? ` · ${analise.escopoNome}` : ""}`}
+        description={
+          analise?.unidadeLabel === "vendedor"
+            ? "Mensagem consultiva focada na loja selecionada e no desempenho de cada vendedor dela."
+            : "Mensagem consultiva gerada com base nos dados reais do período, pronta para WhatsApp."
+        }
         actions={
           <div className="flex gap-2">
             <Button onClick={() => gerarMensagem()} disabled={gerando || carregando || !analise}>

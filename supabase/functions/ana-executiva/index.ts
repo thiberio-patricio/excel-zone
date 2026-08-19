@@ -42,6 +42,8 @@ interface Payload {
   diasUteisRestantes?: number;
   unidades: UnidadeResumo[];
   feriados: string[];
+  escopoNome?: string;
+  unidadeLabel?: "loja" | "vendedor";
 }
 
 const fmt = (v: number) =>
@@ -53,7 +55,8 @@ const tipoDescricao = {
   mensal: "fechamento mensal",
 };
 
-function systemPrompt(tipo: Payload["tipo"]) {
+function systemPrompt(tipo: Payload["tipo"], unidade: "loja" | "vendedor", escopo: string) {
+  const plural = unidade === "vendedor" ? "vendedores" : "lojas";
   return `Você é a ANA — Assistente Virtual de Gestão de Vendas, uma consultora sênior especializada em gestão comercial de varejo.
 Você escreve mensagens de WhatsApp para proprietários, diretores e gestores.
 
@@ -62,17 +65,19 @@ Regras rígidas de formato (WhatsApp):
 - Estruture assim, exatamente nesta ordem:
   1) Saudação curta identificando-se como ANA e o tipo de análise (${tipoDescricao[tipo]}).
   2) *Panorama* — números-chave interpretados (não apenas repetidos).
-  3) *Destaques* — 2 a 4 linhas iniciadas por "•", citando lojas pelo nome.
+  3) *Destaques* — 2 a 4 linhas iniciadas por "•", citando ${plural} pelo nome.
   4) *Pontos de atenção* — 1 a 3 linhas iniciadas por "•", com risco e causa provável.
   5) *Recomendações da ANA* — 2 a 3 ações práticas, priorizadas e executáveis nas próximas horas/dias.
   6) Encerramento de uma linha, assinado "ANA — Assistente Virtual de Gestão de Vendas".
 - Use *negrito do WhatsApp* (asteriscos simples) para títulos. Nunca use markdown (#, **, tabelas, listas numeradas longas).
 - Máximo de 1600 caracteres.
 - Toda afirmação deve estar ancorada nos dados fornecidos. Não invente números.
-- Considere férias e folgas como contexto atenuante: nunca aponte como risco uma unidade cuja queda é explicada por ausências.`;
+- Considere férias e folgas como contexto atenuante: nunca aponte como risco uma unidade cuja queda é explicada por ausências.
+- Escopo desta análise: ${escopo}. ${unidade === "vendedor" ? `Todos os números referem-se EXCLUSIVAMENTE a esta loja e a comparação é entre os vendedores dela. Trate cada item da lista como um VENDEDOR (pessoa), nunca como loja.` : `Os números referem-se à rede completa e a comparação é entre as lojas.`}`;
 }
 
 function userPrompt(p: Payload) {
+  const unidade = p.unidadeLabel ?? "loja";
   const linhas = p.unidades
     .slice(0, 30)
     .map(
@@ -86,7 +91,8 @@ Período: ${p.periodoLabel}
 Período de comparação: ${p.periodoAnteriorLabel}
 ${p.destinatarioNome ? `Destinatário: ${p.destinatarioNome}${p.destinatarioCargo ? ` (${p.destinatarioCargo})` : ""}` : ""}
 
-Consolidado da rede:
+Escopo: ${p.escopoNome ?? "Rede completa"}
+${unidade === "vendedor" ? `Consolidado da loja ${p.escopoNome}:` : "Consolidado da rede:"}
 - Total vendido: ${fmt(p.totalVendido)}
 - Meta do período: ${fmt(p.metaPeriodo)}
 - Atingimento: ${p.percentualAtingido.toFixed(1)}%
@@ -95,7 +101,7 @@ Consolidado da rede:
 ${p.diasUteisRestantes !== undefined ? `- Dias úteis restantes no mês: ${p.diasUteisRestantes}` : ""}
 ${p.feriados.length ? `- Feriados no período: ${p.feriados.join("; ")}` : ""}
 
-Desempenho por loja:
+${unidade === "vendedor" ? "Desempenho por vendedor da loja:" : "Desempenho por loja:"}
 ${linhas || "- Sem dados de vendas no período."}
 
 Gere a mensagem de WhatsApp conforme as regras.`;
@@ -146,7 +152,7 @@ Deno.serve(async (req) => {
         model: MODEL,
         stream: true,
         input: [
-          { role: "system", content: systemPrompt(payload.tipo) },
+          { role: "system", content: systemPrompt(payload.tipo, payload.unidadeLabel ?? "loja", payload.escopoNome ?? "Rede completa") },
           { role: "user", content: userPrompt(payload) },
         ],
       }),
