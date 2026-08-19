@@ -68,6 +68,10 @@ interface Analise {
   diasUteisRestantes: number;
   unidades: UnidadeResumo[];
   feriados: string[];
+  /** Escopo da análise: rede completa ou loja específica */
+  escopoNome: string;
+  /** "loja" quando a análise é da rede, "vendedor" quando é de uma loja específica */
+  unidadeLabel: "loja" | "vendedor";
 }
 
 const TIPO_LABEL: Record<Tipo, string> = {
