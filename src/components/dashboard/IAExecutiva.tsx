@@ -456,10 +456,26 @@ export default function IAExecutiva() {
 
       <CardSecao
         icon={CalendarDays}
-        title="Período da análise"
-        description="Selecione o tipo de relatório e a data de referência."
+        title="Período e escopo da análise"
+        description="Selecione a loja, o tipo de relatório e a data de referência."
       >
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label>Loja analisada</Label>
+            <Select value={filialId} onValueChange={setFilialId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as lojas (rede)</SelectItem>
+                {filiaisLista.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label>Tipo de relatório</Label>
             <Select value={tipo} onValueChange={(v) => setTipo(v as Tipo)}>
@@ -486,23 +502,48 @@ export default function IAExecutiva() {
         </div>
 
         {analise && (
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "Vendido", value: fmtBRL(analise.totalVendido) },
-              { label: "Meta do período", value: fmtBRL(analise.metaPeriodo) },
-              { label: "Atingimento", value: `${analise.percentualAtingido.toFixed(1)}%` },
-              { label: "Ticket médio", value: fmtBRL(analise.ticketGeral) },
-            ].map((kpi) => (
-              <div
-                key={kpi.label}
-                className="rounded-card border border-white/5 p-4"
-                style={{ background: "linear-gradient(135deg, hsl(0 42% 11% / 0.7), hsl(0 39% 15% / 0.5))" }}
-              >
-                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{kpi.label}</p>
-                <p className="mt-1 font-display text-lg font-bold text-foreground">{kpi.value}</p>
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                Escopo: {analise.escopoNome}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                {analise.unidades.length} {analise.unidadeLabel === "loja" ? "loja(s)" : "vendedor(es)"}
+              </Badge>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {[
+                { label: "Vendido", value: fmtBRL(analise.totalVendido) },
+                { label: "Meta do período", value: fmtBRL(analise.metaPeriodo) },
+                { label: "Atingimento", value: `${analise.percentualAtingido.toFixed(1)}%` },
+                { label: "Ticket médio", value: fmtBRL(analise.ticketGeral) },
+              ].map((kpi) => (
+                <div
+                  key={kpi.label}
+                  className="rounded-card border border-white/5 p-4"
+                  style={{ background: "linear-gradient(135deg, hsl(0 42% 11% / 0.7), hsl(0 39% 15% / 0.5))" }}
+                >
+                  <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{kpi.label}</p>
+                  <p className="mt-1 font-display text-lg font-bold text-foreground">{kpi.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {analise.unidades.map((u) => (
+                <div
+                  key={u.nome}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-white/5 px-4 py-3"
+                >
+                  <p className="text-sm font-semibold text-foreground">{u.nome}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {fmtBRL(u.venda)} • {u.percentual.toFixed(1)}% da meta • ticket {fmtBRL(u.ticket)} • {u.quantidade}{" "}
+                    venda(s)
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </CardSecao>
 
