@@ -388,7 +388,7 @@ export default function IAExecutiva() {
   useEffect(() => {
     carregarDados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tipo, dataBase]);
+  }, [tipo, dataBase, filialId]);
 
   const gerarMensagem = async (destinatario?: Destinatario) => {
     if (!analise) return;
