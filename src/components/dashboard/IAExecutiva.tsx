@@ -549,8 +549,12 @@ export default function IAExecutiva() {
 
       <CardSecao
         icon={Sparkles}
-        title={`Análise da ANA · ${TIPO_LABEL[tipo]}`}
-        description="Mensagem consultiva gerada com base nos dados reais do período, pronta para WhatsApp."
+        title={`Análise da ANA · ${TIPO_LABEL[tipo]}${analise ? ` · ${analise.escopoNome}` : ""}`}
+        description={
+          analise?.unidadeLabel === "vendedor"
+            ? "Mensagem consultiva focada na loja selecionada e no desempenho de cada vendedor dela."
+            : "Mensagem consultiva gerada com base nos dados reais do período, pronta para WhatsApp."
+        }
         actions={
           <div className="flex gap-2">
             <Button onClick={() => gerarMensagem()} disabled={gerando || carregando || !analise}>
