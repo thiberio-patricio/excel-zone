@@ -349,7 +349,9 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
                     fontWeight={500}
                     tickLine={false}
                     axisLine={{ stroke: 'hsl(var(--border))', strokeWidth: 1 }}
-                    tickFormatter={(value) => `R$\u00A0${Math.round(value)}`}
+                    domain={[0, 6000]}
+                    ticks={[0, 1500, 3000, 4500, 6000]}
+                    tickFormatter={(value) => `R$\u00A0${value}`}
                     width={80}
                   />
 
