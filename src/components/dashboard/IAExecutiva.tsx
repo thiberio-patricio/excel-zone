@@ -234,10 +234,11 @@ export default function IAExecutiva() {
       const mesIni = `${ano}-${String(mes).padStart(2, "0")}-01`;
       const mesFim = toLocalISO(new Date(ano, mes, 0));
 
-      const [filiaisRes, profilesRes, vendasRes, vendasPrevRes, metasRes, feriadosRes, feriasRes, folgasRes] =
+      const [filiaisRes, profilesRes, rolesRes, vendasRes, vendasPrevRes, metasRes, feriadosRes, feriasRes, folgasRes] =
         await Promise.all([
-          supabase.from("filiais").select("id, nome"),
+          supabase.from("filiais").select("id, nome").order("nome"),
           supabase.from("profiles").select("id, nome, filial_id"),
+          supabase.from("user_roles").select("user_id, role"),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", ini).lte("data", fim),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", prevIni).lte("data", prevFim),
           supabase.from("metas").select("vendedor_id, valor_meta, meta_ticket, mes, ano").eq("mes", mes).eq("ano", ano),
@@ -248,8 +249,14 @@ export default function IAExecutiva() {
 
       const filiais = filiaisRes.data ?? [];
       const profiles = profilesRes.data ?? [];
+      // Mantém o seletor de lojas sincronizado com o que o usuário realmente pode ver
+      if (filiais.length) setFiliaisLista(filiais.map((f) => ({ id: f.id, nome: f.nome })));
+      // A análise considera SOMENTE vendedores (gerentes/diretores/admins ficam fora)
+      const vendedorIds = new Set(
+        (rolesRes.data ?? []).filter((r) => r.role === "vendedor").map((r) => r.user_id)
+      );
       const filialDoVendedor = new Map<string, string | null>(
-        profiles.map((p) => [p.id, p.filial_id])
+        profiles.filter((p) => vendedorIds.has(p.id)).map((p) => [p.id, p.filial_id])
       );
 
       // Escopo: rede completa (agrupa por loja) ou loja específica (agrupa por vendedor)
@@ -259,7 +266,9 @@ export default function IAExecutiva() {
       const unidadeLabel: "loja" | "vendedor" = porLoja ? "loja" : "vendedor";
 
       const noEscopo = (vendedorId: string) =>
-        porLoja ? true : filialDoVendedor.get(vendedorId) === filialId;
+        vendedorIds.has(vendedorId) &&
+        (porLoja ? true : filialDoVendedor.get(vendedorId) === filialId);
+
 
       const feriadosMes = feriadosRes.data ?? [];
       const feriadosRelevantes = feriadosMes.filter(
