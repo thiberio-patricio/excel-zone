@@ -299,8 +299,9 @@ export default function IAExecutiva() {
       const grupos: { id: string; nome: string }[] = porLoja
         ? filiais.map((f) => ({ id: f.id, nome: f.nome }))
         : profiles
-            .filter((p) => p.filial_id === filialId)
+            .filter((p) => p.filial_id === filialId && vendedorIds.has(p.id))
             .map((p) => ({ id: p.id, nome: p.nome }));
+
       grupos.forEach((g) => getAcc(g.id));
 
       const chave = (vendedorId: string) =>
