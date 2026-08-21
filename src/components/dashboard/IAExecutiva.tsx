@@ -385,7 +385,7 @@ export default function IAExecutiva() {
       const unidades: UnidadeResumo[] = grupos.map((g) => {
         const a = getAcc(g.id);
         const meta = a.meta * proporcao;
-        const ticket = a.qtd > 0 ? a.venda / a.qtd : 0;
+        const ticket = a.qtd > 0 ? a.vendaComQtd / a.qtd : 0;
         return {
           nome: g.nome,
           venda: a.venda,
@@ -393,7 +393,8 @@ export default function IAExecutiva() {
           percentual: meta > 0 ? (a.venda / meta) * 100 : 0,
           crescimento: a.prev > 0 ? ((a.venda - a.prev) / a.prev) * 100 : a.venda > 0 ? 100 : 0,
           ticket,
-          metaTicket: META_TICKET,
+          // Meta de ticket é média por vendedor (não soma)
+          metaTicket: a.comMeta > 0 ? a.metaTicket / a.comMeta : META_TICKET,
           quantidade: a.qtd,
           diasFerias: a.ferias,
           diasFolgas: a.folgas,
@@ -404,6 +405,9 @@ export default function IAExecutiva() {
       const totalPrev = Array.from(acc.values()).reduce((s, a) => s + a.prev, 0);
       const metaPeriodo = unidades.reduce((s, u) => s + u.meta, 0);
       const totalQtd = unidades.reduce((s, u) => s + u.quantidade, 0);
+      const totalVendaComQtd = Array.from(acc.values()).reduce((s, a) => s + a.vendaComQtd, 0);
+      const totalMetaTicket = Array.from(acc.values()).reduce((s, a) => s + a.metaTicket, 0);
+      const totalComMeta = Array.from(acc.values()).reduce((s, a) => s + a.comMeta, 0);
 
       setAnalise({
         tipo,
