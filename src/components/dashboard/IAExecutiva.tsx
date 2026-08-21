@@ -362,6 +362,7 @@ export default function IAExecutiva() {
         const a = getAcc(k);
         a.meta += m.valorMeta;
         a.metaTicket += m.metaTicket;
+        a.comMeta += 1;
       }
 
 
