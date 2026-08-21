@@ -29,8 +29,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { toLocalISO } from "@/utils/dateISO";
+import { criarMetaResolver, META_TICKET_DEFAULT } from "@/utils/metaResolver";
 
-const META_TICKET = 500;
+const META_TICKET = META_TICKET_DEFAULT;
 
 type Tipo = "diario" | "semanal" | "mensal";
 
@@ -241,7 +242,7 @@ export default function IAExecutiva() {
           supabase.from("user_roles").select("user_id, role"),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", ini).lte("data", fim),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", prevIni).lte("data", prevFim),
-          supabase.from("metas").select("vendedor_id, valor_meta, meta_ticket, mes, ano").eq("mes", mes).eq("ano", ano),
+          supabase.from("metas").select("vendedor_id, valor_meta, meta_ticket, mes, ano"),
           supabase.from("feriados").select("data, descricao, filial_id").gte("data", mesIni).lte("data", mesFim),
           supabase.from("ferias").select("vendedor_id, data_inicio, data_fim"),
           supabase.from("folgas").select("vendedor_id, data").gte("data", ini).lte("data", fim),
@@ -312,8 +313,11 @@ export default function IAExecutiva() {
         const k = chave(v.vendedor_id);
         if (!k) return;
         const a = getAcc(k);
-        a.venda += Number(v.valor || 0) - Number(v.devolucao || 0);
-        a.qtd += Number(v.quantidade_vendas || 0);
+        const liquido = Number(v.valor || 0) - Number(v.devolucao || 0);
+        a.venda += liquido;
+        // Registros antigos não têm quantidade informada: conta o lançamento como 1 venda
+        const qtd = Number(v.quantidade_vendas || 0);
+        a.qtd += qtd > 0 ? qtd : liquido > 0 ? 1 : 0;
       });
 
       (vendasPrevRes.data ?? []).forEach((v) => {
@@ -323,14 +327,19 @@ export default function IAExecutiva() {
         getAcc(k).prev += Number(v.valor || 0) - Number(v.devolucao || 0);
       });
 
-      (metasRes.data ?? []).forEach((m) => {
-        if (!noEscopo(m.vendedor_id)) return;
-        const k = chave(m.vendedor_id);
-        if (!k) return;
+      // Metas com fallback para a meta mais recente cadastrada (mesma regra dos dashboards)
+      const metaResolver = criarMetaResolver((metasRes.data ?? []) as any);
+      for (const vendedorId of filialDoVendedor.keys()) {
+        if (!noEscopo(vendedorId)) continue;
+        const k = chave(vendedorId);
+        if (!k) continue;
+        const m = metaResolver.resolver(vendedorId, mes, ano);
+        if (!m) continue;
         const a = getAcc(k);
-        a.meta += Number(m.valor_meta || 0);
-        a.metaTicket += Number(m.meta_ticket || META_TICKET);
-      });
+        a.meta += m.valorMeta;
+        a.metaTicket += m.metaTicket;
+      }
+
 
       (feriasRes.data ?? []).forEach((f) => {
         if (!noEscopo(f.vendedor_id)) return;
@@ -380,7 +389,7 @@ export default function IAExecutiva() {
         percentualAtingido: metaPeriodo > 0 ? (totalVendido / metaPeriodo) * 100 : 0,
         crescimento: totalPrev > 0 ? ((totalVendido - totalPrev) / totalPrev) * 100 : totalVendido > 0 ? 100 : 0,
         ticketGeral: totalQtd > 0 ? totalVendido / totalQtd : 0,
-        metaTicket: porLoja ? META_TICKET * filiais.length : META_TICKET,
+        metaTicket: META_TICKET,
         diasUteisRestantes: uteisRestantes,
         unidades: unidades.sort((a, b) => b.percentual - a.percentual),
         feriados: feriadosPeriodo,
