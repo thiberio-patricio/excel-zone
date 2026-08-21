@@ -445,7 +445,6 @@ export default function IAExecutiva() {
       const { data, error } = await supabase.functions.invoke("ana-executiva", {
         body: {
           ...analise,
-          metaTicket: META_TICKET,
           destinatarioNome: destinatario?.nome,
           destinatarioCargo: destinatario?.cargo,
         },
