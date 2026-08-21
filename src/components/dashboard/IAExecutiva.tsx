@@ -288,11 +288,31 @@ export default function IAExecutiva() {
         feriadosGerais
       );
 
-      type Acc = { venda: number; qtd: number; prev: number; meta: number; metaTicket: number; ferias: number; folgas: number };
+      type Acc = {
+        venda: number;
+        qtd: number;
+        vendaComQtd: number;
+        prev: number;
+        meta: number;
+        metaTicket: number;
+        comMeta: number;
+        ferias: number;
+        folgas: number;
+      };
       const acc = new Map<string, Acc>();
       const getAcc = (id: string) => {
         if (!acc.has(id))
-          acc.set(id, { venda: 0, qtd: 0, prev: 0, meta: 0, metaTicket: 0, ferias: 0, folgas: 0 });
+          acc.set(id, {
+            venda: 0,
+            qtd: 0,
+            vendaComQtd: 0,
+            prev: 0,
+            meta: 0,
+            metaTicket: 0,
+            comMeta: 0,
+            ferias: 0,
+            folgas: 0,
+          });
         return acc.get(id)!;
       };
 
@@ -315,9 +335,13 @@ export default function IAExecutiva() {
         const a = getAcc(k);
         const liquido = Number(v.valor || 0) - Number(v.devolucao || 0);
         a.venda += liquido;
-        // Registros antigos não têm quantidade informada: conta o lançamento como 1 venda
+        // Ticket médio só considera lançamentos com quantidade informada,
+        // evitando distorcer a média com registros antigos sem quantidade.
         const qtd = Number(v.quantidade_vendas || 0);
-        a.qtd += qtd > 0 ? qtd : liquido > 0 ? 1 : 0;
+        if (qtd > 0) {
+          a.qtd += qtd;
+          a.vendaComQtd += liquido;
+        }
       });
 
       (vendasPrevRes.data ?? []).forEach((v) => {
@@ -338,6 +362,7 @@ export default function IAExecutiva() {
         const a = getAcc(k);
         a.meta += m.valorMeta;
         a.metaTicket += m.metaTicket;
+        a.comMeta += 1;
       }
 
 
@@ -360,7 +385,7 @@ export default function IAExecutiva() {
       const unidades: UnidadeResumo[] = grupos.map((g) => {
         const a = getAcc(g.id);
         const meta = a.meta * proporcao;
-        const ticket = a.qtd > 0 ? a.venda / a.qtd : 0;
+        const ticket = a.qtd > 0 ? a.vendaComQtd / a.qtd : 0;
         return {
           nome: g.nome,
           venda: a.venda,
@@ -368,7 +393,8 @@ export default function IAExecutiva() {
           percentual: meta > 0 ? (a.venda / meta) * 100 : 0,
           crescimento: a.prev > 0 ? ((a.venda - a.prev) / a.prev) * 100 : a.venda > 0 ? 100 : 0,
           ticket,
-          metaTicket: META_TICKET,
+          // Meta de ticket é média por vendedor (não soma)
+          metaTicket: a.comMeta > 0 ? a.metaTicket / a.comMeta : META_TICKET,
           quantidade: a.qtd,
           diasFerias: a.ferias,
           diasFolgas: a.folgas,
@@ -379,6 +405,9 @@ export default function IAExecutiva() {
       const totalPrev = Array.from(acc.values()).reduce((s, a) => s + a.prev, 0);
       const metaPeriodo = unidades.reduce((s, u) => s + u.meta, 0);
       const totalQtd = unidades.reduce((s, u) => s + u.quantidade, 0);
+      const totalVendaComQtd = Array.from(acc.values()).reduce((s, a) => s + a.vendaComQtd, 0);
+      const totalMetaTicket = Array.from(acc.values()).reduce((s, a) => s + a.metaTicket, 0);
+      const totalComMeta = Array.from(acc.values()).reduce((s, a) => s + a.comMeta, 0);
 
       setAnalise({
         tipo,
@@ -388,8 +417,8 @@ export default function IAExecutiva() {
         metaPeriodo,
         percentualAtingido: metaPeriodo > 0 ? (totalVendido / metaPeriodo) * 100 : 0,
         crescimento: totalPrev > 0 ? ((totalVendido - totalPrev) / totalPrev) * 100 : totalVendido > 0 ? 100 : 0,
-        ticketGeral: totalQtd > 0 ? totalVendido / totalQtd : 0,
-        metaTicket: META_TICKET,
+        ticketGeral: totalQtd > 0 ? totalVendaComQtd / totalQtd : 0,
+        metaTicket: totalComMeta > 0 ? totalMetaTicket / totalComMeta : META_TICKET,
         diasUteisRestantes: uteisRestantes,
         unidades: unidades.sort((a, b) => b.percentual - a.percentual),
         feriados: feriadosPeriodo,
@@ -416,7 +445,6 @@ export default function IAExecutiva() {
       const { data, error } = await supabase.functions.invoke("ana-executiva", {
         body: {
           ...analise,
-          metaTicket: META_TICKET,
           destinatarioNome: destinatario?.nome,
           destinatarioCargo: destinatario?.cargo,
         },
