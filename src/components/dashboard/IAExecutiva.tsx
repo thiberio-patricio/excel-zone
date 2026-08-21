@@ -242,7 +242,7 @@ export default function IAExecutiva() {
           supabase.from("user_roles").select("user_id, role"),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", ini).lte("data", fim),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", prevIni).lte("data", prevFim),
-          supabase.from("metas").select("vendedor_id, valor_meta, meta_ticket, mes, ano").eq("mes", mes).eq("ano", ano),
+          supabase.from("metas").select("vendedor_id, valor_meta, meta_ticket, mes, ano"),
           supabase.from("feriados").select("data, descricao, filial_id").gte("data", mesIni).lte("data", mesFim),
           supabase.from("ferias").select("vendedor_id, data_inicio, data_fim"),
           supabase.from("folgas").select("vendedor_id, data").gte("data", ini).lte("data", fim),
