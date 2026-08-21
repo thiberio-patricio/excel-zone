@@ -29,8 +29,9 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { toLocalISO } from "@/utils/dateISO";
+import { criarMetaResolver, META_TICKET_DEFAULT } from "@/utils/metaResolver";
 
-const META_TICKET = 500;
+const META_TICKET = META_TICKET_DEFAULT;
 
 type Tipo = "diario" | "semanal" | "mensal";
 
