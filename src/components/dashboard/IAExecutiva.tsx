@@ -288,11 +288,31 @@ export default function IAExecutiva() {
         feriadosGerais
       );
 
-      type Acc = { venda: number; qtd: number; prev: number; meta: number; metaTicket: number; ferias: number; folgas: number };
+      type Acc = {
+        venda: number;
+        qtd: number;
+        vendaComQtd: number;
+        prev: number;
+        meta: number;
+        metaTicket: number;
+        comMeta: number;
+        ferias: number;
+        folgas: number;
+      };
       const acc = new Map<string, Acc>();
       const getAcc = (id: string) => {
         if (!acc.has(id))
-          acc.set(id, { venda: 0, qtd: 0, prev: 0, meta: 0, metaTicket: 0, ferias: 0, folgas: 0 });
+          acc.set(id, {
+            venda: 0,
+            qtd: 0,
+            vendaComQtd: 0,
+            prev: 0,
+            meta: 0,
+            metaTicket: 0,
+            comMeta: 0,
+            ferias: 0,
+            folgas: 0,
+          });
         return acc.get(id)!;
       };
 
