@@ -313,8 +313,11 @@ export default function IAExecutiva() {
         const k = chave(v.vendedor_id);
         if (!k) return;
         const a = getAcc(k);
-        a.venda += Number(v.valor || 0) - Number(v.devolucao || 0);
-        a.qtd += Number(v.quantidade_vendas || 0);
+        const liquido = Number(v.valor || 0) - Number(v.devolucao || 0);
+        a.venda += liquido;
+        // Registros antigos não têm quantidade informada: conta o lançamento como 1 venda
+        const qtd = Number(v.quantidade_vendas || 0);
+        a.qtd += qtd > 0 ? qtd : liquido > 0 ? 1 : 0;
       });
 
       (vendasPrevRes.data ?? []).forEach((v) => {
@@ -324,14 +327,19 @@ export default function IAExecutiva() {
         getAcc(k).prev += Number(v.valor || 0) - Number(v.devolucao || 0);
       });
 
-      (metasRes.data ?? []).forEach((m) => {
-        if (!noEscopo(m.vendedor_id)) return;
-        const k = chave(m.vendedor_id);
-        if (!k) return;
+      // Metas com fallback para a meta mais recente cadastrada (mesma regra dos dashboards)
+      const metaResolver = criarMetaResolver((metasRes.data ?? []) as any);
+      for (const vendedorId of filialDoVendedor.keys()) {
+        if (!noEscopo(vendedorId)) continue;
+        const k = chave(vendedorId);
+        if (!k) continue;
+        const m = metaResolver.resolver(vendedorId, mes, ano);
+        if (!m) continue;
         const a = getAcc(k);
-        a.meta += Number(m.valor_meta || 0);
-        a.metaTicket += Number(m.meta_ticket || META_TICKET);
-      });
+        a.meta += m.valorMeta;
+        a.metaTicket += m.metaTicket;
+      }
+
 
       (feriasRes.data ?? []).forEach((f) => {
         if (!noEscopo(f.vendedor_id)) return;
