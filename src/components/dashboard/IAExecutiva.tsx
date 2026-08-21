@@ -389,7 +389,7 @@ export default function IAExecutiva() {
         percentualAtingido: metaPeriodo > 0 ? (totalVendido / metaPeriodo) * 100 : 0,
         crescimento: totalPrev > 0 ? ((totalVendido - totalPrev) / totalPrev) * 100 : totalVendido > 0 ? 100 : 0,
         ticketGeral: totalQtd > 0 ? totalVendido / totalQtd : 0,
-        metaTicket: porLoja ? META_TICKET * filiais.length : META_TICKET,
+        metaTicket: META_TICKET,
         diasUteisRestantes: uteisRestantes,
         unidades: unidades.sort((a, b) => b.percentual - a.percentual),
         feriados: feriadosPeriodo,
