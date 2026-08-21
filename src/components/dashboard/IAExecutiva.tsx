@@ -335,9 +335,13 @@ export default function IAExecutiva() {
         const a = getAcc(k);
         const liquido = Number(v.valor || 0) - Number(v.devolucao || 0);
         a.venda += liquido;
-        // Registros antigos não têm quantidade informada: conta o lançamento como 1 venda
+        // Ticket médio só considera lançamentos com quantidade informada,
+        // evitando distorcer a média com registros antigos sem quantidade.
         const qtd = Number(v.quantidade_vendas || 0);
-        a.qtd += qtd > 0 ? qtd : liquido > 0 ? 1 : 0;
+        if (qtd > 0) {
+          a.qtd += qtd;
+          a.vendaComQtd += liquido;
+        }
       });
 
       (vendasPrevRes.data ?? []).forEach((v) => {
