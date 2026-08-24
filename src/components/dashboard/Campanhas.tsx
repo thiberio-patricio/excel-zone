@@ -1,0 +1,609 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  Trophy,
+  Plus,
+  Target,
+  CalendarDays,
+  ArrowLeft,
+  Medal,
+  Loader2,
+  Trash2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageCard } from "@/components/layout/PageCard";
+import { EmptyState } from "@/components/layout/EmptyState";
+import { ProfilePhoto } from "@/components/ui/profile-photo";
+import { criarMetaResolver } from "@/utils/metaResolver";
+import { toLocalISO } from "@/utils/dateISO";
+
+type Role = "vendedor" | "gerente" | "diretor" | "admin";
+
+interface CampanhasProps {
+  role: Role;
+  profile: { id: string; nome: string; filial_id?: string | null };
+}
+
+interface Campanha {
+  id: string;
+  nome: string;
+  tipo: string;
+  mes: number;
+  ano: number;
+  filial_id: string | null;
+  descricao: string | null;
+  ativa: boolean;
+}
+
+interface Filial {
+  id: string;
+  nome: string;
+}
+
+interface RankingItem {
+  vendedorId: string;
+  nome: string;
+  fotoUrl: string | null;
+  filialNome: string;
+  metaDiaria: number;
+  pontos: number;
+  totalVendido: number;
+  diasPorData: Record<string, { valor: number; batida: boolean }>;
+}
+
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
+const brl = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Dias úteis (segunda a sexta) do mês. */
+function diasUteisDoMes(mes: number, ano: number): Date[] {
+  const dias: Date[] = [];
+  const total = new Date(ano, mes, 0).getDate();
+  for (let d = 1; d <= total; d++) {
+    const data = new Date(ano, mes - 1, d);
+    const dow = data.getDay();
+    if (dow >= 1 && dow <= 5) dias.push(data);
+  }
+  return dias;
+}
+
+export default function Campanhas({ role, profile }: CampanhasProps) {
+  const isDiretor = role === "diretor" || role === "admin";
+  const [campanhas, setCampanhas] = useState<Campanha[]>([]);
+  const [filiais, setFiliais] = useState<Filial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selecionada, setSelecionada] = useState<Campanha | null>(null);
+  const [ranking, setRanking] = useState<RankingItem[]>([]);
+  const [carregandoRanking, setCarregandoRanking] = useState(false);
+  const [vendedorAberto, setVendedorAberto] = useState<string | null>(null);
+
+  const hoje = new Date();
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const [form, setForm] = useState({
+    nome: "",
+    mes: hoje.getMonth() + 1,
+    ano: hoje.getFullYear(),
+    filial_id: "todas",
+    descricao: "",
+  });
+  const [salvando, setSalvando] = useState(false);
+
+  const anos = useMemo(() => {
+    const base = hoje.getFullYear();
+    return [base + 1, base, base - 1, base - 2];
+  }, []);
+
+  const carregar = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [{ data: camps, error: errCamps }, { data: fils }] = await Promise.all([
+        supabase
+          .from("campanhas")
+          .select("*")
+          .order("ano", { ascending: false })
+          .order("mes", { ascending: false }),
+        supabase.from("filiais").select("id, nome").order("nome"),
+      ]);
+      if (errCamps) throw errCamps;
+      setCampanhas((camps as Campanha[]) || []);
+      setFiliais((fils as Filial[]) || []);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao carregar campanhas");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregar();
+  }, [carregar]);
+
+  const criarCampanha = async () => {
+    if (!form.nome.trim()) {
+      toast.error("Informe o nome da campanha");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const { error } = await supabase.from("campanhas").insert({
+        nome: form.nome.trim(),
+        tipo: "meta_fixa",
+        mes: form.mes,
+        ano: form.ano,
+        filial_id: form.filial_id === "todas" ? null : form.filial_id,
+        descricao: form.descricao.trim() || null,
+        created_by: profile.id,
+      });
+      if (error) throw error;
+      toast.success("Campanha cadastrada!");
+      setDialogAberto(false);
+      setForm({
+        nome: "",
+        mes: hoje.getMonth() + 1,
+        ano: hoje.getFullYear(),
+        filial_id: "todas",
+        descricao: "",
+      });
+      carregar();
+    } catch (e: any) {
+      console.error(e);
+      toast.error("Não foi possível cadastrar a campanha");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const excluirCampanha = async (id: string) => {
+    try {
+      const { error } = await supabase.from("campanhas").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Campanha excluída");
+      setSelecionada(null);
+      carregar();
+    } catch {
+      toast.error("Não foi possível excluir a campanha");
+    }
+  };
+
+  /** Calcula ranking e calendário de cada vendedor no escopo da campanha. */
+  const carregarRanking = useCallback(
+    async (campanha: Campanha) => {
+      setCarregandoRanking(true);
+      try {
+        // Escopo: gerente sempre restrito à sua filial
+        const filialEscopo = role === "gerente" ? profile.filial_id ?? null : campanha.filial_id;
+
+        let profQuery = supabase.from("profiles").select("id, nome, foto_url, filial_id");
+        if (filialEscopo) profQuery = profQuery.eq("filial_id", filialEscopo);
+        const { data: profs, error: errProf } = await profQuery;
+        if (errProf) throw errProf;
+
+        const ids = (profs || []).map((p: any) => p.id);
+        if (ids.length === 0) {
+          setRanking([]);
+          return;
+        }
+
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "vendedor")
+          .in("user_id", ids);
+        const vendedorIds = new Set((roles || []).map((r: any) => r.user_id));
+        const vendedores = (profs || []).filter((p: any) => vendedorIds.has(p.id));
+        if (vendedores.length === 0) {
+          setRanking([]);
+          return;
+        }
+
+        const listaIds = vendedores.map((v: any) => v.id);
+        const dias = diasUteisDoMes(campanha.mes, campanha.ano);
+        const primeiro = toLocalISO(new Date(campanha.ano, campanha.mes - 1, 1));
+        const ultimo = toLocalISO(new Date(campanha.ano, campanha.mes, 0));
+
+        const [{ data: metasRows }, { data: vendasRows }] = await Promise.all([
+          supabase
+            .from("metas")
+            .select("vendedor_id, mes, ano, valor_meta, meta_ticket")
+            .in("vendedor_id", listaIds),
+          supabase
+            .from("vendas")
+            .select("vendedor_id, data, valor, devolucao")
+            .in("vendedor_id", listaIds)
+            .gte("data", primeiro)
+            .lte("data", ultimo),
+        ]);
+
+        const resolver = criarMetaResolver((metasRows as any[]) || []);
+        const filialNome = new Map(filiais.map((f) => [f.id, f.nome]));
+
+        const porVendedor = new Map<string, Record<string, number>>();
+        for (const v of (vendasRows as any[]) || []) {
+          const mapa = porVendedor.get(v.vendedor_id) ?? {};
+          const liquido = (Number(v.valor) || 0) - (Number(v.devolucao) || 0);
+          mapa[v.data] = (mapa[v.data] ?? 0) + liquido;
+          porVendedor.set(v.vendedor_id, mapa);
+        }
+
+        const itens: RankingItem[] = vendedores.map((v: any) => {
+          const meta = resolver.resolver(v.id, campanha.mes, campanha.ano);
+          const metaMensal = meta?.valorMeta ?? 0;
+          const metaDiaria = dias.length > 0 ? metaMensal / dias.length : 0;
+          const vendasDia = porVendedor.get(v.id) ?? {};
+
+          const diasPorData: RankingItem["diasPorData"] = {};
+          let pontos = 0;
+          let totalVendido = 0;
+          for (const d of dias) {
+            const iso = toLocalISO(d);
+            const valor = vendasDia[iso] ?? 0;
+            const batida = metaDiaria > 0 && valor >= metaDiaria;
+            if (batida) pontos += 1;
+            totalVendido += valor;
+            diasPorData[iso] = { valor, batida };
+          }
+
+          return {
+            vendedorId: v.id,
+            nome: v.nome,
+            fotoUrl: v.foto_url,
+            filialNome: v.filial_id ? filialNome.get(v.filial_id) ?? "—" : "—",
+            metaDiaria,
+            pontos,
+            totalVendido,
+            diasPorData,
+          };
+        });
+
+        itens.sort((a, b) => b.pontos - a.pontos || b.totalVendido - a.totalVendido);
+        setRanking(itens);
+      } catch (e) {
+        console.error(e);
+        toast.error("Erro ao calcular o ranking da campanha");
+      } finally {
+        setCarregandoRanking(false);
+      }
+    },
+    [filiais, profile.filial_id, role]
+  );
+
+  useEffect(() => {
+    if (selecionada) {
+      setVendedorAberto(null);
+      carregarRanking(selecionada);
+    }
+  }, [selecionada, carregarRanking]);
+
+  // ---------- Detalhe da campanha ----------
+  if (selecionada) {
+    const dias = diasUteisDoMes(selecionada.mes, selecionada.ano);
+    const vendedor = ranking.find((r) => r.vendedorId === vendedorAberto) ?? null;
+
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          icon={Trophy}
+          eyebrow="Campanhas"
+          title={selecionada.nome}
+          description={`Meta Fixa · ${MESES[selecionada.mes - 1]}/${selecionada.ano} · ${dias.length} dias úteis (seg a sex)`}
+          actions={
+            <Button variant="outline" size="sm" onClick={() => setSelecionada(null)}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
+            </Button>
+          }
+        />
+
+        {carregandoRanking ? (
+          <PageCard>
+            <div className="flex items-center justify-center py-10 text-muted-foreground">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Calculando ranking...
+            </div>
+          </PageCard>
+        ) : ranking.length === 0 ? (
+          <PageCard>
+            <EmptyState
+              icon={Target}
+              title="Nenhum vendedor no escopo"
+              description="Cadastre vendedores e metas para acompanhar esta campanha."
+            />
+          </PageCard>
+        ) : (
+          <>
+            <PageCard>
+              <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold">
+                <Medal className="h-5 w-5 text-primary" /> Ranking de vendedores
+              </h2>
+              <div className="space-y-2">
+                {ranking.map((r, i) => (
+                  <button
+                    key={r.vendedorId}
+                    onClick={() =>
+                      setVendedorAberto(vendedorAberto === r.vendedorId ? null : r.vendedorId)
+                    }
+                    className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors ${
+                      vendedorAberto === r.vendedorId
+                        ? "border-primary/50 bg-primary/10"
+                        : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    <span className="w-8 text-center font-display text-lg font-bold text-primary">
+                      {i + 1}º
+                    </span>
+                    <ProfilePhoto fotoUrl={r.fotoUrl} nome={r.nome} size="sm" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-semibold text-foreground">{r.nome}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.filialNome} · Meta diária {brl(r.metaDiaria)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-display text-lg font-bold text-foreground">
+                        {r.pontos} <span className="text-xs font-normal text-muted-foreground">pts</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{brl(r.totalVendido)}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </PageCard>
+
+            {vendedor && (
+              <PageCard>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+                    <CalendarDays className="h-5 w-5 text-primary" /> Calendário · {vendedor.nome}
+                  </h2>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded bg-success" /> Meta batida
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-3 w-3 rounded bg-destructive" /> Meta não batida
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mb-3 text-sm text-muted-foreground">
+                  Meta fixa diária: <span className="font-semibold text-foreground">{brl(vendedor.metaDiaria)}</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {dias.map((d) => {
+                    const iso = toLocalISO(d);
+                    const info = vendedor.diasPorData[iso];
+                    const batida = info?.batida;
+                    return (
+                      <div
+                        key={iso}
+                        className={`rounded-xl border p-3 ${
+                          batida
+                            ? "border-success/40 bg-success/15"
+                            : "border-destructive/40 bg-destructive/15"
+                        }`}
+                      >
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                          {d.toLocaleDateString("pt-BR", { weekday: "short" })} {d.getDate()}
+                        </div>
+                        <div className="mt-1 text-sm font-semibold text-foreground">
+                          {brl(info?.valor ?? 0)}
+                        </div>
+                        <div className="text-[11px] text-muted-foreground">
+                          {batida ? "+1 ponto" : "sem ponto"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </PageCard>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
+
+  // ---------- Lista de campanhas ----------
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        icon={Trophy}
+        eyebrow="Engajamento"
+        title="Campanhas"
+        description="Campanhas de performance com ranking e pontuação por dia útil."
+        actions={
+          isDiretor && (
+            <Button onClick={() => setDialogAberto(true)}>
+              <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
+            </Button>
+          )
+        }
+      />
+
+      <PageCard>
+        {loading ? (
+          <div className="flex items-center justify-center py-10 text-muted-foreground">
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando...
+          </div>
+        ) : campanhas.length === 0 ? (
+          <EmptyState
+            icon={Trophy}
+            title="Nenhuma campanha cadastrada"
+            description={
+              isDiretor
+                ? "Cadastre a primeira campanha Meta Fixa para engajar a equipe."
+                : "Assim que a diretoria criar campanhas, elas aparecerão aqui."
+            }
+            action={
+              isDiretor && (
+                <Button onClick={() => setDialogAberto(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {campanhas.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.05]"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <button className="min-w-0 flex-1 text-left" onClick={() => setSelecionada(c)}>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-display text-base font-semibold text-foreground">
+                        {c.nome}
+                      </span>
+                      <Badge variant="secondary">Meta Fixa</Badge>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {MESES[c.mes - 1]}/{c.ano} ·{" "}
+                      {c.filial_id
+                        ? filiais.find((f) => f.id === c.filial_id)?.nome ?? "Filial"
+                        : "Toda a rede"}
+                    </div>
+                    {c.descricao && (
+                      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{c.descricao}</p>
+                    )}
+                  </button>
+                  {isDiretor && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => excluirCampanha(c.id)}
+                      aria-label="Excluir campanha"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => setSelecionada(c)}>
+                  Ver ranking
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </PageCard>
+
+      <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar Campanha</DialogTitle>
+            <DialogDescription>
+              Meta Fixa: a meta mensal de cada vendedor é dividida pelos dias úteis (seg a sex) do mês.
+              Cada dia com a meta batida vale 1 ponto no ranking.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da campanha</Label>
+              <Input
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Ex: Meta Fixa Agosto"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Input value="Meta Fixa" disabled />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Mês</Label>
+                <Select
+                  value={String(form.mes)}
+                  onValueChange={(v) => setForm({ ...form, mes: Number(v) })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MESES.map((m, i) => (
+                      <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Ano</Label>
+                <Select
+                  value={String(form.ano)}
+                  onValueChange={(v) => setForm({ ...form, ano: Number(v) })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {anos.map((a) => (
+                      <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Escopo</Label>
+              <Select
+                value={form.filial_id}
+                onValueChange={(v) => setForm({ ...form, filial_id: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Toda a rede</SelectItem>
+                  {filiais.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição (opcional)</Label>
+              <Textarea
+                value={form.descricao}
+                onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+                placeholder="Premiação, regras extras..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogAberto(false)}>Cancelar</Button>
+            <Button onClick={criarCampanha} disabled={salvando}>
+              {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Cadastrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
