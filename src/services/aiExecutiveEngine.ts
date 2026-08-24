@@ -365,7 +365,14 @@ export const AIExecutiveEngine = {
     ]);
 
 
-    const perfis = (perfisRes.data ?? []) as { id: string; nome: string; filial_id: string | null }[];
+    const vendedoresIds = new Set(
+      ((rolesRes.data ?? []) as { user_id: string; role: string }[])
+        .filter((r) => r.role === "vendedor")
+        .map((r) => String(r.user_id))
+    );
+    const perfis = ((perfisRes.data ?? []) as { id: string; nome: string; filial_id: string | null }[]).filter((p) =>
+      vendedoresIds.has(String(p.id))
+    );
     const filiais = (filiaisRes.data ?? []) as { id: string; nome: string }[];
     const ids = perfis.map((p) => p.id);
 
