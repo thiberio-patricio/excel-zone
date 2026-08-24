@@ -406,6 +406,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     <Legend formatter={(value) => value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : value === "ticket" ? "Ticket Médio" : "Vendido"} />
                     <Bar
                       dataKey="meta"
+                      yAxisId="left"
                       fill={chartTheme.meta}
                       radius={[8, 8, 0, 0]}
                       name="meta"
@@ -416,6 +417,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     />
                     <Bar
                       dataKey="total"
+                      yAxisId="left"
                       fill={chartTheme.vendido}
                       radius={[8, 8, 0, 0]}
                       name="total"
@@ -433,6 +435,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     </Bar>
                     <Bar
                       dataKey="ticket"
+                      yAxisId="ticket"
                       fill={chartTheme.percentual}
                       radius={[8, 8, 0, 0]}
                       name="ticket"
