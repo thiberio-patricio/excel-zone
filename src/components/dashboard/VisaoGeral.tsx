@@ -374,12 +374,23 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                       tick={{ fill: 'hsl(var(--foreground))' }}
                     />
                     <YAxis
+                      yAxisId="left"
                       className="text-xs"
                       tick={{ fill: 'hsl(var(--foreground))' }}
                       domain={[0, (dataMax: number) => Math.ceil((dataMax * 1.15) / 1000) * 1000]}
                       allowDataOverflow={false}
                       tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
                     />
+                    <YAxis
+                      yAxisId="ticket"
+                      orientation="right"
+                      className="text-xs"
+                      tick={{ fill: 'hsl(var(--foreground))' }}
+                      domain={[0, 6000]}
+                      ticks={[0, 1500, 3000, 4500, 6000]}
+                      tickFormatter={(value) => `R$ ${value}`}
+                    />
+
 
                     <ChartTooltip
                       content={
@@ -395,6 +406,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     <Legend formatter={(value) => value === "meta" ? "Meta" : value === "percentual" ? "Percentual" : value === "ticket" ? "Ticket Médio" : "Vendido"} />
                     <Bar
                       dataKey="meta"
+                      yAxisId="left"
                       fill={chartTheme.meta}
                       radius={[8, 8, 0, 0]}
                       name="meta"
@@ -405,6 +417,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     />
                     <Bar
                       dataKey="total"
+                      yAxisId="left"
                       fill={chartTheme.vendido}
                       radius={[8, 8, 0, 0]}
                       name="total"
@@ -422,6 +435,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
                     </Bar>
                     <Bar
                       dataKey="ticket"
+                      yAxisId="ticket"
                       fill={chartTheme.percentual}
                       radius={[8, 8, 0, 0]}
                       name="ticket"
