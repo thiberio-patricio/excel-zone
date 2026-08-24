@@ -348,8 +348,9 @@ export const AIExecutiveEngine = {
     if (scope.vendedorId) perfilQuery = perfilQuery.eq("id", scope.vendedorId);
     else if (scope.filialId) perfilQuery = perfilQuery.eq("filial_id", scope.filialId);
 
-    const [perfisRes, filiaisRes, feriadosRes, feriasRes] = await Promise.all([
+    const [perfisRes, rolesRes, filiaisRes, feriadosRes, feriasRes] = await Promise.all([
       perfilQuery,
+      supabase.from("user_roles").select("user_id, role"),
       supabase.from("filiais").select("id, nome"),
       supabase
         .from("feriados")
@@ -362,6 +363,7 @@ export const AIExecutiveEngine = {
         .lte("data_inicio", fimMes)
         .gte("data_fim", inicioMes),
     ]);
+
 
     const perfis = (perfisRes.data ?? []) as { id: string; nome: string; filial_id: string | null }[];
     const filiais = (filiaisRes.data ?? []) as { id: string; nome: string }[];
