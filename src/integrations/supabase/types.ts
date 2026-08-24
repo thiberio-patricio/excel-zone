@@ -374,6 +374,56 @@ export type Database = {
         }
         Relationships: []
       }
+      campanhas: {
+        Row: {
+          ano: number
+          ativa: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          filial_id: string | null
+          id: string
+          mes: number
+          nome: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          ativa?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          filial_id?: string | null
+          id?: string
+          mes: number
+          nome: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          ativa?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          filial_id?: string | null
+          id?: string
+          mes?: number
+          nome?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campanhas_filial_id_fkey"
+            columns: ["filial_id"]
+            isOneToOne: false
+            referencedRelation: "filiais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feriados: {
         Row: {
           created_at: string
