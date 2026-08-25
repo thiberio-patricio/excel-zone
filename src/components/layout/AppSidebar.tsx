@@ -17,6 +17,7 @@ import {
   Activity,
   MessageCircle,
   ClipboardList,
+  Trophy,
 
 
   BrainCircuit,
@@ -58,6 +59,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       items: [
         { id: "visao-geral", title: "Dashboard", icon: LayoutDashboard },
         { id: "relatorios", title: "Relatórios", icon: FileText },
+        { id: "campanhas", title: "Campanhas", icon: Trophy },
       ],
     },
     {
@@ -75,6 +77,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       items: [
         { id: "visao-geral", title: "Dashboard", icon: LayoutDashboard },
         { id: "relatorios", title: "Relatórios", icon: FileText },
+        { id: "campanhas", title: "Campanhas", icon: Trophy },
       ],
     },
     {
@@ -111,6 +114,7 @@ const sections: Record<Role, { label: string; items: NavItem[] }[]> = {
       items: [
         { id: "dashboard", title: "Dashboard", icon: LayoutDashboard },
         { id: "relatorios", title: "Relatórios", icon: FileText },
+        { id: "campanhas", title: "Campanhas", icon: Trophy },
       ],
     },
 
