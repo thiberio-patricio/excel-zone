@@ -355,7 +355,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
                     <span className="w-8 text-center font-display text-lg font-bold text-primary">
                       {i + 1}º
                     </span>
-                    <ProfilePhoto fotoUrl={r.fotoUrl} nome={r.nome} size="sm" />
+                    <ProfilePhoto url={r.fotoUrl} alt={r.nome} className="h-9 w-9 rounded-full object-cover" />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-foreground">{r.nome}</div>
                       <div className="text-xs text-muted-foreground">

@@ -17,6 +17,7 @@ import { EmptyState } from "@/components/layout/EmptyState";
 import { ProfilePhoto } from "@/components/ui/profile-photo";
 import PainelExecutivo from "./PainelExecutivo";
 import Relatorios from "./Relatorios";
+import Campanhas from "./Campanhas";
 
 
 interface GerenteDashboardProps {
@@ -36,7 +37,7 @@ interface Vendedor {
 }
 
 export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
-  const validTabs = ["dashboard", "relatorios", "vendedores", "vendas", "feriados"];
+  const validTabs = ["dashboard", "relatorios", "campanhas", "vendedores", "vendas", "feriados"];
   const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialHash) ? initialHash : "dashboard"

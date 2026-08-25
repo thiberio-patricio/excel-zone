@@ -8,6 +8,7 @@ import GerenciarDiretores from "./GerenciarDiretores";
 import VisualizarVendedor from "./VisualizarVendedor";
 import VisaoGeral from "./VisaoGeral";
 import Relatorios from "./Relatorios";
+import Campanhas from "./Campanhas";
 import IAExecutiva from "./IAExecutiva";
 import IADashboard from "./ia/IADashboard";
 import IAPreditiva from "./ia/IAPreditiva";
@@ -48,7 +49,7 @@ interface DiretorDashboardProps {
 
 export default function DiretorDashboard({ profile, role }: DiretorDashboardProps) {
   const isAdmin = role === "admin";
-  const validTabs = ["visao-geral", "relatorios", "filiais", "gerentes", "diretores", "vendedor", ...(isAdmin ? IA_TABS.map((t) => t.id) : [])];
+  const validTabs = ["visao-geral", "relatorios", "campanhas", "filiais", "gerentes", "diretores", "vendedor", ...(isAdmin ? IA_TABS.map((t) => t.id) : [])];
   const initialHash = typeof window !== "undefined" ? window.location.hash.replace("#", "") : "";
   const [activeTab, setActiveTab] = useState(
     validTabs.includes(initialHash) ? initialHash : "visao-geral"
@@ -92,6 +93,10 @@ export default function DiretorDashboard({ profile, role }: DiretorDashboardProp
 
         <TabsContent value="relatorios" className="mt-6">
           <Relatorios />
+        </TabsContent>
+
+        <TabsContent value="campanhas" className="mt-6">
+          <Campanhas role={(role as any) === "admin" ? "admin" : "diretor"} profile={profile as any} />
         </TabsContent>
 
         <TabsContent value="filiais" className="mt-6">
