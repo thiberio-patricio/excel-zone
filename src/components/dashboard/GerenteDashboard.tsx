@@ -452,9 +452,13 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
         </TabsContent>
 
 
+        <TabsContent value="campanhas" className="space-y-4">
+          <Campanhas role="gerente" profile={profile} />
+        </TabsContent>
 
         <TabsContent value="vendedores" className="space-y-4">
           <GerenciarVendedores onUpdate={recarregarTudo} />
+
         </TabsContent>
 
         <TabsContent value="vendas" className="space-y-4">
