@@ -224,9 +224,25 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
         }
 
         const listaIds = vendedores.map((v: any) => v.id);
-        const dias = diasUteisDoMes(campanha.mes, campanha.ano);
         const primeiro = toLocalISO(new Date(campanha.ano, campanha.mes - 1, 1));
         const ultimo = toLocalISO(new Date(campanha.ano, campanha.mes, 0));
+
+        // Feriados: nacionais/gerais (filial_id nulo) + os da filial no escopo
+        let feriadosQuery = supabase
+          .from("feriados")
+          .select("data, filial_id")
+          .gte("data", primeiro)
+          .lte("data", ultimo);
+        if (filialEscopo) {
+          feriadosQuery = feriadosQuery.or(`filial_id.is.null,filial_id.eq.${filialEscopo}`);
+        }
+        const { data: feriadosRows } = await feriadosQuery;
+        const feriados = new Set<string>(
+          ((feriadosRows as any[]) || []).map((f) => String(f.data))
+        );
+        setFeriadosCampanha(feriados);
+
+        const dias = diasUteisDoMes(campanha.mes, campanha.ano, feriados);
 
         const [{ data: metasRows }, { data: vendasRows }] = await Promise.all([
           supabase
