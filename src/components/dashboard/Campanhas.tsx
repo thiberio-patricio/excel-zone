@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -80,14 +81,14 @@ const MESES = [
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-/** Dias úteis (segunda a sexta) do mês. */
-function diasUteisDoMes(mes: number, ano: number): Date[] {
+/** Dias úteis (segunda a sexta) do mês, excluindo feriados cadastrados. */
+function diasUteisDoMes(mes: number, ano: number, feriados: Set<string> = new Set()): Date[] {
   const dias: Date[] = [];
   const total = new Date(ano, mes, 0).getDate();
   for (let d = 1; d <= total; d++) {
     const data = new Date(ano, mes - 1, d);
     const dow = data.getDay();
-    if (dow >= 1 && dow <= 5) dias.push(data);
+    if (dow >= 1 && dow <= 5 && !feriados.has(toLocalISO(data))) dias.push(data);
   }
   return dias;
 }
@@ -101,6 +102,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
   const [ranking, setRanking] = useState<RankingItem[]>([]);
   const [carregandoRanking, setCarregandoRanking] = useState(false);
   const [vendedorAberto, setVendedorAberto] = useState<string | null>(null);
+  const [feriadosCampanha, setFeriadosCampanha] = useState<Set<string>>(new Set());
 
   const hoje = new Date();
   const [dialogAberto, setDialogAberto] = useState(false);
@@ -179,6 +181,19 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
     }
   };
 
+  const alternarAtiva = async (campanha: Campanha, ativa: boolean) => {
+    setCampanhas((prev) => prev.map((c) => (c.id === campanha.id ? { ...c, ativa } : c)));
+    const { error } = await supabase.from("campanhas").update({ ativa }).eq("id", campanha.id);
+    if (error) {
+      setCampanhas((prev) =>
+        prev.map((c) => (c.id === campanha.id ? { ...c, ativa: campanha.ativa } : c))
+      );
+      toast.error("Não foi possível atualizar o status da campanha");
+      return;
+    }
+    toast.success(ativa ? "Campanha ativada" : "Campanha desativada");
+  };
+
   const excluirCampanha = async (id: string) => {
     try {
       const { error } = await supabase.from("campanhas").delete().eq("id", id);
@@ -223,9 +238,25 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
         }
 
         const listaIds = vendedores.map((v: any) => v.id);
-        const dias = diasUteisDoMes(campanha.mes, campanha.ano);
         const primeiro = toLocalISO(new Date(campanha.ano, campanha.mes - 1, 1));
         const ultimo = toLocalISO(new Date(campanha.ano, campanha.mes, 0));
+
+        // Feriados: nacionais/gerais (filial_id nulo) + os da filial no escopo
+        let feriadosQuery = supabase
+          .from("feriados")
+          .select("data, filial_id")
+          .gte("data", primeiro)
+          .lte("data", ultimo);
+        if (filialEscopo) {
+          feriadosQuery = feriadosQuery.or(`filial_id.is.null,filial_id.eq.${filialEscopo}`);
+        }
+        const { data: feriadosRows } = await feriadosQuery;
+        const feriados = new Set<string>(
+          ((feriadosRows as any[]) || []).map((f) => String(f.data))
+        );
+        setFeriadosCampanha(feriados);
+
+        const dias = diasUteisDoMes(campanha.mes, campanha.ano, feriados);
 
         const [{ data: metasRows }, { data: vendasRows }] = await Promise.all([
           supabase
@@ -302,7 +333,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
 
   // ---------- Detalhe da campanha ----------
   if (selecionada) {
-    const dias = diasUteisDoMes(selecionada.mes, selecionada.ano);
+    const dias = diasUteisDoMes(selecionada.mes, selecionada.ano, feriadosCampanha);
     const vendedor = ranking.find((r) => r.vendedorId === vendedorAberto) ?? null;
 
     return (
@@ -311,7 +342,9 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           icon={Trophy}
           eyebrow="Campanhas"
           title={selecionada.nome}
-          description={`Meta Fixa · ${MESES[selecionada.mes - 1]}/${selecionada.ano} · ${dias.length} dias úteis (seg a sex)`}
+          description={`Meta Fixa · ${MESES[selecionada.mes - 1]}/${selecionada.ano} · ${dias.length} dias úteis (seg a sex, sem feriados)${
+            feriadosCampanha.size > 0 ? ` · ${feriadosCampanha.size} feriado(s) excluído(s)` : ""
+          } · ${selecionada.ativa ? "Ativa" : "Desativada"}`}
           actions={
             <Button variant="outline" size="sm" onClick={() => setSelecionada(null)}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
@@ -481,6 +514,9 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
                         {c.nome}
                       </span>
                       <Badge variant="secondary">Meta Fixa</Badge>
+                      <Badge variant={c.ativa ? "default" : "outline"}>
+                        {c.ativa ? "Ativa" : "Desativada"}
+                      </Badge>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {MESES[c.mes - 1]}/{c.ano} ·{" "}
@@ -503,9 +539,21 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
                     </Button>
                   )}
                 </div>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => setSelecionada(c)}>
-                  Ver ranking
-                </Button>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <Button variant="outline" size="sm" onClick={() => setSelecionada(c)}>
+                    Ver ranking
+                  </Button>
+                  {isDiretor && (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Switch
+                        checked={c.ativa}
+                        onCheckedChange={(v) => alternarAtiva(c, v)}
+                        aria-label="Manter campanha ativa"
+                      />
+                      Manter ativa
+                    </label>
+                  )}
+                </div>
               </div>
             ))}
           </div>
