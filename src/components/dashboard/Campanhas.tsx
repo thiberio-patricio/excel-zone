@@ -319,7 +319,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
 
   // ---------- Detalhe da campanha ----------
   if (selecionada) {
-    const dias = diasUteisDoMes(selecionada.mes, selecionada.ano);
+    const dias = diasUteisDoMes(selecionada.mes, selecionada.ano, feriadosCampanha);
     const vendedor = ranking.find((r) => r.vendedorId === vendedorAberto) ?? null;
 
     return (
