@@ -181,6 +181,19 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
     }
   };
 
+  const alternarAtiva = async (campanha: Campanha, ativa: boolean) => {
+    setCampanhas((prev) => prev.map((c) => (c.id === campanha.id ? { ...c, ativa } : c)));
+    const { error } = await supabase.from("campanhas").update({ ativa }).eq("id", campanha.id);
+    if (error) {
+      setCampanhas((prev) =>
+        prev.map((c) => (c.id === campanha.id ? { ...c, ativa: campanha.ativa } : c))
+      );
+      toast.error("Não foi possível atualizar o status da campanha");
+      return;
+    }
+    toast.success(ativa ? "Campanha ativada" : "Campanha desativada");
+  };
+
   const excluirCampanha = async (id: string) => {
     try {
       const { error } = await supabase.from("campanhas").delete().eq("id", id);
