@@ -525,9 +525,21 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
                     </Button>
                   )}
                 </div>
-                <Button variant="outline" size="sm" className="mt-3" onClick={() => setSelecionada(c)}>
-                  Ver ranking
-                </Button>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <Button variant="outline" size="sm" onClick={() => setSelecionada(c)}>
+                    Ver ranking
+                  </Button>
+                  {isDiretor && (
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Switch
+                        checked={c.ativa}
+                        onCheckedChange={(v) => alternarAtiva(c, v)}
+                        aria-label="Manter campanha ativa"
+                      />
+                      Manter ativa
+                    </label>
+                  )}
+                </div>
               </div>
             ))}
           </div>
