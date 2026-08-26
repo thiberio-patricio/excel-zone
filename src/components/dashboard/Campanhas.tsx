@@ -500,6 +500,9 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
                         {c.nome}
                       </span>
                       <Badge variant="secondary">Meta Fixa</Badge>
+                      <Badge variant={c.ativa ? "default" : "outline"}>
+                        {c.ativa ? "Ativa" : "Desativada"}
+                      </Badge>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
                       {MESES[c.mes - 1]}/{c.ano} ·{" "}
