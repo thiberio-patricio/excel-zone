@@ -470,11 +470,21 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
         title="Campanhas"
         description="Campanhas de performance com ranking e pontuação por dia útil."
         actions={
-          isDiretor && (
-            <Button onClick={() => setDialogAberto(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
-            </Button>
-          )
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Switch
+                checked={somenteAtivas}
+                onCheckedChange={setSomenteAtivas}
+                aria-label="Mostrar somente campanhas ativas"
+              />
+              Somente ativas
+            </label>
+            {isDiretor && (
+              <Button onClick={() => setDialogAberto(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -483,12 +493,18 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           <div className="flex items-center justify-center py-10 text-muted-foreground">
             <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Carregando...
           </div>
-        ) : campanhas.length === 0 ? (
+        ) : campanhasVisiveis.length === 0 ? (
           <EmptyState
             icon={Trophy}
-            title="Nenhuma campanha cadastrada"
+            title={
+              somenteAtivas && campanhas.length > 0
+                ? "Nenhuma campanha ativa"
+                : "Nenhuma campanha cadastrada"
+            }
             description={
-              isDiretor
+              somenteAtivas && campanhas.length > 0
+                ? "Ative uma campanha para acompanhar o ranking diário dela."
+                : isDiretor
                 ? "Cadastre a primeira campanha Meta Fixa para engajar a equipe."
                 : "Assim que a diretoria criar campanhas, elas aparecerão aqui."
             }
