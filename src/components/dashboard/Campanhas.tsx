@@ -101,6 +101,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
   const [ranking, setRanking] = useState<RankingItem[]>([]);
   const [carregandoRanking, setCarregandoRanking] = useState(false);
   const [vendedorAberto, setVendedorAberto] = useState<string | null>(null);
+  const [feriadosCampanha, setFeriadosCampanha] = useState<Set<string>>(new Set());
 
   const hoje = new Date();
   const [dialogAberto, setDialogAberto] = useState(false);
