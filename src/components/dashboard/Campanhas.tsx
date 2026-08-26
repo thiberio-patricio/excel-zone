@@ -80,14 +80,14 @@ const MESES = [
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-/** Dias úteis (segunda a sexta) do mês. */
-function diasUteisDoMes(mes: number, ano: number): Date[] {
+/** Dias úteis (segunda a sexta) do mês, excluindo feriados cadastrados. */
+function diasUteisDoMes(mes: number, ano: number, feriados: Set<string> = new Set()): Date[] {
   const dias: Date[] = [];
   const total = new Date(ano, mes, 0).getDate();
   for (let d = 1; d <= total; d++) {
     const data = new Date(ano, mes - 1, d);
     const dow = data.getDay();
-    if (dow >= 1 && dow <= 5) dias.push(data);
+    if (dow >= 1 && dow <= 5 && !feriados.has(toLocalISO(data))) dias.push(data);
   }
   return dias;
 }
