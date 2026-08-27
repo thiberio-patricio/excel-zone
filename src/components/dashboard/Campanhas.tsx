@@ -96,6 +96,7 @@ function diasUteisDoMes(mes: number, ano: number, feriados: Set<string> = new Se
 export default function Campanhas({ role, profile }: CampanhasProps) {
   const isDiretor = role === "diretor" || role === "admin";
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
+  const [somenteAtivas, setSomenteAtivas] = useState(true);
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [loading, setLoading] = useState(true);
   const [selecionada, setSelecionada] = useState<Campanha | null>(null);
