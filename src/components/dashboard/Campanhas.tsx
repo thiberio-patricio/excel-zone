@@ -567,10 +567,16 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
               Somente ativas
             </label>
             {isDiretor && (
-              <Button onClick={() => setDialogAberto(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setDialogAberto(true)}>
+                  <Target className="mr-2 h-4 w-4" /> Meta Fixa
+                </Button>
+                <Button onClick={() => setDialogCustomAberto(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
+                </Button>
+              </>
             )}
+
           </div>
         }
       />
