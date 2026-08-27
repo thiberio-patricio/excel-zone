@@ -380,11 +380,15 @@ export type Database = {
           ativa: boolean
           created_at: string
           created_by: string | null
+          criterios: string[]
+          data_fim: string | null
+          data_inicio: string | null
           descricao: string | null
           filial_id: string | null
           id: string
           mes: number
           nome: string
+          referencias: string[]
           tipo: string
           updated_at: string
         }
@@ -393,11 +397,15 @@ export type Database = {
           ativa?: boolean
           created_at?: string
           created_by?: string | null
+          criterios?: string[]
+          data_fim?: string | null
+          data_inicio?: string | null
           descricao?: string | null
           filial_id?: string | null
           id?: string
           mes: number
           nome: string
+          referencias?: string[]
           tipo?: string
           updated_at?: string
         }
@@ -406,11 +414,15 @@ export type Database = {
           ativa?: boolean
           created_at?: string
           created_by?: string | null
+          criterios?: string[]
+          data_fim?: string | null
+          data_inicio?: string | null
           descricao?: string | null
           filial_id?: string | null
           id?: string
           mes?: number
           nome?: string
+          referencias?: string[]
           tipo?: string
           updated_at?: string
         }
