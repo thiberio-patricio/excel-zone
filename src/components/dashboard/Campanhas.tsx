@@ -112,6 +112,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
 
   const hoje = new Date();
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [dialogCustomAberto, setDialogCustomAberto] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     mes: hoje.getMonth() + 1,
@@ -119,7 +120,17 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
     filial_id: "todas",
     descricao: "",
   });
+  const [formCustom, setFormCustom] = useState({
+    nome: "",
+    criterios: [] as string[],
+    referencias: [""],
+    data_inicio: toLocalISO(hoje),
+    data_fim: toLocalISO(hoje),
+    filial_id: "todas",
+    descricao: "",
+  });
   const [salvando, setSalvando] = useState(false);
+
 
   const anos = useMemo(() => {
     const base = hoje.getFullYear();
