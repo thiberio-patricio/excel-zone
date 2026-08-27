@@ -31,7 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
