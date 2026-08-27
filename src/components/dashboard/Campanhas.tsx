@@ -790,6 +790,141 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={dialogCustomAberto} onOpenChange={setDialogCustomAberto}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cadastrar Campanha</DialogTitle>
+            <DialogDescription>
+              Defina critérios de apuração, referências de fábrica e o período da campanha.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da campanha</Label>
+              <Input
+                value={formCustom.nome}
+                onChange={(e) => setFormCustom({ ...formCustom, nome: e.target.value })}
+                placeholder="Ex: Campanha Verão"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Critérios de apuração</Label>
+              <div className="flex flex-wrap gap-4">
+                {["Quantidade", "Valores"].map((c) => (
+                  <label key={c} className="flex items-center gap-2 text-sm text-foreground">
+                    <Checkbox
+                      checked={formCustom.criterios.includes(c)}
+                      onCheckedChange={(v) => alternarCriterio(c, v === true)}
+                    />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Referências de fábrica</Label>
+              {formCustom.referencias.map((ref, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={ref}
+                    onChange={(e) =>
+                      setFormCustom((prev) => ({
+                        ...prev,
+                        referencias: prev.referencias.map((r, idx) =>
+                          idx === i ? e.target.value : r
+                        ),
+                      }))
+                    }
+                    placeholder={`Referência ${i + 1}`}
+                  />
+                  {formCustom.referencias.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remover referência"
+                      onClick={() =>
+                        setFormCustom((prev) => ({
+                          ...prev,
+                          referencias: prev.referencias.filter((_, idx) => idx !== i),
+                        }))
+                      }
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setFormCustom((prev) => ({ ...prev, referencias: [...prev.referencias, ""] }))
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" /> Adicionar referência
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Data de início</Label>
+                <Input
+                  type="date"
+                  value={formCustom.data_inicio}
+                  onChange={(e) => setFormCustom({ ...formCustom, data_inicio: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data final</Label>
+                <Input
+                  type="date"
+                  value={formCustom.data_fim}
+                  onChange={(e) => setFormCustom({ ...formCustom, data_fim: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Escopo</Label>
+              <Select
+                value={formCustom.filial_id}
+                onValueChange={(v) => setFormCustom({ ...formCustom, filial_id: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Toda a rede</SelectItem>
+                  {filiais.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea
+                value={formCustom.descricao}
+                onChange={(e) => setFormCustom({ ...formCustom, descricao: e.target.value })}
+                placeholder="Premiação, regras extras..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogCustomAberto(false)}>Cancelar</Button>
+            <Button onClick={criarCampanhaCustom} disabled={salvando}>
+              {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Cadastrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
