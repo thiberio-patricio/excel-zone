@@ -31,7 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
+
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageCard } from "@/components/layout/PageCard";
 import { EmptyState } from "@/components/layout/EmptyState";
@@ -55,7 +57,12 @@ interface Campanha {
   filial_id: string | null;
   descricao: string | null;
   ativa: boolean;
+  criterios?: string[] | null;
+  referencias?: string[] | null;
+  data_inicio?: string | null;
+  data_fim?: string | null;
 }
+
 
 interface Filial {
   id: string;
@@ -107,6 +114,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
 
   const hoje = new Date();
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [dialogCustomAberto, setDialogCustomAberto] = useState(false);
   const [form, setForm] = useState({
     nome: "",
     mes: hoje.getMonth() + 1,
@@ -114,7 +122,17 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
     filial_id: "todas",
     descricao: "",
   });
+  const [formCustom, setFormCustom] = useState({
+    nome: "",
+    criterios: [] as string[],
+    referencias: [""],
+    data_inicio: toLocalISO(hoje),
+    data_fim: toLocalISO(hoje),
+    filial_id: "todas",
+    descricao: "",
+  });
   const [salvando, setSalvando] = useState(false);
+
 
   const anos = useMemo(() => {
     const base = hoje.getFullYear();
@@ -186,6 +204,71 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
       setSalvando(false);
     }
   };
+
+  const criarCampanhaCustom = async () => {
+    const referencias = formCustom.referencias.map((r) => r.trim()).filter(Boolean);
+    if (!formCustom.nome.trim()) {
+      toast.error("Informe o nome da campanha");
+      return;
+    }
+    if (formCustom.criterios.length === 0) {
+      toast.error("Selecione pelo menos um critério (Quantidade ou Valores)");
+      return;
+    }
+    if (!formCustom.data_inicio || !formCustom.data_fim) {
+      toast.error("Informe a data de início e a data final");
+      return;
+    }
+    if (formCustom.data_fim < formCustom.data_inicio) {
+      toast.error("A data final deve ser igual ou posterior à data de início");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const inicio = new Date(`${formCustom.data_inicio}T00:00:00`);
+      const { error } = await supabase.from("campanhas").insert({
+        nome: formCustom.nome.trim(),
+        tipo: "personalizada",
+        mes: inicio.getMonth() + 1,
+        ano: inicio.getFullYear(),
+        filial_id: formCustom.filial_id === "todas" ? null : formCustom.filial_id,
+        descricao: formCustom.descricao.trim() || null,
+        criterios: formCustom.criterios,
+        referencias,
+        data_inicio: formCustom.data_inicio,
+        data_fim: formCustom.data_fim,
+        created_by: profile.id,
+      });
+      if (error) throw error;
+      toast.success("Campanha cadastrada!");
+      setDialogCustomAberto(false);
+      setFormCustom({
+        nome: "",
+        criterios: [],
+        referencias: [""],
+        data_inicio: toLocalISO(hoje),
+        data_fim: toLocalISO(hoje),
+        filial_id: "todas",
+        descricao: "",
+      });
+      carregar();
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível cadastrar a campanha");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const alternarCriterio = (criterio: string, marcado: boolean) =>
+    setFormCustom((prev) => ({
+      ...prev,
+      criterios: marcado
+        ? [...prev.criterios, criterio]
+        : prev.criterios.filter((c) => c !== criterio),
+    }));
+
+
 
   const alternarAtiva = async (campanha: Campanha, ativa: boolean) => {
     setCampanhas((prev) => prev.map((c) => (c.id === campanha.id ? { ...c, ativa } : c)));
@@ -486,10 +569,16 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
               Somente ativas
             </label>
             {isDiretor && (
-              <Button onClick={() => setDialogAberto(true)}>
-                <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => setDialogAberto(true)}>
+                  <Target className="mr-2 h-4 w-4" /> Meta Fixa
+                </Button>
+                <Button onClick={() => setDialogCustomAberto(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
+                </Button>
+              </>
             )}
+
           </div>
         }
       />
@@ -516,11 +605,17 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
             }
             action={
               isDiretor && (
-                <Button onClick={() => setDialogAberto(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={() => setDialogAberto(true)}>
+                    <Target className="mr-2 h-4 w-4" /> Meta Fixa
+                  </Button>
+                  <Button onClick={() => setDialogCustomAberto(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
+                  </Button>
+                </div>
               )
             }
+
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -535,20 +630,43 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
                       <span className="truncate font-display text-base font-semibold text-foreground">
                         {c.nome}
                       </span>
-                      <Badge variant="secondary">Meta Fixa</Badge>
+                      <Badge variant="secondary">
+                        {c.tipo === "personalizada" ? "Campanha" : "Meta Fixa"}
+                      </Badge>
                       <Badge variant={c.ativa ? "default" : "outline"}>
                         {c.ativa ? "Ativa" : "Desativada"}
                       </Badge>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {MESES[c.mes - 1]}/{c.ano} ·{" "}
+                      {c.tipo === "personalizada" && c.data_inicio && c.data_fim
+                        ? `${c.data_inicio.split("-").reverse().join("/")} a ${c.data_fim
+                            .split("-")
+                            .reverse()
+                            .join("/")}`
+                        : `${MESES[c.mes - 1]}/${c.ano}`}{" "}
+                      ·{" "}
                       {c.filial_id
                         ? filiais.find((f) => f.id === c.filial_id)?.nome ?? "Filial"
                         : "Toda a rede"}
                     </div>
+                    {c.tipo === "personalizada" && (c.criterios?.length || c.referencias?.length) ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {(c.criterios ?? []).map((cr) => (
+                          <Badge key={cr} variant="outline" className="text-[10px] capitalize">
+                            {cr}
+                          </Badge>
+                        ))}
+                        {(c.referencias ?? []).map((r) => (
+                          <Badge key={r} variant="secondary" className="text-[10px]">
+                            Ref: {r}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : null}
                     {c.descricao && (
                       <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{c.descricao}</p>
                     )}
+
                   </button>
                   {isDiretor && (
                     <Button
@@ -674,6 +792,141 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={dialogCustomAberto} onOpenChange={setDialogCustomAberto}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cadastrar Campanha</DialogTitle>
+            <DialogDescription>
+              Defina critérios de apuração, referências de fábrica e o período da campanha.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da campanha</Label>
+              <Input
+                value={formCustom.nome}
+                onChange={(e) => setFormCustom({ ...formCustom, nome: e.target.value })}
+                placeholder="Ex: Campanha Verão"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Critérios de apuração</Label>
+              <div className="flex flex-wrap gap-4">
+                {["Quantidade", "Valores"].map((c) => (
+                  <label key={c} className="flex items-center gap-2 text-sm text-foreground">
+                    <Checkbox
+                      checked={formCustom.criterios.includes(c)}
+                      onCheckedChange={(v) => alternarCriterio(c, v === true)}
+                    />
+                    {c}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Referências de fábrica</Label>
+              {formCustom.referencias.map((ref, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input
+                    value={ref}
+                    onChange={(e) =>
+                      setFormCustom((prev) => ({
+                        ...prev,
+                        referencias: prev.referencias.map((r, idx) =>
+                          idx === i ? e.target.value : r
+                        ),
+                      }))
+                    }
+                    placeholder={`Referência ${i + 1}`}
+                  />
+                  {formCustom.referencias.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remover referência"
+                      onClick={() =>
+                        setFormCustom((prev) => ({
+                          ...prev,
+                          referencias: prev.referencias.filter((_, idx) => idx !== i),
+                        }))
+                      }
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setFormCustom((prev) => ({ ...prev, referencias: [...prev.referencias, ""] }))
+                }
+              >
+                <Plus className="mr-2 h-4 w-4" /> Adicionar referência
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Data de início</Label>
+                <Input
+                  type="date"
+                  value={formCustom.data_inicio}
+                  onChange={(e) => setFormCustom({ ...formCustom, data_inicio: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data final</Label>
+                <Input
+                  type="date"
+                  value={formCustom.data_fim}
+                  onChange={(e) => setFormCustom({ ...formCustom, data_fim: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Escopo</Label>
+              <Select
+                value={formCustom.filial_id}
+                onValueChange={(v) => setFormCustom({ ...formCustom, filial_id: v })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Toda a rede</SelectItem>
+                  {filiais.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Textarea
+                value={formCustom.descricao}
+                onChange={(e) => setFormCustom({ ...formCustom, descricao: e.target.value })}
+                placeholder="Premiação, regras extras..."
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogCustomAberto(false)}>Cancelar</Button>
+            <Button onClick={criarCampanhaCustom} disabled={salvando}>
+              {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Cadastrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
