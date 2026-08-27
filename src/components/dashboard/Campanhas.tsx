@@ -603,11 +603,17 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
             }
             action={
               isDiretor && (
-                <Button onClick={() => setDialogAberto(true)}>
-                  <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
-                </Button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="outline" onClick={() => setDialogAberto(true)}>
+                    <Target className="mr-2 h-4 w-4" /> Meta Fixa
+                  </Button>
+                  <Button onClick={() => setDialogCustomAberto(true)}>
+                    <Plus className="mr-2 h-4 w-4" /> Cadastrar Campanha
+                  </Button>
+                </div>
               )
             }
+
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
