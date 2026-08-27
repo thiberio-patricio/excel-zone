@@ -96,6 +96,7 @@ function diasUteisDoMes(mes: number, ano: number, feriados: Set<string> = new Se
 export default function Campanhas({ role, profile }: CampanhasProps) {
   const isDiretor = role === "diretor" || role === "admin";
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
+  const [somenteAtivas, setSomenteAtivas] = useState(true);
   const [filiais, setFiliais] = useState<Filial[]>([]);
   const [loading, setLoading] = useState(true);
   const [selecionada, setSelecionada] = useState<Campanha | null>(null);
@@ -119,6 +120,11 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
     const base = hoje.getFullYear();
     return [base + 1, base, base - 1, base - 2];
   }, []);
+
+  const campanhasVisiveis = useMemo(
+    () => (somenteAtivas ? campanhas.filter((c) => c.ativa) : campanhas),
+    [campanhas, somenteAtivas]
+  );
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -518,7 +524,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {campanhas.map((c) => (
+            {campanhasVisiveis.map((c) => (
               <div
                 key={c.id}
                 className="rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.05]"
