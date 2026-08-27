@@ -519,7 +519,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            {campanhas.map((c) => (
+            {campanhasVisiveis.map((c) => (
               <div
                 key={c.id}
                 className="rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.05]"
