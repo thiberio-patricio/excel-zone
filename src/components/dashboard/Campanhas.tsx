@@ -203,6 +203,71 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
     }
   };
 
+  const criarCampanhaCustom = async () => {
+    const referencias = formCustom.referencias.map((r) => r.trim()).filter(Boolean);
+    if (!formCustom.nome.trim()) {
+      toast.error("Informe o nome da campanha");
+      return;
+    }
+    if (formCustom.criterios.length === 0) {
+      toast.error("Selecione pelo menos um critério (Quantidade ou Valores)");
+      return;
+    }
+    if (!formCustom.data_inicio || !formCustom.data_fim) {
+      toast.error("Informe a data de início e a data final");
+      return;
+    }
+    if (formCustom.data_fim < formCustom.data_inicio) {
+      toast.error("A data final deve ser igual ou posterior à data de início");
+      return;
+    }
+    setSalvando(true);
+    try {
+      const inicio = new Date(`${formCustom.data_inicio}T00:00:00`);
+      const { error } = await supabase.from("campanhas").insert({
+        nome: formCustom.nome.trim(),
+        tipo: "personalizada",
+        mes: inicio.getMonth() + 1,
+        ano: inicio.getFullYear(),
+        filial_id: formCustom.filial_id === "todas" ? null : formCustom.filial_id,
+        descricao: formCustom.descricao.trim() || null,
+        criterios: formCustom.criterios,
+        referencias,
+        data_inicio: formCustom.data_inicio,
+        data_fim: formCustom.data_fim,
+        created_by: profile.id,
+      });
+      if (error) throw error;
+      toast.success("Campanha cadastrada!");
+      setDialogCustomAberto(false);
+      setFormCustom({
+        nome: "",
+        criterios: [],
+        referencias: [""],
+        data_inicio: toLocalISO(hoje),
+        data_fim: toLocalISO(hoje),
+        filial_id: "todas",
+        descricao: "",
+      });
+      carregar();
+    } catch (e) {
+      console.error(e);
+      toast.error("Não foi possível cadastrar a campanha");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const alternarCriterio = (criterio: string, marcado: boolean) =>
+    setFormCustom((prev) => ({
+      ...prev,
+      criterios: marcado
+        ? [...prev.criterios, criterio]
+        : prev.criterios.filter((c) => c !== criterio),
+    }));
+
+
+
   const alternarAtiva = async (campanha: Campanha, ativa: boolean) => {
     setCampanhas((prev) => prev.map((c) => (c.id === campanha.id ? { ...c, ativa } : c)));
     const { error } = await supabase.from("campanhas").update({ ativa }).eq("id", campanha.id);
