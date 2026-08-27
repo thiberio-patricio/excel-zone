@@ -628,20 +628,43 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
                       <span className="truncate font-display text-base font-semibold text-foreground">
                         {c.nome}
                       </span>
-                      <Badge variant="secondary">Meta Fixa</Badge>
+                      <Badge variant="secondary">
+                        {c.tipo === "personalizada" ? "Campanha" : "Meta Fixa"}
+                      </Badge>
                       <Badge variant={c.ativa ? "default" : "outline"}>
                         {c.ativa ? "Ativa" : "Desativada"}
                       </Badge>
                     </div>
                     <div className="mt-1 text-xs text-muted-foreground">
-                      {MESES[c.mes - 1]}/{c.ano} ·{" "}
+                      {c.tipo === "personalizada" && c.data_inicio && c.data_fim
+                        ? `${c.data_inicio.split("-").reverse().join("/")} a ${c.data_fim
+                            .split("-")
+                            .reverse()
+                            .join("/")}`
+                        : `${MESES[c.mes - 1]}/${c.ano}`}{" "}
+                      ·{" "}
                       {c.filial_id
                         ? filiais.find((f) => f.id === c.filial_id)?.nome ?? "Filial"
                         : "Toda a rede"}
                     </div>
+                    {c.tipo === "personalizada" && (c.criterios?.length || c.referencias?.length) ? (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {(c.criterios ?? []).map((cr) => (
+                          <Badge key={cr} variant="outline" className="text-[10px] capitalize">
+                            {cr}
+                          </Badge>
+                        ))}
+                        {(c.referencias ?? []).map((r) => (
+                          <Badge key={r} variant="secondary" className="text-[10px]">
+                            Ref: {r}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : null}
                     {c.descricao && (
                       <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">{c.descricao}</p>
                     )}
+
                   </button>
                   {isDiretor && (
                     <Button
