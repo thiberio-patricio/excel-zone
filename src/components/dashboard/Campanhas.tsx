@@ -55,7 +55,12 @@ interface Campanha {
   filial_id: string | null;
   descricao: string | null;
   ativa: boolean;
+  criterios?: string[] | null;
+  referencias?: string[] | null;
+  data_inicio?: string | null;
+  data_fim?: string | null;
 }
+
 
 interface Filial {
   id: string;
