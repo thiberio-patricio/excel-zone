@@ -121,6 +121,11 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
     return [base + 1, base, base - 1, base - 2];
   }, []);
 
+  const campanhasVisiveis = useMemo(
+    () => (somenteAtivas ? campanhas.filter((c) => c.ativa) : campanhas),
+    [campanhas, somenteAtivas]
+  );
+
   const carregar = useCallback(async () => {
     setLoading(true);
     try {
