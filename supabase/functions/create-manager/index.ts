@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     }
 
     const callerRoleList = callerRoles?.map(r => r.role) || []
-    const isCallerDiretor = callerRoleList.includes('diretor')
+    const isCallerDiretor = callerRoleList.includes('diretor') || callerRoleList.includes('admin')
 
     if (!isCallerDiretor) {
       console.error('Non-director trying to create manager:', caller.id)
