@@ -56,10 +56,29 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Papel do usuário logado — gerentes só podem criar vendedores
+  const [podeCriarGerente, setPodeCriarGerente] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const lista = (roles || []).map((r: any) => r.role);
+      const elevado = lista.includes("diretor") || lista.includes("admin");
+      setPodeCriarGerente(elevado);
+      if (!elevado) setCargo("vendedor");
+    })();
+  }, []);
+
   useEffect(() => {
     carregarVendedores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filialId]);
+
 
   const carregarVendedores = async () => {
     try {
@@ -168,7 +187,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
           email,
           password: senha,
           nome,
-          role: cargo,
+          role: podeCriarGerente ? cargo : "vendedor",
           filial_id: filial,
           foto_url: fotoUrl || null,
         },
@@ -464,18 +483,26 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                       </div>
                     )}
                   </div>
-                  <div>
-                    <Label htmlFor="cargo">Cargo</Label>
-                    <Select value={cargo} onValueChange={(value: "vendedor" | "gerente") => setCargo(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                        <SelectItem value="gerente">Gerente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {podeCriarGerente ? (
+                    <div>
+                      <Label htmlFor="cargo">Cargo</Label>
+                      <Select value={cargo} onValueChange={(value: "vendedor" | "gerente") => setCargo(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="vendedor">Vendedor</SelectItem>
+                          <SelectItem value="gerente">Gerente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>Cargo</Label>
+                      <p className="text-sm text-muted-foreground">Vendedor</p>
+                    </div>
+                  )}
+
                   <Button onClick={handleCriarUsuario} className="w-full gradient-primary text-primary-foreground shadow-glow">
                     Criar Usuário
                   </Button>
