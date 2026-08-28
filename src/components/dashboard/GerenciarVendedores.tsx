@@ -656,6 +656,15 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => abrirEdicao(vendedor)}
+                            className="hover:bg-primary/10"
+                            aria-label={`Editar ${vendedor.nome}`}
+                          >
+                            <Pencil className="w-4 h-4 text-primary" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="sm" disabled={deletingUser === vendedor.id} className="hover:bg-destructive/10">
