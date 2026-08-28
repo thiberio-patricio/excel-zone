@@ -344,7 +344,7 @@ export const AIExecutiveEngine = {
     );
 
     // Perfis do escopo
-    let perfilQuery = supabase.from("profiles").select("id, nome, filial_id");
+    let perfilQuery = supabase.from("profiles").select("id, nome, filial_id").eq("ativo", true);
     if (scope.vendedorId) perfilQuery = perfilQuery.eq("id", scope.vendedorId);
     else if (scope.filialId) perfilQuery = perfilQuery.eq("filial_id", scope.filialId);
 

@@ -225,7 +225,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome")
-        .eq("filial_id", filialId);
+        .eq("filial_id", filialId)
+        .eq("ativo", true);
 
       const vendedorIds = (profiles || []).map((p) => p.id);
       if (vendedorIds.length === 0) {
