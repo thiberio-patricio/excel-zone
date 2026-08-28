@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { UserPlus, Target, Upload, Trash2, Users, Mail, Receipt, Pencil } from "lucide-react";
+import { UserPlus, Target, Upload, Trash2, Users, Mail, Receipt, Pencil, Power } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -33,7 +33,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [vendedores, setVendedores] = useState<Array<{ id: string; nome: string; email: string; foto_url: string | null }>>([]);
+  const [vendedores, setVendedores] = useState<Array<{ id: string; nome: string; email: string; foto_url: string | null; ativo: boolean }>>([]);
   const [vendedorId, setVendedorId] = useState("");
   const [valorMeta, setValorMeta] = useState("");
   const [mes, setMes] = useState(new Date().getMonth() + 1);
@@ -79,7 +79,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
 
       let query = supabase
         .from("profiles")
-        .select("id, nome, email, foto_url")
+        .select("id, nome, email, foto_url, ativo")
         .in("id", vendedorIds);
 
       if (filialId) query = query.eq("filial_id", filialId);
@@ -333,6 +333,26 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
       toast.error(error.message || "Erro ao atualizar cadastro");
     } finally {
       setSalvandoEdicao(false);
+    }
+  };
+
+  const handleToggleAtivo = async (vendedor: { id: string; nome: string; ativo: boolean }) => {
+    try {
+      const novoStatus = !vendedor.ativo;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ ativo: novoStatus })
+        .eq("id", vendedor.id);
+      if (error) throw error;
+
+      setVendedores((prev) =>
+        prev.map((v) => (v.id === vendedor.id ? { ...v, ativo: novoStatus } : v))
+      );
+      toast.success(`${vendedor.nome} ${novoStatus ? "ativado" : "desativado"} com sucesso!`);
+      onUpdate();
+    } catch (error: any) {
+      console.error("Erro ao alterar status:", error);
+      toast.error(error.message || "Erro ao alterar status do vendedor");
     }
   };
 
@@ -628,6 +648,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                     <TableRow className="border-white/5 hover:bg-transparent">
                       <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Nome</TableHead>
                       <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Email</TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Status</TableHead>
                       <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -655,6 +676,18 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                             {vendedor.email}
                           </span>
                         </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                              vendedor.ativo
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${vendedor.ativo ? "bg-emerald-400" : "bg-amber-400"}`} />
+                            {vendedor.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -664,6 +697,15 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                             aria-label={`Editar ${vendedor.nome}`}
                           >
                             <Pencil className="w-4 h-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleAtivo(vendedor)}
+                            className={vendedor.ativo ? "hover:bg-amber-500/10" : "hover:bg-emerald-500/10"}
+                            aria-label={vendedor.ativo ? `Desativar ${vendedor.nome}` : `Ativar ${vendedor.nome}`}
+                          >
+                            <Power className={`w-4 h-4 ${vendedor.ativo ? "text-amber-400" : "text-emerald-400"}`} />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
