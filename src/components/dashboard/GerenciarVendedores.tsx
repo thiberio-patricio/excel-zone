@@ -483,18 +483,26 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                       </div>
                     )}
                   </div>
-                  <div>
-                    <Label htmlFor="cargo">Cargo</Label>
-                    <Select value={cargo} onValueChange={(value: "vendedor" | "gerente") => setCargo(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="vendedor">Vendedor</SelectItem>
-                        <SelectItem value="gerente">Gerente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {podeCriarGerente ? (
+                    <div>
+                      <Label htmlFor="cargo">Cargo</Label>
+                      <Select value={cargo} onValueChange={(value: "vendedor" | "gerente") => setCargo(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="vendedor">Vendedor</SelectItem>
+                          <SelectItem value="gerente">Gerente</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div>
+                      <Label>Cargo</Label>
+                      <p className="text-sm text-muted-foreground">Vendedor</p>
+                    </div>
+                  )}
+
                   <Button onClick={handleCriarUsuario} className="w-full gradient-primary text-primary-foreground shadow-glow">
                     Criar Usuário
                   </Button>
