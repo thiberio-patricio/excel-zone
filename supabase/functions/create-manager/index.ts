@@ -113,47 +113,96 @@ Deno.serve(async (req) => {
 
     console.log('Creating manager:', { email, nome, filial_id });
 
-    // Create user with admin client
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        nome: nome || 'Gerente',
-        role: 'gerente'
+    // The auth user may already exist (e.g. profile removed previously), which
+    // would make createUser fail forever with "email already registered".
+    const { data: existingUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers()
+    if (listErr) throw listErr
+    const existingUser = existingUsers?.users?.find((u) => u.email?.toLowerCase() === String(email).toLowerCase())
+
+    let userId: string
+
+    if (existingUser) {
+      if (existingUser.id === caller.id) {
+        return new Response(
+          JSON.stringify({ error: 'Você não pode alterar seu próprio usuário por esta função.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
-    })
 
-    if (userError) {
-      console.error('Error creating user:', userError);
-      throw userError;
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id')
+        .eq('id', existingUser.id)
+        .maybeSingle()
+
+      if (existingProfile) {
+        return new Response(
+          JSON.stringify({ error: 'Email já cadastrado no sistema.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Orphan auth user: reuse it and rebuild profile/role.
+      userId = existingUser.id
+      const { error: updateErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+        password,
+        email_confirm: true,
+        user_metadata: { nome: nome || 'Gerente', role: 'gerente' },
+      })
+      if (updateErr) throw updateErr
+      console.log('Reusing orphan auth user:', userId)
+    } else {
+      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: {
+          nome: nome || 'Gerente',
+          role: 'gerente'
+        }
+      })
+
+      if (userError) {
+        console.error('Error creating user:', userError);
+        throw userError;
+      }
+      if (!userData.user) throw new Error('User creation failed - no user returned');
+      userId = userData.user.id
+      console.log('User created successfully:', userId);
     }
 
-    if (!userData.user) {
-      throw new Error('User creation failed - no user returned');
-    }
+    // Ensure profile exists / is up to date
+    const { data: prof } = await supabaseAdmin
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle()
 
-    console.log('User created successfully:', userData.user.id);
-
-    // Update profile with filial_id if provided
-    if (filial_id) {
+    if (prof) {
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .update({ filial_id })
-        .eq('id', userData.user.id);
-
-      if (profileError) {
-        console.error('Error updating profile:', profileError);
-        throw profileError;
-      }
-
-      console.log('Profile updated with filial_id:', filial_id);
+        .update({ nome: nome || 'Gerente', email, filial_id: filial_id ?? null, ativo: true, must_change_password: true })
+        .eq('id', userId)
+      if (profileError) throw profileError
+    } else {
+      const { error: insertError } = await supabaseAdmin
+        .from('profiles')
+        .insert({ id: userId, nome: nome || 'Gerente', email, filial_id: filial_id ?? null, must_change_password: true })
+      if (insertError) throw insertError
     }
 
+    // Ensure the gerente role (the signup trigger only assigns 'vendedor')
+    await supabaseAdmin.from('user_roles').delete().eq('user_id', userId)
+    const { error: roleError } = await supabaseAdmin
+      .from('user_roles')
+      .insert({ user_id: userId, role: 'gerente' })
+    if (roleError) throw roleError
+
     return new Response(
-      JSON.stringify({ success: true, user: userData }),
+      JSON.stringify({ success: true, user: { id: userId, email } }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
+
   } catch (error) {
     console.error('Function error:', error);
     const rawMsg = error instanceof Error ? error.message : ''
