@@ -141,7 +141,7 @@ export default function IADashboard() {
           .gte("created_at", `${toLocalISO(desde14)}T00:00:00`),
         supabase.from("ai_notification_settings").select("send_time, active").limit(1).maybeSingle(),
         supabase.from("filiais").select("id, nome"),
-        supabase.from("profiles").select("id, filial_id"),
+        supabase.from("profiles").select("id, filial_id").eq("ativo", true),
         supabase.from("vendas").select("vendedor_id, data, valor, devolucao").gte("data", inicioMes).lte("data", hojeISO),
         supabase.from("metas").select("vendedor_id, valor_meta").eq("mes", hoje.getMonth() + 1).eq("ano", hoje.getFullYear()),
       ]);
