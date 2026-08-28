@@ -696,6 +696,77 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
           </TabsContent>
         </Tabs>
       </PageCard>
+
+      <Dialog open={!!editando} onOpenChange={(o) => !o && setEditando(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Cadastro</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nome">Nome</Label>
+              <Input id="edit-nome" value={editNome} onChange={(e) => setEditNome(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+              <p className="text-xs text-muted-foreground">
+                Alterar o email aqui atualiza apenas a exibição no sistema; o login continua o mesmo.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Foto de perfil</Label>
+              <div className="flex items-center gap-3">
+                <ProfilePhoto
+                  url={editFotoUrl || null}
+                  alt={editNome}
+                  className="h-12 w-12 rounded-xl object-cover border border-white/10"
+                  fallback={
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold">
+                      {(editNome || "?").charAt(0).toUpperCase()}
+                    </div>
+                  }
+                />
+                <input
+                  ref={editFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleEditPhotoUpload}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingEditPhoto}
+                  onClick={() => editFileInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploadingEditPhoto ? "Enviando..." : "Trocar foto"}
+                </Button>
+                {editFotoUrl && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditFotoUrl("")}>
+                    Remover
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditando(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSalvarEdicao}
+                disabled={salvandoEdicao}
+                className="gradient-primary text-primary-foreground shadow-glow"
+              >
+                {salvandoEdicao ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
