@@ -436,6 +436,24 @@ export type Database = {
           },
         ]
       }
+      cron_secrets: {
+        Row: {
+          created_at: string
+          name: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          token?: string
+        }
+        Relationships: []
+      }
       feriados: {
         Row: {
           created_at: string
@@ -868,6 +886,7 @@ export type Database = {
       }
       is_diretor: { Args: { _user_id: string }; Returns: boolean }
       is_gerente: { Args: { _user_id: string }; Returns: boolean }
+      verify_cron_secret: { Args: { _token: string }; Returns: boolean }
     }
     Enums: {
       user_role: "vendedor" | "gerente" | "diretor" | "admin"
