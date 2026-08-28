@@ -25,6 +25,14 @@ Deno.serve(async (req) => {
     });
 
   try {
+    // Apenas o agendador interno (que envia o token compartilhado) pode processar a fila.
+    const { data: ok } = await admin.rpc("verify_cron_secret", {
+      _token: req.headers.get("x-cron-secret") ?? "",
+    });
+    if (ok !== true) {
+      return json({ error: "Acesso não autorizado" }, 401);
+    }
+
     const resultados = await processarFila(admin);
     return json({
       processados: resultados.length,
