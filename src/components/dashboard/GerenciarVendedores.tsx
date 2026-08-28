@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { UserPlus, Target, Upload, Trash2, Users, Mail, Receipt } from "lucide-react";
+import { UserPlus, Target, Upload, Trash2, Users, Mail, Receipt, Pencil } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -46,6 +46,15 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
   const [ticketAno, setTicketAno] = useState(new Date().getFullYear());
 
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
+
+  // Edição de cadastro
+  const [editando, setEditando] = useState<{ id: string; nome: string; email: string; foto_url: string | null } | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editFotoUrl, setEditFotoUrl] = useState("");
+  const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     carregarVendedores();
@@ -258,7 +267,77 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
     }
   };
 
+  const abrirEdicao = (v: { id: string; nome: string; email: string; foto_url: string | null }) => {
+    setEditando(v);
+    setEditNome(v.nome);
+    setEditEmail(v.email);
+    setEditFotoUrl(v.foto_url || "");
+  };
+
+  const handleEditPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione uma imagem válida");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB");
+      return;
+    }
+    setUploadingEditPhoto(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("profile-photos").upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: signed, error: signedError } = await supabase.storage
+        .from("profile-photos")
+        .createSignedUrl(filePath, 31536000);
+      if (signedError) throw signedError;
+      if (signed?.signedUrl) {
+        setEditFotoUrl(signed.signedUrl);
+        toast.success("Foto carregada com sucesso!");
+      }
+    } catch (error) {
+      console.error("Erro ao fazer upload:", error);
+      toast.error("Erro ao fazer upload da foto");
+    } finally {
+      setUploadingEditPhoto(false);
+    }
+  };
+
+  const handleSalvarEdicao = async () => {
+    if (!editando) return;
+    if (!editNome.trim() || !editEmail.trim()) {
+      toast.error("Nome e email são obrigatórios");
+      return;
+    }
+    setSalvandoEdicao(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          nome: editNome.trim(),
+          email: editEmail.trim(),
+          foto_url: editFotoUrl || null,
+        })
+        .eq("id", editando.id);
+      if (error) throw error;
+      toast.success("Cadastro atualizado com sucesso!");
+      setEditando(null);
+      await carregarVendedores();
+      onUpdate();
+    } catch (error: any) {
+      console.error("Erro ao atualizar cadastro:", error);
+      toast.error(error.message || "Erro ao atualizar cadastro");
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  };
+
   const handleDeletarUsuario = async (userId: string) => {
+
     setDeletingUser(userId);
     try {
       const { error: vendasError } = await supabase.from("vendas").delete().eq("vendedor_id", userId);
@@ -577,6 +656,15 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => abrirEdicao(vendedor)}
+                            className="hover:bg-primary/10"
+                            aria-label={`Editar ${vendedor.nome}`}
+                          >
+                            <Pencil className="w-4 h-4 text-primary" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button variant="ghost" size="sm" disabled={deletingUser === vendedor.id} className="hover:bg-destructive/10">
@@ -608,6 +696,77 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
           </TabsContent>
         </Tabs>
       </PageCard>
+
+      <Dialog open={!!editando} onOpenChange={(o) => !o && setEditando(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Cadastro</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nome">Nome</Label>
+              <Input id="edit-nome" value={editNome} onChange={(e) => setEditNome(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Email</Label>
+              <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
+              <p className="text-xs text-muted-foreground">
+                Alterar o email aqui atualiza apenas a exibição no sistema; o login continua o mesmo.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Foto de perfil</Label>
+              <div className="flex items-center gap-3">
+                <ProfilePhoto
+                  url={editFotoUrl || null}
+                  alt={editNome}
+                  className="h-12 w-12 rounded-xl object-cover border border-white/10"
+                  fallback={
+                    <div className="h-12 w-12 rounded-xl flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 text-primary font-semibold">
+                      {(editNome || "?").charAt(0).toUpperCase()}
+                    </div>
+                  }
+                />
+                <input
+                  ref={editFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleEditPhotoUpload}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingEditPhoto}
+                  onClick={() => editFileInputRef.current?.click()}
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {uploadingEditPhoto ? "Enviando..." : "Trocar foto"}
+                </Button>
+                {editFotoUrl && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditFotoUrl("")}>
+                    Remover
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setEditando(null)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSalvarEdicao}
+                disabled={salvandoEdicao}
+                className="gradient-primary text-primary-foreground shadow-glow"
+              >
+                {salvandoEdicao ? "Salvando..." : "Salvar"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }
