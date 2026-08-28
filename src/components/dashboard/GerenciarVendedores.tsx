@@ -33,7 +33,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [vendedores, setVendedores] = useState<Array<{ id: string; nome: string; email: string; foto_url: string | null }>>([]);
+  const [vendedores, setVendedores] = useState<Array<{ id: string; nome: string; email: string; foto_url: string | null; ativo: boolean }>>([]);
   const [vendedorId, setVendedorId] = useState("");
   const [valorMeta, setValorMeta] = useState("");
   const [mes, setMes] = useState(new Date().getMonth() + 1);
