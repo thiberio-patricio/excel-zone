@@ -648,6 +648,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                     <TableRow className="border-white/5 hover:bg-transparent">
                       <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Nome</TableHead>
                       <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Email</TableHead>
+                      <TableHead className="text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Status</TableHead>
                       <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground/70 font-semibold">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
