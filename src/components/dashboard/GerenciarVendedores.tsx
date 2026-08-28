@@ -79,7 +79,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
 
       let query = supabase
         .from("profiles")
-        .select("id, nome, email, foto_url")
+        .select("id, nome, email, foto_url, ativo")
         .in("id", vendedorIds);
 
       if (filialId) query = query.eq("filial_id", filialId);
