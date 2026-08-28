@@ -56,10 +56,29 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Papel do usuário logado — gerentes só podem criar vendedores
+  const [podeCriarGerente, setPodeCriarGerente] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const lista = (roles || []).map((r: any) => r.role);
+      const elevado = lista.includes("diretor") || lista.includes("admin");
+      setPodeCriarGerente(elevado);
+      if (!elevado) setCargo("vendedor");
+    })();
+  }, []);
+
   useEffect(() => {
     carregarVendedores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filialId]);
+
 
   const carregarVendedores = async () => {
     try {
