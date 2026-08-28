@@ -238,7 +238,7 @@ export default function IAExecutiva() {
       const [filiaisRes, profilesRes, rolesRes, vendasRes, vendasPrevRes, metasRes, feriadosRes, feriasRes, folgasRes] =
         await Promise.all([
           supabase.from("filiais").select("id, nome").order("nome"),
-          supabase.from("profiles").select("id, nome, filial_id"),
+          supabase.from("profiles").select("id, nome, filial_id").eq("ativo", true),
           supabase.from("user_roles").select("user_id, role"),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", ini).lte("data", fim),
           supabase.from("vendas").select("vendedor_id, valor, devolucao, quantidade_vendas, data").gte("data", prevIni).lte("data", prevFim),

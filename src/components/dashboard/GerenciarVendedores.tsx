@@ -521,11 +521,13 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                             <SelectValue placeholder="Selecione um vendedor" />
                           </SelectTrigger>
                           <SelectContent>
-                            {vendedores.map((vendedor) => (
-                              <SelectItem key={vendedor.id} value={vendedor.id}>
-                                {vendedor.nome}
-                              </SelectItem>
-                            ))}
+                            {vendedores
+                              .filter((v) => v.ativo)
+                              .map((vendedor) => (
+                                <SelectItem key={vendedor.id} value={vendedor.id}>
+                                  {vendedor.nome}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -580,11 +582,13 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                             <SelectValue placeholder="Selecione um vendedor" />
                           </SelectTrigger>
                           <SelectContent>
-                            {vendedores.map((vendedor) => (
-                              <SelectItem key={vendedor.id} value={vendedor.id}>
-                                {vendedor.nome}
-                              </SelectItem>
-                            ))}
+                            {vendedores
+                              .filter((v) => v.ativo)
+                              .map((vendedor) => (
+                                <SelectItem key={vendedor.id} value={vendedor.id}>
+                                  {vendedor.nome}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>

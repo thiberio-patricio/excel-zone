@@ -120,7 +120,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
           .or(`ano.lt.${ano},and(ano.eq.${ano},mes.lte.${mes})`),
         supabase
           .from("profiles")
-          .select("id, filial_id"),
+          .select("id, filial_id")
+          .eq("ativo", true),
       ]);
 
       const vendasTotal = vendasRes.data?.reduce(
@@ -225,7 +226,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome")
-        .eq("filial_id", filialId);
+        .eq("filial_id", filialId)
+        .eq("ativo", true);
 
       const vendedorIds = (profiles || []).map((p) => p.id);
       if (vendedorIds.length === 0) {

@@ -340,6 +340,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
           .select("id, nome, filial_id")
           .in("id", vendedorIds)
           .eq("filial_id", scope.filialId)
+          .eq("ativo", true)
           .order("nome");
         const arr = ((profs ?? []) as any[]).map((p) => ({ id: p.id, nome: p.nome }));
         setFiliais(arr);
@@ -496,7 +497,8 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
         const { data: profiles } = await supabase
           .from("profiles")
           .select("id, filial_id")
-          .in("filial_id", filialIds);
+          .in("filial_id", filialIds)
+          .eq("ativo", true);
         vendedores = (profiles ?? []) as { id: string; filial_id: string }[];
       }
       const vendedorIds = vendedores.map((v) => v.id);
@@ -548,7 +550,7 @@ export default function Relatorios({ scope }: RelatoriosProps = {}) {
 
       // Nomes dos vendedores para os relatórios de ausências
       const { data: nomesData } = vendedorIds.length
-        ? await supabase.from("profiles").select("id, nome, filial_id").in("id", vendedorIds)
+        ? await supabase.from("profiles").select("id, nome, filial_id").in("id", vendedorIds).eq("ativo", true)
         : { data: [] as any[] };
       const nomePorVendedor = new Map<string, string>(((nomesData ?? []) as any[]).map((p) => [p.id, p.nome]));
       const nomeUnidade = (vid: string) => {

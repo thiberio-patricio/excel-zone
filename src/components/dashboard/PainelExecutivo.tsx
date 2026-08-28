@@ -145,7 +145,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
           .select("valor, devolucao, data, vendedor_id, quantidade_vendas")
           .gte("data", primeiroStr)
           .lte("data", ultimoStr),
-        supabase.from("profiles").select("id, nome, filial_id"),
+        supabase.from("profiles").select("id, nome, filial_id").eq("ativo", true),
         supabase
           .from("metas")
           .select("vendedor_id, valor_meta, mes, ano")

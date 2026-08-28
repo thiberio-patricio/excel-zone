@@ -303,7 +303,7 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
         // Escopo: gerente sempre restrito à sua filial
         const filialEscopo = role === "gerente" ? profile.filial_id ?? null : campanha.filial_id;
 
-        let profQuery = supabase.from("profiles").select("id, nome, foto_url, filial_id");
+        let profQuery = supabase.from("profiles").select("id, nome, foto_url, filial_id").eq("ativo", true);
         if (filialEscopo) profQuery = profQuery.eq("filial_id", filialEscopo);
         const { data: profs, error: errProf } = await profQuery;
         if (errProf) throw errProf;

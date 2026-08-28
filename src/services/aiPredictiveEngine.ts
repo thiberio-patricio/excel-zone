@@ -246,7 +246,7 @@ export const AIPredictiveEngine = {
     const fimMes = toLocalISO(new Date(ano, mes, 0));
 
     const [perfisRes, filiaisRes, vendasRes, metasRes, feriadosRes] = await Promise.all([
-      supabase.from("profiles").select("id, nome, filial_id"),
+      supabase.from("profiles").select("id, nome, filial_id").eq("ativo", true),
       supabase.from("filiais").select("id, nome"),
       supabase
         .from("vendas")
