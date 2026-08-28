@@ -676,6 +676,18 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                             {vendedor.email}
                           </span>
                         </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                              vendedor.ativo
+                                ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                                : "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                            }`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full ${vendedor.ativo ? "bg-emerald-400" : "bg-amber-400"}`} />
+                            {vendedor.ativo ? "Ativo" : "Inativo"}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -685,6 +697,15 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                             aria-label={`Editar ${vendedor.nome}`}
                           >
                             <Pencil className="w-4 h-4 text-primary" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleAtivo(vendedor)}
+                            className={vendedor.ativo ? "hover:bg-amber-500/10" : "hover:bg-emerald-500/10"}
+                            aria-label={vendedor.ativo ? `Desativar ${vendedor.nome}` : `Ativar ${vendedor.nome}`}
+                          >
+                            <Power className={`w-4 h-4 ${vendedor.ativo ? "text-amber-400" : "text-emerald-400"}`} />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
