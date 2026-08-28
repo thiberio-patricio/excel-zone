@@ -336,6 +336,26 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
     }
   };
 
+  const handleToggleAtivo = async (vendedor: { id: string; nome: string; ativo: boolean }) => {
+    try {
+      const novoStatus = !vendedor.ativo;
+      const { error } = await supabase
+        .from("profiles")
+        .update({ ativo: novoStatus })
+        .eq("id", vendedor.id);
+      if (error) throw error;
+
+      setVendedores((prev) =>
+        prev.map((v) => (v.id === vendedor.id ? { ...v, ativo: novoStatus } : v))
+      );
+      toast.success(`${vendedor.nome} ${novoStatus ? "ativado" : "desativado"} com sucesso!`);
+      onUpdate();
+    } catch (error: any) {
+      console.error("Erro ao alterar status:", error);
+      toast.error(error.message || "Erro ao alterar status do vendedor");
+    }
+  };
+
   const handleDeletarUsuario = async (userId: string) => {
 
     setDeletingUser(userId);
