@@ -258,7 +258,77 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
     }
   };
 
+  const abrirEdicao = (v: { id: string; nome: string; email: string; foto_url: string | null }) => {
+    setEditando(v);
+    setEditNome(v.nome);
+    setEditEmail(v.email);
+    setEditFotoUrl(v.foto_url || "");
+  };
+
+  const handleEditPhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione uma imagem válida");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB");
+      return;
+    }
+    setUploadingEditPhoto(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("profile-photos").upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: signed, error: signedError } = await supabase.storage
+        .from("profile-photos")
+        .createSignedUrl(filePath, 31536000);
+      if (signedError) throw signedError;
+      if (signed?.signedUrl) {
+        setEditFotoUrl(signed.signedUrl);
+        toast.success("Foto carregada com sucesso!");
+      }
+    } catch (error) {
+      console.error("Erro ao fazer upload:", error);
+      toast.error("Erro ao fazer upload da foto");
+    } finally {
+      setUploadingEditPhoto(false);
+    }
+  };
+
+  const handleSalvarEdicao = async () => {
+    if (!editando) return;
+    if (!editNome.trim() || !editEmail.trim()) {
+      toast.error("Nome e email são obrigatórios");
+      return;
+    }
+    setSalvandoEdicao(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          nome: editNome.trim(),
+          email: editEmail.trim(),
+          foto_url: editFotoUrl || null,
+        })
+        .eq("id", editando.id);
+      if (error) throw error;
+      toast.success("Cadastro atualizado com sucesso!");
+      setEditando(null);
+      await carregarVendedores();
+      onUpdate();
+    } catch (error: any) {
+      console.error("Erro ao atualizar cadastro:", error);
+      toast.error(error.message || "Erro ao atualizar cadastro");
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  };
+
   const handleDeletarUsuario = async (userId: string) => {
+
     setDeletingUser(userId);
     try {
       const { error: vendasError } = await supabase.from("vendas").delete().eq("vendedor_id", userId);
