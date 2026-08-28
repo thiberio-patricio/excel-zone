@@ -187,7 +187,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
           email,
           password: senha,
           nome,
-          role: cargo,
+          role: podeCriarGerente ? cargo : "vendedor",
           filial_id: filial,
           foto_url: fotoUrl || null,
         },
