@@ -120,7 +120,8 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
           .or(`ano.lt.${ano},and(ano.eq.${ano},mes.lte.${mes})`),
         supabase
           .from("profiles")
-          .select("id, filial_id"),
+          .select("id, filial_id")
+          .eq("ativo", true),
       ]);
 
       const vendasTotal = vendasRes.data?.reduce(
