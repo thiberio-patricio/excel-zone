@@ -465,6 +465,12 @@ Deno.serve(async (req) => {
       if (!(roles ?? []).some((r: { role: string }) => r.role === "admin")) {
         return json({ error: "Acesso restrito ao administrador" }, 403);
       }
+    } else {
+      // Execução automática: exige o token compartilhado usado pelo agendador interno.
+      const { data: ok } = await admin.rpc("verify_cron_secret", {
+        _token: req.headers.get("x-cron-secret") ?? "",
+      });
+      if (ok !== true) return json({ error: "Acesso não autorizado" }, 401);
     }
 
     const { data: settings } = await admin
