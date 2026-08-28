@@ -47,6 +47,15 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
 
   const [deletingUser, setDeletingUser] = useState<string | null>(null);
 
+  // Edição de cadastro
+  const [editando, setEditando] = useState<{ id: string; nome: string; email: string; foto_url: string | null } | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editFotoUrl, setEditFotoUrl] = useState("");
+  const [uploadingEditPhoto, setUploadingEditPhoto] = useState(false);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     carregarVendedores();
     // eslint-disable-next-line react-hooks/exhaustive-deps
