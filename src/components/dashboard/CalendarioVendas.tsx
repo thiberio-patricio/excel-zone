@@ -550,6 +550,28 @@ export default function CalendarioVendas({
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="ticketMedioMes">Ticket Médio Acumulado do Mês (R$)</Label>
+              <Input
+                id="ticketMedioMes"
+                type="text"
+                value={(() => {
+                  const comQtd = vendas.filter((v) => Number(v.quantidade_vendas) > 0);
+                  const liquido = comQtd.reduce(
+                    (acc, v) => acc + (Number(v.valor) - Number(v.devolucao)),
+                    0
+                  );
+                  const qtd = comQtd.reduce((acc, v) => acc + Number(v.quantidade_vendas), 0);
+                  const t = qtd > 0 ? liquido / qtd : 0;
+                  return `R$ ${t.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+                })()}
+                disabled
+                className="font-bold"
+              />
+              <p className="text-xs text-muted-foreground">
+                Soma de todas as vendas do mês ÷ quantidade total de vendas
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="observacoes">Observações</Label>
               <Textarea
                 id="observacoes"
