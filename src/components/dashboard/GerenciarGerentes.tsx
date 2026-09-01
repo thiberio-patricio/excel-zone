@@ -155,11 +155,13 @@ export default function GerenciarGerentes() {
     }
 
     try {
-      // Verificar se email já existe antes de tentar criar
+      const emailNormalizado = email.trim().toLowerCase();
+
+      // Verificar se email já existe antes de tentar criar (case-insensitive)
       const { data: existingProfiles } = await supabase
         .from("profiles")
         .select("email")
-        .eq("email", email.trim().toLowerCase())
+        .ilike("email", emailNormalizado)
         .maybeSingle();
 
       if (existingProfiles) {
@@ -170,22 +172,25 @@ export default function GerenciarGerentes() {
       // Usar edge function para criar gerente com service_role
       const { data, error } = await supabase.functions.invoke('create-manager', {
         body: { 
-          email: email.trim().toLowerCase(), 
+          email: emailNormalizado, 
           password: senha, 
           nome: nome.trim(),
           filial_id: filialId 
         }
       });
 
-      if (error) throw error;
-      if (data?.error) {
-        // Tratar erro de email duplicado especificamente
-        if (data.error.includes("already been registered")) {
-          toast.error("Este email já está cadastrado no sistema");
-          return;
+      if (error) {
+        // supabase-js descarta o corpo em respostas não-2xx; recuperar a mensagem amigável
+        let serverMsg = "";
+        try {
+          const body = await (error as any)?.context?.json?.();
+          serverMsg = body?.error ?? "";
+        } catch {
+          serverMsg = "";
         }
-        throw new Error(data.error);
+        throw new Error(serverMsg || error.message);
       }
+      if (data?.error) throw new Error(data.error);
 
       toast.success("Gerente criado com sucesso!");
       setDialogOpen(false);
@@ -194,12 +199,9 @@ export default function GerenciarGerentes() {
     } catch (error: any) {
       console.error("Erro ao criar gerente:", error);
       const errorMessage = error.message || "Erro desconhecido";
-      
-      // Mensagens de erro mais amigáveis
-      if (errorMessage.includes("already been registered")) {
+
+      if (/already been registered|já cadastrad/i.test(errorMessage)) {
         toast.error("Este email já está cadastrado no sistema");
-      } else if (errorMessage.includes("email")) {
-        toast.error("Email inválido ou já cadastrado");
       } else {
         toast.error("Erro ao criar gerente: " + errorMessage);
       }
@@ -208,15 +210,21 @@ export default function GerenciarGerentes() {
 
   const handleDeletar = async (id: string, email: string) => {
     try {
-      // Deletar via edge function ou diretamente do perfil
-      // Como deletar usuário requer service_role, vamos apenas remover o role
+      // Remover role e perfil para que o email possa ser reutilizado depois
+      // (a edge function create-manager reaproveita contas de login órfãs).
       const { error: roleError } = await supabase
         .from("user_roles")
         .delete()
-        .eq("user_id", id)
-        .eq("role", "gerente");
+        .eq("user_id", id);
 
       if (roleError) throw roleError;
+
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", id);
+
+      if (profileError) throw profileError;
 
       toast.success("Gerente removido com sucesso!");
       carregarDados();
@@ -225,6 +233,7 @@ export default function GerenciarGerentes() {
       toast.error("Erro ao deletar gerente: " + error.message);
     }
   };
+
 
   const limparFormulario = () => {
     setNome("");
