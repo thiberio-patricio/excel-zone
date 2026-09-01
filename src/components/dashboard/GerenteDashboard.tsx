@@ -181,7 +181,8 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, nome")
-        .in("id", vendedorIds);
+        .in("id", vendedorIds)
+        .eq("ativo", true);
 
       const chartData = await Promise.all(
         (profiles || []).map(async (vendedor) => {
