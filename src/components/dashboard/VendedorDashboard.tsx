@@ -323,9 +323,9 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
 
           <KpiCard
             icon={Receipt}
-            label="Ticket Médio"
+            label="Ticket Médio do Mês"
             value={brl(ticketMedio)}
-            hint="Venda líquida ÷ quantidade de vendas"
+            hint="Acumulado do mês: vendas líquidas ÷ quantidade total de vendas"
             tone="positive"
           />
 
