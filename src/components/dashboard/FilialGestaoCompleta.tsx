@@ -80,7 +80,6 @@ export default function FilialGestaoCompleta({
       .from("profiles")
       .select("id, nome, email, foto_url, ativo")
       .eq("filial_id", filialId)
-      .eq("ativo", true)
       .order("nome");
     const ids = (profiles || []).map((p) => p.id);
     if (ids.length === 0) {
