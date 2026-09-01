@@ -118,14 +118,9 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
       setTotalVendido(total);
       setTotalDevolucoes(totalDev);
 
-      // Ticket médio: apenas registros com quantidade de vendas informada
-      const comQtd = lista.filter((v) => Number(v.quantidade_vendas) > 0);
-      const valorComQtd = comQtd.reduce(
-        (acc, v) => acc + (Number(v.valor) - Number(v.devolucao)),
-        0
-      );
-      const qtdTotal = comQtd.reduce((acc, v) => acc + Number(v.quantidade_vendas), 0);
-      setTicketMedio(qtdTotal > 0 ? valorComQtd / qtdTotal : 0);
+      // Ticket médio ACUMULADO do mês: total líquido do mês ÷ quantidade total de vendas
+      const qtdTotal = lista.reduce((acc, v) => acc + (Number(v.quantidade_vendas) || 0), 0);
+      setTicketMedio(qtdTotal > 0 ? total / qtdTotal : 0);
 
       await carregarCampanhas(
         (perfil as any)?.filial_id ?? null,
@@ -328,9 +323,9 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
 
           <KpiCard
             icon={Receipt}
-            label="Ticket Médio"
+            label="Ticket Médio do Mês"
             value={brl(ticketMedio)}
-            hint="Venda líquida ÷ quantidade de vendas"
+            hint="Acumulado do mês: vendas líquidas ÷ quantidade total de vendas"
             tone="positive"
           />
 
