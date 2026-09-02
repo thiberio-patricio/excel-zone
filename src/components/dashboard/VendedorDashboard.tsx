@@ -213,10 +213,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   const percentualTicket = metaTicket > 0 ? (ticketMedio / metaTicket) * 100 : 0;
 
   const folgasInfo = useMemo(() => {
-    if (folgas.length === 0) {
-      return { valor: "Nenhuma", hint: "Nenhuma folga cadastrada no período" };
-    }
-
+    const hoje = toLocalISO(new Date());
     const formatarData = (data: string) =>
       new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", {
         day: "2-digit",
@@ -224,9 +221,24 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
         year: "numeric",
       });
 
+    // Folgas futuras ou de hoje, ordenadas para mostrar a que chega primeiro
+    const folgasFuturas = folgas
+      .filter((f) => String(f) >= hoje)
+      .sort((a, b) => String(a).localeCompare(String(b)));
+
+    if (folgasFuturas.length === 0) {
+      return { valor: "—", hint: "Nenhuma folga programada no período" };
+    }
+
+    const proxima = formatarData(folgasFuturas[0]);
+    const demais = folgasFuturas.slice(1).map(formatarData);
+
     return {
-      valor: `${folgas.length} ${folgas.length === 1 ? "folga" : "folgas"}`,
-      hint: folgas.map(formatarData).join(" · "),
+      valor: proxima,
+      hint:
+        demais.length > 0
+          ? `Próxima folga: ${proxima} · Depois: ${demais.join(" · ")}`
+          : `Folga programada para ${proxima}`,
     };
   }, [folgas]);
 
@@ -399,10 +411,10 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
 
           <KpiCard
             icon={CalendarOff}
-            label="Minhas Folgas"
+            label="Próxima Folga"
             value={folgasInfo.valor}
             hint={folgasInfo.hint}
-            tone={folgas.length > 0 ? "warn" : "default"}
+            tone={folgasInfo.valor !== "—" ? "warn" : "default"}
           />
         </div>
 
