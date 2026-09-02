@@ -334,7 +334,9 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
         const primeiro = toLocalISO(new Date(campanha.ano, campanha.mes - 1, 1));
         const ultimo = toLocalISO(new Date(campanha.ano, campanha.mes, 0));
 
-        // Feriados: nacionais/gerais (filial_id nulo) + os da filial no escopo
+        // Feriados: nacionais/gerais (filial_id nulo) + os de cada filial no escopo.
+        // Importante: os dias úteis são calculados por filial do vendedor, para que
+        // gerente e diretor cheguem exatamente aos mesmos valores.
         let feriadosQuery = supabase
           .from("feriados")
           .select("data, filial_id")
@@ -344,12 +346,35 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           feriadosQuery = feriadosQuery.or(`filial_id.is.null,filial_id.eq.${filialEscopo}`);
         }
         const { data: feriadosRows } = await feriadosQuery;
-        const feriados = new Set<string>(
-          ((feriadosRows as any[]) || []).map((f) => String(f.data))
+        const feriadosGerais = new Set<string>(
+          ((feriadosRows as any[]) || [])
+            .filter((f) => !f.filial_id)
+            .map((f) => String(f.data))
         );
-        setFeriadosCampanha(feriados);
+        const feriadosPorFilial = new Map<string, Set<string>>();
+        for (const f of ((feriadosRows as any[]) || []).filter((r) => r.filial_id)) {
+          const set = feriadosPorFilial.get(String(f.filial_id)) ?? new Set<string>();
+          set.add(String(f.data));
+          feriadosPorFilial.set(String(f.filial_id), set);
+        }
 
-        const dias = diasUteisDoMes(campanha.mes, campanha.ano, feriados);
+        const feriadosDaFilial = (fid: string | null) => {
+          const set = new Set<string>(feriadosGerais);
+          if (fid) for (const d of feriadosPorFilial.get(fid) ?? []) set.add(d);
+          return set;
+        };
+
+        setFeriadosCampanha(feriadosDaFilial(filialEscopo));
+
+        const diasCache = new Map<string, Date[]>();
+        const diasDaFilial = (fid: string | null) => {
+          const chave = fid ?? "__geral__";
+          const cache = diasCache.get(chave);
+          if (cache) return cache;
+          const dias = diasUteisDoMes(campanha.mes, campanha.ano, feriadosDaFilial(fid));
+          diasCache.set(chave, dias);
+          return dias;
+        };
 
         const [{ data: metasRows }, { data: vendasRows }] = await Promise.all([
           supabase
@@ -376,6 +401,8 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
         }
 
         const itens: RankingItem[] = vendedores.map((v: any) => {
+          const filialId = (v.filial_id as string | null) ?? null;
+          const dias = diasDaFilial(filialId);
           const meta = resolver.resolver(v.id, campanha.mes, campanha.ano);
           const metaMensal = meta?.valorMeta ?? 0;
           const metaDiaria = dias.length > 0 ? metaMensal / dias.length : 0;
@@ -397,13 +424,16 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
             vendedorId: v.id,
             nome: v.nome,
             fotoUrl: v.foto_url,
-            filialNome: v.filial_id ? filialNome.get(v.filial_id) ?? "—" : "—",
+            filialId,
+            filialNome: filialId ? filialNome.get(filialId) ?? "—" : "—",
             metaDiaria,
             pontos,
             totalVendido,
+            feriados: [...feriadosDaFilial(filialId)],
             diasPorData,
           };
         });
+
 
         itens.sort((a, b) => b.pontos - a.pontos || b.totalVendido - a.totalVendido);
         setRanking(itens);
