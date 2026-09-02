@@ -13,6 +13,7 @@ import {
   Trophy,
   Medal,
   CalendarDays,
+  CalendarOff,
 } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
 import MensagemMetaBatida from "./MensagemMetaBatida";
@@ -76,6 +77,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   const [totalVendido, setTotalVendido] = useState(0);
   const [totalDevolucoes, setTotalDevolucoes] = useState(0);
   const [ticketMedio, setTicketMedio] = useState(0);
+  const [folgas, setFolgas] = useState<string[]>([]);
   const [campanhas, setCampanhas] = useState<CampanhaResumo[]>([]);
 
   const mesAtualDate = new Date().getMonth() + 1;
@@ -98,7 +100,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
       const primeiroDia = toLocalISO(new Date(anoSelecionado, mesSelecionado - 1, 1));
       const ultimoDia = toLocalISO(new Date(anoSelecionado, mesSelecionado, 0));
 
-      const [{ data: vendasData, error }, { data: perfil }] = await Promise.all([
+      const [{ data: vendasData, error }, { data: perfil }, { data: folgasData }] = await Promise.all([
         supabase
           .from("vendas")
           .select("*")
@@ -107,9 +109,19 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
           .lte("data", ultimoDia)
           .order("data", { ascending: true }),
         supabase.from("profiles").select("filial_id").eq("id", profile.id).maybeSingle(),
+        supabase
+          .from("folgas")
+          .select("data")
+          .eq("vendedor_id", profile.id)
+          .gte("data", primeiroDia)
+          .lte("data", ultimoDia)
+          .order("data", { ascending: true }),
       ]);
 
       if (error) throw error;
+
+      setFolgas(((folgasData as any[]) || []).map((f) => String(f.data)));
+
 
       const lista = (vendasData as Venda[]) || [];
       setVendas(lista);
@@ -199,6 +211,24 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   const percentualMeta = meta ? (totalVendido / Number(meta.valor_meta)) * 100 : 0;
   const metaTicket = Number(meta?.meta_ticket) || META_TICKET_DEFAULT;
   const percentualTicket = metaTicket > 0 ? (ticketMedio / metaTicket) * 100 : 0;
+
+  const folgasInfo = useMemo(() => {
+    if (folgas.length === 0) {
+      return { valor: "Nenhuma", hint: "Nenhuma folga cadastrada no período" };
+    }
+
+    const formatarData = (data: string) =>
+      new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+    return {
+      valor: `${folgas.length} ${folgas.length === 1 ? "folga" : "folgas"}`,
+      hint: folgas.map(formatarData).join(" · "),
+    };
+  }, [folgas]);
 
   const campanhaResumo = useMemo(() => {
     if (campanhas.length === 0) return null;
@@ -366,7 +396,16 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
             }
             tone="premium"
           />
+
+          <KpiCard
+            icon={CalendarOff}
+            label="Minhas Folgas"
+            value={folgasInfo.valor}
+            hint={folgasInfo.hint}
+            tone={folgas.length > 0 ? "warn" : "default"}
+          />
         </div>
+
 
         <CalendarioVendas
           vendedorId={profile.id}
