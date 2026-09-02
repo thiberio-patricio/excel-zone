@@ -414,7 +414,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
             label="Próxima Folga"
             value={folgasInfo.valor}
             hint={folgasInfo.hint}
-            tone={folgasInfo.valor !== "—" ? "warn" : "default"}
+            tone={folgasInfo.valor !== "—" ? "holiday" : "default"}
           />
         </div>
 
