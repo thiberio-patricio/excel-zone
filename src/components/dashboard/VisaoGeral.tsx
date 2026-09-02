@@ -26,7 +26,9 @@ interface VendasFilial {
 interface VendasVendedor {
   id: string;
   nome: string;
+  ativo?: boolean;
   total: number;
+
   meta: number;
   ticket: number;
   percentual: number;
@@ -224,8 +226,9 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       // Vendedores da filial
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome")
+        .select("id, nome, ativo")
         .eq("filial_id", filialId);
+
 
       const vendedorIds = (profiles || []).map((p) => p.id);
       if (vendedorIds.length === 0) {
@@ -264,6 +267,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
           return {
             id: v.id,
             nome: v.nome,
+            ativo: (v as any).ativo !== false,
             total,
             meta: metaValor,
             ticket,
@@ -273,7 +277,14 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
         })
       );
 
-      setVendasPorVendedor(result.sort((a, b) => a.nome.localeCompare(b.nome)));
+      // Vendedores desativados só aparecem se tiveram vendas no período
+      // (mantém o histórico sem poluir o ranking com linhas zeradas).
+      setVendasPorVendedor(
+        result
+          .filter((v) => v.ativo || v.total !== 0)
+          .sort((a, b) => a.nome.localeCompare(b.nome))
+      );
+
     } catch (error) {
       console.error("Erro ao carregar vendedores da filial:", error);
       setVendasPorVendedor([]);
