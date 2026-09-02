@@ -469,8 +469,9 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
           eyebrow="Campanhas"
           title={selecionada.nome}
           description={`Meta Fixa · ${MESES[selecionada.mes - 1]}/${selecionada.ano} · ${dias.length} dias úteis (seg a sex, sem feriados)${
-            feriadosCampanha.size > 0 ? ` · ${feriadosCampanha.size} feriado(s) excluído(s)` : ""
+            feriadosVisiveis.size > 0 ? ` · ${feriadosVisiveis.size} feriado(s) excluído(s)` : ""
           } · ${selecionada.ativa ? "Ativa" : "Desativada"}`}
+
           actions={
             <Button variant="outline" size="sm" onClick={() => setSelecionada(null)}>
               <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
