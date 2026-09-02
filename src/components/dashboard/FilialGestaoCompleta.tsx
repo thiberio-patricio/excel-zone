@@ -273,9 +273,17 @@ export default function FilialGestaoCompleta({
                           }
                         />
                         <div className="min-w-0">
-                          <div className="font-medium truncate">{vendedor.nome}</div>
+                          <div className="font-medium truncate flex items-center gap-2">
+                            <span className="truncate">{vendedor.nome}</span>
+                            {vendedor.ativo === false && (
+                              <span className="shrink-0 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded-md border border-destructive/30 text-destructive bg-destructive/10">
+                                Inativo
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground truncate">{vendedor.email}</div>
                         </div>
+
                       </div>
                     </button>
                   ))}
