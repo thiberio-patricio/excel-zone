@@ -212,6 +212,24 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   const metaTicket = Number(meta?.meta_ticket) || META_TICKET_DEFAULT;
   const percentualTicket = metaTicket > 0 ? (ticketMedio / metaTicket) * 100 : 0;
 
+  const folgasInfo = useMemo(() => {
+    if (folgas.length === 0) {
+      return { valor: "Nenhuma", hint: "Nenhuma folga cadastrada no período" };
+    }
+
+    const formatarData = (data: string) =>
+      new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      });
+
+    return {
+      valor: `${folgas.length} ${folgas.length === 1 ? "folga" : "folgas"}`,
+      hint: folgas.map(formatarData).join(" · "),
+    };
+  }, [folgas]);
+
   const campanhaResumo = useMemo(() => {
     if (campanhas.length === 0) return null;
     const pontos = campanhas.reduce((acc, c) => acc + c.pontos, 0);
