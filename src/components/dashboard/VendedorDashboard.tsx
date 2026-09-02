@@ -13,6 +13,7 @@ import {
   Trophy,
   Medal,
   CalendarDays,
+  CalendarOff,
 } from "lucide-react";
 import CalendarioVendas from "./CalendarioVendas";
 import MensagemMetaBatida from "./MensagemMetaBatida";
