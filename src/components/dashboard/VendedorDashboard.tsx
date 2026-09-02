@@ -76,6 +76,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
   const [totalVendido, setTotalVendido] = useState(0);
   const [totalDevolucoes, setTotalDevolucoes] = useState(0);
   const [ticketMedio, setTicketMedio] = useState(0);
+  const [folgas, setFolgas] = useState<string[]>([]);
   const [campanhas, setCampanhas] = useState<CampanhaResumo[]>([]);
 
   const mesAtualDate = new Date().getMonth() + 1;
