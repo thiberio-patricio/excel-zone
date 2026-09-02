@@ -99,7 +99,7 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
       const primeiroDia = toLocalISO(new Date(anoSelecionado, mesSelecionado - 1, 1));
       const ultimoDia = toLocalISO(new Date(anoSelecionado, mesSelecionado, 0));
 
-      const [{ data: vendasData, error }, { data: perfil }] = await Promise.all([
+      const [{ data: vendasData, error }, { data: perfil }, { data: folgasData }] = await Promise.all([
         supabase
           .from("vendas")
           .select("*")
@@ -108,9 +108,19 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
           .lte("data", ultimoDia)
           .order("data", { ascending: true }),
         supabase.from("profiles").select("filial_id").eq("id", profile.id).maybeSingle(),
+        supabase
+          .from("folgas")
+          .select("data")
+          .eq("vendedor_id", profile.id)
+          .gte("data", primeiroDia)
+          .lte("data", ultimoDia)
+          .order("data", { ascending: true }),
       ]);
 
       if (error) throw error;
+
+      setFolgas(((folgasData as any[]) || []).map((f) => String(f.data)));
+
 
       const lista = (vendasData as Venda[]) || [];
       setVendas(lista);
