@@ -26,7 +26,9 @@ interface VendasFilial {
 interface VendasVendedor {
   id: string;
   nome: string;
+  ativo?: boolean;
   total: number;
+
   meta: number;
   ticket: number;
   percentual: number;
