@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type KpiTone = "default" | "positive" | "negative" | "warn" | "premium";
+export type KpiTone = "default" | "positive" | "negative" | "warn" | "premium" | "holiday";
 
 interface KpiCardProps {
   icon: LucideIcon;
@@ -22,6 +22,7 @@ const GLOWS: Record<KpiTone, string> = {
   negative: "from-rose-500/25",
   warn: "from-amber-500/25",
   premium: "from-violet-500/25",
+  holiday: "from-purple-500/25",
 };
 
 const ICON_TONES: Record<KpiTone, string> = {
@@ -30,6 +31,7 @@ const ICON_TONES: Record<KpiTone, string> = {
   negative: "bg-rose-500/15 text-rose-400",
   warn: "bg-amber-500/15 text-amber-400",
   premium: "bg-violet-500/15 text-violet-300",
+  holiday: "bg-purple-500/15 text-purple-400",
 };
 
 /**
