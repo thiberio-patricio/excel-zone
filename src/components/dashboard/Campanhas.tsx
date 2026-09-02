@@ -73,12 +73,16 @@ interface RankingItem {
   vendedorId: string;
   nome: string;
   fotoUrl: string | null;
+  filialId: string | null;
   filialNome: string;
   metaDiaria: number;
   pontos: number;
   totalVendido: number;
+  /** Feriados aplicáveis à filial do vendedor (nacionais + da filial). */
+  feriados: string[];
   diasPorData: Record<string, { valor: number; batida: boolean }>;
 }
+
 
 const MESES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
