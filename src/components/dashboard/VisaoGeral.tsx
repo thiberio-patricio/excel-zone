@@ -224,8 +224,9 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
       // Vendedores da filial
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, nome")
+        .select("id, nome, ativo")
         .eq("filial_id", filialId);
+
 
       const vendedorIds = (profiles || []).map((p) => p.id);
       if (vendedorIds.length === 0) {
