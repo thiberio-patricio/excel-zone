@@ -411,10 +411,10 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
 
           <KpiCard
             icon={CalendarOff}
-            label="Minhas Folgas"
+            label="Próxima Folga"
             value={folgasInfo.valor}
             hint={folgasInfo.hint}
-            tone={folgas.length > 0 ? "warn" : "default"}
+            tone={folgasInfo.valor !== "—" ? "warn" : "default"}
           />
         </div>
 
