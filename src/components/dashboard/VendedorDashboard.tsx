@@ -377,7 +377,16 @@ export default function VendedorDashboard({ profile }: VendedorDashboardProps) {
             }
             tone="premium"
           />
+
+          <KpiCard
+            icon={CalendarOff}
+            label="Minhas Folgas"
+            value={folgasInfo.valor}
+            hint={folgasInfo.hint}
+            tone={folgas.length > 0 ? "warn" : "default"}
+          />
         </div>
+
 
         <CalendarioVendas
           vendedorId={profile.id}
