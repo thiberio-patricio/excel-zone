@@ -53,7 +53,9 @@ interface VendedorItem {
   nome: string;
   email: string;
   foto_url: string | null;
+  ativo?: boolean | null;
 }
+
 
 export default function FilialGestaoCompleta({
   filialId,
