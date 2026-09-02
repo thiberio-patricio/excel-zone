@@ -456,8 +456,11 @@ export default function Campanhas({ role, profile }: CampanhasProps) {
 
   // ---------- Detalhe da campanha ----------
   if (selecionada) {
-    const dias = diasUteisDoMes(selecionada.mes, selecionada.ano, feriadosCampanha);
     const vendedor = ranking.find((r) => r.vendedorId === vendedorAberto) ?? null;
+    // Quando um vendedor está aberto, o calendário usa os feriados da filial dele.
+    const feriadosVisiveis = vendedor ? new Set(vendedor.feriados) : feriadosCampanha;
+    const dias = diasUteisDoMes(selecionada.mes, selecionada.ano, feriadosVisiveis);
+
 
     return (
       <div className="space-y-6">
