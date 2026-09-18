@@ -146,7 +146,7 @@ export default function PainelExecutivo({ mes, ano, filialId, refreshKey = 0, st
           .select("valor, devolucao, data, vendedor_id, quantidade_vendas")
           .gte("data", primeiroStr)
           .lte("data", ultimoStr),
-        supabase.from("profiles").select("id, nome, filial_id").eq("ativo", true),
+        supabase.from("profiles").select("id, nome, filial_id, ativo"),
         supabase
           .from("metas")
           .select("vendedor_id, valor_meta, mes, ano")
@@ -167,13 +167,21 @@ export default function PainelExecutivo({ mes, ano, filialId, refreshKey = 0, st
         allowedVendedorIds.add(vid);
       });
 
+      // The heatmap represents every sale in the selected scope, including
+      // historical sales from inactive sellers or accounts with a missing role.
+      const vendaPertenceAoEscopo = (vendedorId: string) => {
+        const profile = profilesById.get(vendedorId);
+        if (!profile) return false;
+        return !filialId || profile.filial_id === filialId;
+      };
+
       // Daily aggregation (scoped)
       const totalDias = ultimoDiaDate.getDate();
       const dailyMap = new Map<number, number>();
       for (let d = 1; d <= totalDias; d++) dailyMap.set(d, 0);
 
       (vendasRes.data || []).forEach((v: any) => {
-        if (!allowedVendedorIds.has(v.vendedor_id)) return;
+        if (!vendaPertenceAoEscopo(v.vendedor_id)) return;
         const d = new Date(v.data + "T00:00:00");
         const dia = d.getDate();
         const val = Number(v.valor) - Number(v.devolucao);
