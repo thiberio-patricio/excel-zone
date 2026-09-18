@@ -356,6 +356,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
           ano={anoSelecionado}
           performance={vendasPorVendedor}
           loadingPerformance={loadingVendedores}
+          refreshKey={painelRefreshKey}
           onVoltar={voltarParaFiliais}
           onReload={() => {
             carregarEstatisticas();

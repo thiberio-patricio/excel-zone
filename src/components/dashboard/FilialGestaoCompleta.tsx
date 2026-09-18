@@ -44,6 +44,7 @@ interface FilialGestaoCompletaProps {
   ano: number;
   performance: VendedorPerformance[];
   loadingPerformance?: boolean;
+  refreshKey?: number;
   onVoltar: () => void;
   onReload?: () => void;
 }
@@ -64,6 +65,7 @@ export default function FilialGestaoCompleta({
   ano,
   performance,
   loadingPerformance,
+  refreshKey = 0,
   onVoltar,
   onReload,
 }: FilialGestaoCompletaProps) {
@@ -146,7 +148,7 @@ export default function FilialGestaoCompleta({
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
-          <PainelExecutivo mes={mes} ano={ano} filialId={filialId} />
+          <PainelExecutivo mes={mes} ano={ano} filialId={filialId} refreshKey={refreshKey} />
 
           <Card>
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
