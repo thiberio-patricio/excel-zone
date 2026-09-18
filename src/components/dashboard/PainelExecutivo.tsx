@@ -20,6 +20,7 @@ import { AreaChart, Area, ResponsiveContainer } from "recharts";
 interface PainelExecutivoProps {
   mes: number;
   ano: number;
+  refreshKey?: number;
   /** When provided, scopes all data (KPIs, heatmap, AI insights) to a single branch. */
   filialId?: string | null;
   /** Optional pre-computed stats (used by Diretor view). Ignored when filialId is set. */
@@ -62,7 +63,7 @@ const shortBRL = (v: number) => {
   return `R$ ${v.toFixed(0)}`;
 };
 
-export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, escopoNome }: PainelExecutivoProps) {
+export default function PainelExecutivo({ mes, ano, filialId, refreshKey = 0, stats: statsProp, escopoNome }: PainelExecutivoProps) {
   const [dailySales, setDailySales] = useState<DailyPoint[]>([]);
   const [vendedores, setVendedores] = useState<VendedorInsight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +87,7 @@ export default function PainelExecutivo({ mes, ano, filialId, stats: statsProp, 
   useEffect(() => {
     carregar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mes, ano, filialId]);
+  }, [mes, ano, filialId, refreshKey]);
 
   useEffect(() => {
     if (!filialId) { setFilialNome(null); return; }
