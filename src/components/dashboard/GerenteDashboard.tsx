@@ -56,6 +56,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
   const [totalVendas, setTotalVendas] = useState(0);
   const [totalMetas, setTotalMetas] = useState(0);
   const [dashboardData, setDashboardData] = useState<any[]>([]);
+  const [painelRefreshKey, setPainelRefreshKey] = useState(0);
 
   const mesAtualDate = new Date().getMonth() + 1;
   const anoAtualDate = new Date().getFullYear();
@@ -83,6 +84,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
     carregarVendedores();
     carregarTotalVendas();
     carregarDadosDashboard();
+    setPainelRefreshKey((current) => current + 1);
   };
 
   // Busca apenas vendedores da filial do gerente logado
@@ -280,6 +282,7 @@ export default function GerenteDashboard({ profile }: GerenteDashboardProps) {
             mes={mesSelecionado}
             ano={anoSelecionado}
             filialId={profile.filial_id ?? null}
+            refreshKey={painelRefreshKey}
           />
 
           <Card className="border-none shadow-lg bg-gradient-to-br from-card to-card/50">

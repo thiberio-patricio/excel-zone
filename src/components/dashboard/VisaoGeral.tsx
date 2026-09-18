@@ -60,6 +60,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
   const [filialSelecionada, setFilialSelecionada] = useState<{ id: string; nome: string } | null>(null);
   const [vendasPorVendedor, setVendasPorVendedor] = useState<VendasVendedor[]>([]);
   const [loadingVendedores, setLoadingVendedores] = useState(false);
+  const [painelRefreshKey, setPainelRefreshKey] = useState(0);
 
   const handleVendedorClick = (data: any) => {
     if (data?.id && onVendedorSelecionado) {
@@ -345,7 +346,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
         </CardContent>
       </Card>
 
-      <PainelExecutivo mes={mesSelecionado} ano={anoSelecionado} stats={stats} />
+      <PainelExecutivo mes={mesSelecionado} ano={anoSelecionado} stats={stats} refreshKey={painelRefreshKey} />
 
       {filialSelecionada ? (
         <FilialGestaoCompleta
@@ -359,6 +360,7 @@ export default function VisaoGeral({ onVendedorSelecionado }: VisaoGeralProps) {
           onReload={() => {
             carregarEstatisticas();
             carregarVendedoresDaFilial(filialSelecionada.id, filialSelecionada.nome);
+            setPainelRefreshKey((current) => current + 1);
           }}
         />
       ) : (
