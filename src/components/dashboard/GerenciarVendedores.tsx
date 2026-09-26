@@ -189,7 +189,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
 
       const { data, error } = await supabase.functions.invoke("create-user-with-role", {
         body: {
-          email,
+          email: email.trim().toLowerCase(),
           password: senha,
           nome,
           role: podeCriarGerente ? cargo : "vendedor",
