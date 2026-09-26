@@ -215,7 +215,16 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
       }, 1000);
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
-      toast.error(error.message || "Erro ao criar usuário");
+      let mensagem = error?.message || "Erro ao criar usuário";
+      if (error?.context instanceof Response) {
+        try {
+          const payload = await error.context.clone().json();
+          if (typeof payload?.error === "string") mensagem = payload.error;
+        } catch {
+          // Mantém a mensagem original quando a resposta não contém JSON.
+        }
+      }
+      toast.error(mensagem);
     }
   };
 
