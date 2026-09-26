@@ -12,7 +12,11 @@ function isValidEmail(email: string): boolean {
 }
 
 function isValidPassword(password: string): boolean {
-  return typeof password === 'string' && password.length >= 6 && password.length <= 72
+  return typeof password === 'string'
+    && password.length >= 8
+    && password.length <= 72
+    && /[A-Za-z]/.test(password)
+    && /[0-9]/.test(password)
 }
 
 function isValidName(nome: string): boolean {
@@ -98,7 +102,7 @@ Deno.serve(async (req) => {
 
     if (!password || !isValidPassword(password)) {
       return new Response(
-        JSON.stringify({ error: 'Senha deve ter entre 6 e 72 caracteres' }),
+        JSON.stringify({ error: 'A senha deve ter entre 8 e 72 caracteres e conter letras e números' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -353,6 +357,8 @@ Deno.serve(async (req) => {
     let clientMsg = 'Erro ao processar usuário. Tente novamente.'
     if (/already been registered|already exists|duplicate key/i.test(rawMsg)) {
       clientMsg = 'Email já cadastrado.'
+    } else if (/weak|pwned|known|password/i.test(rawMsg)) {
+      clientMsg = 'A senha informada é muito comum. Use pelo menos 8 caracteres com letras, números e, de preferência, símbolos.'
     }
     return new Response(
       JSON.stringify({ error: clientMsg }),

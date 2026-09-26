@@ -175,6 +175,11 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
       return;
     }
 
+    if (senha.length < 8 || !/[A-Za-z]/.test(senha) || !/[0-9]/.test(senha)) {
+      toast.error("A senha deve ter pelo menos 8 caracteres, com letras e números");
+      return;
+    }
+
     try {
       const filial = await resolverFilialId();
       if (!filial) {
@@ -460,7 +465,7 @@ export default function GerenciarVendedores({ onUpdate, filialId }: GerenciarVen
                   </div>
                   <div>
                     <Label htmlFor="senha">Senha</Label>
-                    <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Mínimo 6 caracteres" />
+                    <Input id="senha" type="password" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Mínimo 8 caracteres, com letras e números" minLength={8} />
                   </div>
                   <div>
                     <Label htmlFor="foto">Foto do Perfil (opcional)</Label>
