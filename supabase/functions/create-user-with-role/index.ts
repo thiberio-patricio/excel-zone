@@ -200,6 +200,16 @@ Deno.serve(async (req) => {
         )
       }
 
+      // Managers create new sellers only. Existing accounts must be edited through
+      // the dedicated management flow so this endpoint cannot reassign or take over users.
+      if (isCallerGerente && !isCallerDiretor) {
+        console.error('Gerente attempted to reuse an existing email', { caller: caller.id, target: existingUser.id })
+        return new Response(
+          JSON.stringify({ error: 'Este email já está cadastrado. Informe outro email para o novo vendedor.' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
       userId = existingUser.id
 
       // Fetch target user's existing roles and profile to prevent account takeover.
