@@ -154,26 +154,32 @@ export default function PainelExecutivo({ mes, ano, filialId, refreshKey = 0, st
         supabase.from("user_roles").select("user_id, role").eq("role", "vendedor"),
       ]);
 
-      // Determine which vendedores are in scope (role=vendedor, filtered by filial if provided)
+      // Determine which vendedores are in scope (role=vendedor, filtered by filial if provided).
+      // Inactive sellers remain in historical figures only when they have sales in the period.
       const profilesById = new Map<string, any>();
       (profilesRes.data || []).forEach((p: any) => profilesById.set(p.id, p));
 
       const roleVendedorIds = new Set((rolesRes.data || []).map((r: any) => r.user_id));
-      const allowedVendedorIds = new Set<string>();
+      const scopedVendedorIds = new Set<string>();
       roleVendedorIds.forEach((vid) => {
-        const p = profilesById.get(vid);
-        if (!p) return;
-        if (filialId && p.filial_id !== filialId) return;
-        allowedVendedorIds.add(vid);
+        const profile = profilesById.get(vid);
+        if (!profile) return;
+        if (filialId && profile.filial_id !== filialId) return;
+        scopedVendedorIds.add(vid);
       });
 
-      // The heatmap represents every sale in the selected scope, including
-      // historical sales from inactive sellers or accounts with a missing role.
-      const vendaPertenceAoEscopo = (vendedorId: string) => {
-        const profile = profilesById.get(vendedorId);
-        if (!profile) return false;
-        return !filialId || profile.filial_id === filialId;
-      };
+      const vendedoresComVendas = new Set(
+        (vendasRes.data || [])
+          .map((v: any) => v.vendedor_id)
+          .filter((vid: string) => scopedVendedorIds.has(vid))
+      );
+      const allowedVendedorIds = new Set<string>();
+      scopedVendedorIds.forEach((vid) => {
+        const profile = profilesById.get(vid);
+        if (profile?.ativo !== false || vendedoresComVendas.has(vid)) {
+          allowedVendedorIds.add(vid);
+        }
+      });
 
       // Daily aggregation (scoped)
       const totalDias = ultimoDiaDate.getDate();
@@ -181,7 +187,7 @@ export default function PainelExecutivo({ mes, ano, filialId, refreshKey = 0, st
       for (let d = 1; d <= totalDias; d++) dailyMap.set(d, 0);
 
       (vendasRes.data || []).forEach((v: any) => {
-        if (!vendaPertenceAoEscopo(v.vendedor_id)) return;
+        if (!allowedVendedorIds.has(v.vendedor_id)) return;
         const d = new Date(v.data + "T00:00:00");
         const dia = d.getDate();
         const val = Number(v.valor) - Number(v.devolucao);
