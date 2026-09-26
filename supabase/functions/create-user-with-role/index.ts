@@ -91,9 +91,10 @@ Deno.serve(async (req) => {
     // Parse and validate input
     const body = await req.json()
     const { email, password, nome, role, filial_id, foto_url } = body
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : ''
 
     // Input validation
-    if (!email || !isValidEmail(email)) {
+    if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
       return new Response(
         JSON.stringify({ error: 'Email inválido ou muito longo (máx. 255 caracteres)' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -184,7 +185,9 @@ Deno.serve(async (req) => {
     const { data: existingUsers, error: listErr } = await supabaseAdmin.auth.admin.listUsers()
     if (listErr) throw listErr
 
-    const existingUser = existingUsers?.users?.find((u) => u.email === email)
+    const existingUser = existingUsers?.users?.find(
+      (u) => u.email?.trim().toLowerCase() === normalizedEmail
+    )
 
     let userId: string
 
@@ -238,11 +241,19 @@ Deno.serve(async (req) => {
 
         if (targetProfileErr) throw targetProfileErr
 
-        if (!targetProfile || targetProfile.filial_id !== effectiveFilialId) {
+        if (!targetProfile) {
+          console.error('Gerente attempted to reuse an account without a profile', { caller: caller.id, target: userId })
+          return new Response(
+            JSON.stringify({ error: 'Este email já está cadastrado. Informe outro email para o novo vendedor.' }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+
+        if (targetProfile.filial_id !== effectiveFilialId) {
           console.error('Gerente attempted cross-filial modification', { caller: caller.id, target: userId })
           return new Response(
-            JSON.stringify({ error: 'Não é permitido modificar usuários de outra filial.' }),
-            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: 'Este email já está cadastrado em outra filial. Informe outro email.' }),
+            { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           )
         }
       }
@@ -261,7 +272,7 @@ Deno.serve(async (req) => {
     } else {
       // Create user with admin client
       const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-        email,
+        email: normalizedEmail,
         password,
         email_confirm: true,
         user_metadata: {
@@ -294,7 +305,7 @@ Deno.serve(async (req) => {
         .from('profiles')
         .update({
           nome: nome || 'Usuário',
-          email,
+          email: normalizedEmail,
           filial_id: effectiveFilialId,
           foto_url: foto_url || null,
         })
@@ -310,7 +321,7 @@ Deno.serve(async (req) => {
         .insert({
           id: userId,
           nome: nome || 'Usuário',
-          email,
+          email: normalizedEmail,
           filial_id: effectiveFilialId,
           foto_url: foto_url || null,
           must_change_password: true,
